@@ -125,6 +125,7 @@ class InGameUi(object):
             self._draw_calls(canvas, self.calls[n], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
         self._draw_hand(canvas, canvas.get_width() / 2, 7 * canvas.get_height() / 8, hand_tiles, 22)
+        self._draw_center_console(canvas, [0, 1, 2, 3], [72300, 8200, 11500, 23200], [True, False, False, True])
 
         # Debug lines
         pygame.draw.line(canvas, (0, 0, 0), (0, canvas.get_height() / 2), (canvas.get_width(), canvas.get_height() / 2))
@@ -149,17 +150,17 @@ class InGameUi(object):
         x = canvas.get_width() - 3 * tile_width / 2
         y = canvas.get_height() - 3 * tile_height / 2
         for call in calls:
-            if position == 0:
-                rotation = 0
-                tile_id, called, call_type = call
-                if call_type == _CallType.NUKE:
-                    num_tiles = 1
-                elif call_type in [_CallType.DAIMINKAN, _CallType.ANKAN]:
-                    num_tiles = 4
-                else:
-                    num_tiles = 3
-                for idx in range(num_tiles):
-                    if call_type != _CallType.NUKE and idx == called:
+            rotation = 0
+            tile_id, called, call_type = call
+            if call_type == _CallType.NUKE:
+                num_tiles = 1
+            elif call_type in [_CallType.DAIMINKAN, _CallType.ANKAN]:
+                num_tiles = 4
+            else:
+                num_tiles = 3
+            for idx in range(num_tiles):
+                if call_type != _CallType.NUKE and idx == called:
+                    if position == 0:
                         x -= (tile_height - tile_width)
                         y += (tile_height - tile_width)
                         self._draw_tile(canvas, tile_id, x, y, True, rotation + 90)
@@ -167,18 +168,18 @@ class InGameUi(object):
                             self._draw_tile(canvas, tile_id, x, y - tile_width, True, rotation + 90)
                         x -= tile_width
                         y -= (tile_height - tile_width)
-                    else:
+                else:
+                    if position == 0:
                         self._draw_tile(canvas, tile_id, x, y, True, rotation)
                         x -= tile_width
                     if call_type == _CallType.NUKE:
                         myfont = pygame.font.SysFont("Monospace", 13)
                         myfont.set_bold(True)
                         nuke_text = myfont.render("{}x".format(called), 1, (0, 0, 0))
-                        tx = x + tile_width + nuke_text.get_width() / 4
-                        ty = y + tile_height
-                        canvas.blit(nuke_text, (tx, ty))
-            else:
-                pass
+                        if position == 0:
+                            tx = x + tile_width + nuke_text.get_width() / 4
+                            ty = y + tile_height
+                            canvas.blit(nuke_text, (tx, ty))
 
     def _draw_discards(self, canvas, tiles, position):
         x_count = 0
@@ -212,3 +213,26 @@ class InGameUi(object):
             if x_count == 6 and y_count < 2:
                 x_count = 0
                 y_count += 1
+
+    def _draw_center_console(self, canvas, positions, scores, riichi_states):
+        cx = canvas.get_width() / 2
+        cy = canvas.get_height() / 2
+        score_font = pygame.font.SysFont("Arial", 16)
+        seat_wind_font = pygame.font.SysFont("Arial", 40)
+        for idx in range(len(scores)):
+            score_text = score_font.render(str(scores[idx]), 1, (0, 0, 0))
+            seat_wind_text = seat_wind_font.render(self._wind_ordinal_to_string(positions[idx]), 1, (0, 0, 0))
+            if positions[idx] == 0:
+                canvas.blit(seat_wind_text, (cx - seat_wind_text.get_width() / 2, cy))
+                canvas.blit(score_text, (cx - score_text.get_width() / 2, cy + 50))
+
+    @staticmethod
+    def _wind_ordinal_to_string(ordinal):
+        if ordinal == 0:
+            return "東"
+        if ordinal == 1:
+            return "南"
+        if ordinal == 2:
+            return "西"
+        else:
+            return "北"

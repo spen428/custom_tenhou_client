@@ -4,6 +4,7 @@ import pygame
 import os
 import socket
 from tenhou.gui.main_menu import MainMenu
+from tenhou.gui.in_game_ui import InGameUi
 from tenhou.client import TenhouClient
 from utils.settings_handler import settings
 def get_resource_dir():
@@ -32,7 +33,7 @@ class Gui(object):
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    mainloop = False
+                    self.running = False
                 elif event.type == pygame.KEYDOWN:
                     pass
                 elif event.type == pygame.MOUSEBUTTONUP:
@@ -77,3 +78,18 @@ class Gui(object):
             print("Successfully logged in as {0}".format(settings.USER_ID))
         else:
             print("Authentication failure")
+        return success
+
+    def log_out(self):
+        self.tenhou.end_game()
+        self.tenhou = None
+        return True
+
+    def join_lobby(self):
+        pass
+
+    def start_game(self):
+        pass
+
+    def ui_test(self):
+        self.current_menu = InGameUi(self)

@@ -7,6 +7,7 @@ import tenhou.gui.main
 from random import randint
 import math
 
+
 def rotate(origin, point, angle):
     """
     Rotate a point counterclockwise by a given angle around a given origin.
@@ -19,6 +20,20 @@ def rotate(origin, point, angle):
     qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
     qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
     return qx, qy
+
+
+class _CallType(object):
+    NUKE = 0
+    CHII = 1
+    PON = 2
+    ANKAN = 3
+    SHOUMINKAN = 4
+    DAIMINKAN = 5
+
+    @staticmethod
+    def is_kantsu(call_type):
+        return call_type in [_CallType.ANKAN, _CallType.DAIMINKAN, _CallType.SHOUMINKAN]
+
 
 class InGameUi(object):
     def __init__(self, client):
@@ -61,6 +76,13 @@ class InGameUi(object):
         self.tiles38.append(img)
         # Other
         self.discards = [[randint(0, len(self.tiles38) - 2) for _ in range(21)] for _ in range(4)]
+        self.calls = []
+        for _ in range(4):
+            player_calls = [(randint(0, len(self.tiles38) - 2), 2, _CallType.SHOUMINKAN),
+                            (len(self.tiles38) - 8, 4, _CallType.NUKE),
+                            (randint(0, len(self.tiles38) - 2), 0, _CallType.DAIMINKAN),
+                            (randint(0, len(self.tiles38) - 2), 0, _CallType.PON)]
+            self.calls.append(player_calls)
         self.tile_rects = []
         self.step = 0
 
@@ -91,9 +113,6 @@ class InGameUi(object):
     def draw_to_canvas(self, canvas):
         # Clear storage
         self.tile_rects = []
-        self.step += 1
-        if self.step > 13:
-            self.step = 0
 
         # draw footer text
         footer_font = pygame.font.SysFont("Arial", 13)
@@ -102,9 +121,10 @@ class InGameUi(object):
                                   canvas.get_height() - 25))
 
         for n in range(4):
-            self._draw_discards(canvas, self.discards[n][0:self.step], n)
+            self._draw_discards(canvas, self.discards[n], n)
+            self._draw_calls(canvas, self.calls[n], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
-        self._draw_hand(canvas, canvas.get_width() / 2, 7 * canvas.get_height() / 8, hand_tiles[0:self.step], 22)
+        self._draw_hand(canvas, canvas.get_width() / 2, 7 * canvas.get_height() / 8, hand_tiles, 22)
 
         # Debug lines
         pygame.draw.line(canvas, (0, 0, 0), (0, canvas.get_height() / 2), (canvas.get_width(), canvas.get_height() / 2))
@@ -121,6 +141,44 @@ class InGameUi(object):
             tile_image = pygame.transform.rotate(tile_image, rotation)
         canvas.blit(tile_image, (x, y))
         self.tile_rects.append(pygame.Rect(x, y, tile_image.get_width(), tile_image.get_height()))
+
+    def _draw_calls(self, canvas, calls, position):
+        a_tile = self._get_tile_image(0, True)
+        tile_width = a_tile.get_width()
+        tile_height = a_tile.get_height()
+        x = canvas.get_width() - 3 * tile_width / 2
+        y = canvas.get_height() - 3 * tile_height / 2
+        for call in calls:
+            if position == 0:
+                rotation = 0
+                tile_id, called, call_type = call
+                if call_type == _CallType.NUKE:
+                    num_tiles = 1
+                elif call_type in [_CallType.DAIMINKAN, _CallType.ANKAN]:
+                    num_tiles = 4
+                else:
+                    num_tiles = 3
+                for idx in range(num_tiles):
+                    if call_type != _CallType.NUKE and idx == called:
+                        x -= (tile_height - tile_width)
+                        y += (tile_height - tile_width)
+                        self._draw_tile(canvas, tile_id, x, y, True, rotation + 90)
+                        if call_type == _CallType.SHOUMINKAN:
+                            self._draw_tile(canvas, tile_id, x, y - tile_width, True, rotation + 90)
+                        x -= tile_width
+                        y -= (tile_height - tile_width)
+                    else:
+                        self._draw_tile(canvas, tile_id, x, y, True, rotation)
+                        x -= tile_width
+                    if call_type == _CallType.NUKE:
+                        myfont = pygame.font.SysFont("Monospace", 13)
+                        myfont.set_bold(True)
+                        nuke_text = myfont.render("{}x".format(called), 1, (0, 0, 0))
+                        tx = x + tile_width + nuke_text.get_width() / 4
+                        ty = y + tile_height
+                        canvas.blit(nuke_text, (tx, ty))
+            else:
+                pass
 
     def _draw_discards(self, canvas, tiles, position):
         x_count = 0

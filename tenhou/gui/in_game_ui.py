@@ -75,7 +75,7 @@ class InGameUi(object):
             return self.tiles38[tile_id]
         return self.tiles64[tile_id]
 
-    def _draw_hand(self, canvas, tiles, cx, cy):
+    def _draw_hand(self, canvas, cx, cy, tiles, tsumohai=None):
         tile_width = self._get_tile_image(0).get_width()
         tile_height = self._get_tile_image(0).get_height()
         total_width = tile_width * len(tiles)
@@ -84,12 +84,15 @@ class InGameUi(object):
         for tile in tiles:
             self._draw_tile(canvas, tile, x, y)
             x += tile_width
+        if tsumohai is not None:
+            x += 0.5 * tile_width
+            self._draw_tile(canvas, tsumohai, x, y)
 
     def draw_to_canvas(self, canvas):
         # Clear storage
         self.tile_rects = []
         self.step += 1
-        if self.step > len(self.discards[0]):
+        if self.step > 13:
             self.step = 0
 
         # draw footer text
@@ -101,7 +104,7 @@ class InGameUi(object):
         for n in range(4):
             self._draw_discards(canvas, self.discards[n][0:self.step], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
-        self._draw_hand(canvas, hand_tiles, canvas.get_width() / 2, 7 * canvas.get_height() / 8)
+        self._draw_hand(canvas, canvas.get_width() / 2, 7 * canvas.get_height() / 8, hand_tiles[0:self.step], 22)
 
         # Debug lines
         pygame.draw.line(canvas, (0, 0, 0), (0, canvas.get_height() / 2), (canvas.get_width(), canvas.get_height() / 2))

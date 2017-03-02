@@ -13,7 +13,7 @@ def get_resource_dir():
 
 class Gui(object):
 
-    def __init__(self, width=1280, height=720, framerate_limit=12):
+    def __init__(self, width=1280, height=720, framerate_limit=60):
         pygame.init()
         self.tenhou = None
         self.screen = pygame.display.set_mode((width, height))

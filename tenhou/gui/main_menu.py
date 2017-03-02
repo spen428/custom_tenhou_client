@@ -24,7 +24,8 @@ class MainMenu(object):
         self.client = client
         self.tenhou_logo = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))
         self.login_buttons = [Button("Log in", self._log_in), Button("Play anonymously", self._play_anonymously),
-                              Button("Exit game", self._exit_game), Button("InGameUi Test", self._ui_test)]
+                              Button("Open replay", self._open_replay), Button("Exit game", self._exit_game),
+                              Button("InGameUi Test", self._ui_test)]
         self.lobby_buttons = [Button("Join lobby", self._join_lobby),
                               Button("Log out", self._log_out)]
         self.status = _Status.NOT_LOGGED_IN
@@ -38,9 +39,11 @@ class MainMenu(object):
     def _log_in(self):
         pass
 
+    def _open_replay(self):
+        pass
+
     def _log_out(self):
-        success = self.client.log_out()
-        if success:
+        if self.client.log_out():
             self.status = _Status.NOT_LOGGED_IN
 
     def _join_lobby(self):
@@ -48,8 +51,7 @@ class MainMenu(object):
 
     def _play_anonymously(self):
         self.status = _Status.LOGGING_IN
-        success = self.client.log_in()
-        if success:
+        if self.client.log_in():
             self.status = _Status.LOGGED_IN
         else:
             self.status = _Status.NOT_LOGGED_IN

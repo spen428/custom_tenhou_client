@@ -3,7 +3,7 @@ import os
 import pygame
 
 import tenhou.gui.main
-from tenhou.gui.screens import Screen
+from tenhou.gui.screens import AbstractScreen
 
 
 class _MainMenuButton(object):
@@ -20,7 +20,7 @@ class _LoginStatus(object):
     LOGGED_IN = 2
 
 
-class MainMenuScreen(Screen):
+class MainMenuAbstractScreen(AbstractScreen):
     def __init__(self, client):
         self.client = client
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))

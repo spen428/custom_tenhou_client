@@ -5,7 +5,7 @@ from random import randint
 import pygame
 
 import tenhou.gui.main
-from tenhou.gui.screens import Screen
+from tenhou.gui.screens import AbstractScreen
 
 
 def rotate(origin, point, degrees):
@@ -32,11 +32,18 @@ class _CallType(object):
 
 def _load_64px_tile_sprites():
     tiles = []
+    # suited tiles
     for suit in ["bamboo", "man", "pin"]:
         for number in range(1, 10):
             name = "{}{}.png".format(suit, number)
             img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", name))
             tiles.append(img)
+        # dora fives
+        img = pygame.image.load(
+            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "red-dora-" + suit + "5.png"))
+        tiles.append(img)
+
+    # honour tiles
     for wind in ["east", "south", "west", "north"]:
         img = pygame.image.load(
             os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "wind-" + wind + ".png"))
@@ -45,10 +52,8 @@ def _load_64px_tile_sprites():
         img = pygame.image.load(
             os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "dragon-" + dragon + ".png"))
         tiles.append(img)
-    for suit in ["bamboo", "man", "pin"]:
-        img = pygame.image.load(
-            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "red-dora-" + suit + "5.png"))
-        tiles.append(img)
+
+    # back of tile
     img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "face-down.png"))
     tiles.append(img)
     return tiles
@@ -56,23 +61,28 @@ def _load_64px_tile_sprites():
 
 def _load_38px_tile_sprites():
     tiles = []
+    # suited tiles
     for suit in "SMP":
         for number in range(1, 10):
             name = "{}{}.gif".format(suit, number)
             img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", name))
             tiles.append(img)
+        # dora fives
+        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", suit + "5d.gif"))
+        tiles.append(img)
+
+    # honour tiles
     for tile in ["E", "S", "W", "N", "D1", "D2", "D3"]:
         img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", tile + ".gif"))
         tiles.append(img)
-    for suit in "SMP":
-        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", suit + "5d.gif"))
-        tiles.append(img)
+
+    # back of tile
     img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", "back.gif"))
     tiles.append(img)
     return tiles
 
 
-class InGameScreen(Screen):
+class InGameAbstractScreen(AbstractScreen):
     def __init__(self, client):
         self.client = client
         # TILES 64
@@ -90,12 +100,6 @@ class InGameScreen(Screen):
             self.calls.append(player_calls)
         self.tile_rects = []
         self.step = 0
-
-    def on_mouse_up(self):
-        pass
-
-    def on_mouse_motion(self):
-        pass
 
     def _get_tile_image(self, tile_id, small=False):
         if small:
@@ -115,6 +119,14 @@ class InGameScreen(Screen):
         if tsumohai is not None:
             x += 0.5 * tile_width
             self._draw_tile(canvas, tsumohai, (x, y))
+
+    # Superclass Methods #
+
+    def on_mouse_up(self):
+        pass
+
+    def on_mouse_motion(self):
+        pass
 
     def draw_to_canvas(self, canvas):
         # Clear storage
@@ -225,13 +237,13 @@ class InGameScreen(Screen):
     @staticmethod
     def _wind_ordinal_to_string(ordinal):
         if ordinal == 0:
-            return "東"
+            return u"東"
         if ordinal == 1:
-            return "南"
+            return u"南"
         if ordinal == 2:
-            return "西"
+            return u"西"
         else:
-            return "北"
+            return u"北"
 
     @staticmethod
     def _position_to_angle_degrees(position):

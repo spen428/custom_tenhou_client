@@ -6,8 +6,8 @@ import socket
 import pygame
 
 from tenhou.client import TenhouClient
-from tenhou.gui.screens.in_game_ui import InGameScreen
-from tenhou.gui.screens.main_menu import MainMenuScreen
+from tenhou.gui.screens.in_game_ui import InGameAbstractScreen
+from tenhou.gui.screens.main_menu import MainMenuAbstractScreen
 from utils.settings_handler import settings
 
 
@@ -16,7 +16,7 @@ def get_resource_dir():
 
 
 class Gui(object):
-    def __init__(self, width=1280, height=720, framerate_limit=10000, resizable=True):
+    def __init__(self, width=1280, height=720, framerate_limit=2000, resizable=True):
         pygame.init()
         self.tenhou = None
         if resizable:
@@ -24,10 +24,9 @@ class Gui(object):
         else:
             self.screen = pygame.display.set_mode((width, height))
         self.canvas = pygame.Surface(self.screen.get_size())
-
         self.clock = pygame.time.Clock()
         self.framerate_limit = framerate_limit
-        self.current_screen = MainMenuScreen(self)
+        self.current_screen = MainMenuAbstractScreen(self)
         self.running = False
 
     def run(self):
@@ -105,4 +104,4 @@ class Gui(object):
         pass
 
     def ui_test(self):
-        self.current_screen = InGameScreen(self)
+        self.current_screen = InGameAbstractScreen(self)

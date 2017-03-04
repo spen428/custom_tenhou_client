@@ -62,7 +62,7 @@ class Gui(object):
             self.current_screen.draw_to_canvas(self.canvas)
 
             # Update Pygame display.
-            self.canvas = self.canvas.convert()
+            # self.canvas = self.canvas.convert()
             self.screen.blit(self.canvas, (0, 0))
             pygame.display.flip()
 

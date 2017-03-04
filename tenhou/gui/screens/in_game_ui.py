@@ -128,6 +128,9 @@ class InGameAbstractScreen(AbstractScreen):
     def on_mouse_motion(self):
         pass
 
+    def on_window_resized(self):
+        pass
+
     def draw_to_canvas(self, canvas):
         # Clear storage
         self.tile_rects = []

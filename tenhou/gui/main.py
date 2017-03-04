@@ -16,7 +16,6 @@ def get_resource_dir():
 
 
 class Gui(object):
-
     def __init__(self, width=1280, height=720, framerate_limit=10000, resizable=True):
         pygame.init()
         self.tenhou = None
@@ -49,9 +48,9 @@ class Gui(object):
                 elif event.type == pygame.MOUSEMOTION:
                     self.on_mouse_motion()
                 elif event.type == pygame.VIDEORESIZE:
-                    print("resize")
+                    self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                    self.canvas = pygame.Surface(self.screen.get_size())
                     self.on_window_resized()
-
 
             # Print framerate and playtime in titlebar.
             text = "Dave's Tenhou client | FPS: {0:.2f}".format(self.clock.get_fps())

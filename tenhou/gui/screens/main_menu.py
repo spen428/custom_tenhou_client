@@ -102,7 +102,6 @@ class MainMenuScreen(Screen):
     def draw_to_canvas(self, canvas):
         # update window size
         if self.resized:
-            print("updating sizes")
             self.canvas_width = canvas.get_width()
             self.canvas_height = canvas.get_height()
             self.half_canvas_width = self.canvas_width / 2

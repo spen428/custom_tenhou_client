@@ -14,5 +14,9 @@ class Screen:
         pass
 
     @abstractmethod
+    def on_window_resized(self):
+        pass
+
+    @abstractmethod
     def draw_to_canvas(self, canvas):
         pass

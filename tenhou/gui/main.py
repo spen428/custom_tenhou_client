@@ -17,10 +17,13 @@ def get_resource_dir():
 
 class Gui(object):
 
-    def __init__(self, width=1280, height=720, framerate_limit=60):
+    def __init__(self, width=1280, height=720, framerate_limit=10000, resizable=True):
         pygame.init()
         self.tenhou = None
-        self.screen = pygame.display.set_mode((width, height))
+        if resizable:
+            self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+        else:
+            self.screen = pygame.display.set_mode((width, height))
         self.canvas = pygame.Surface(self.screen.get_size())
 
         self.clock = pygame.time.Clock()
@@ -32,8 +35,9 @@ class Gui(object):
         self.running = True
 
         while self.running:
-            # Impose framerate limit
-            self.clock.tick(self.framerate_limit)
+            if self.framerate_limit > 0:
+                # Impose framerate limit
+                self.clock.tick(self.framerate_limit)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -44,6 +48,9 @@ class Gui(object):
                     self.on_mouse_up()
                 elif event.type == pygame.MOUSEMOTION:
                     self.on_mouse_motion()
+                elif event.type == pygame.VIDEORESIZE:
+                    print("resize")
+                    self.on_window_resized()
 
 
             # Print framerate and playtime in titlebar.
@@ -69,6 +76,9 @@ class Gui(object):
 
     def on_mouse_motion(self):
         self.current_screen.on_mouse_motion()
+
+    def on_window_resized(self):
+        self.current_screen.on_window_resized()
 
     def log_in(self):
         if self.tenhou is not None:

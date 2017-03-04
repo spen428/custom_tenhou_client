@@ -52,7 +52,7 @@ class Gui(object):
                     self.on_window_resized()
 
             # Print framerate and playtime in titlebar.
-            text = "Dave's Tenhou client | FPS: {0:.2f}".format(self.clock.get_fps())
+            text = "Lykat's custom Tenhou client | FPS: {0:.2f}".format(self.clock.get_fps())
             pygame.display.set_caption(text)
 
             # Draw game

@@ -45,8 +45,7 @@ def _load_64px_tile_sprites():
 
     # honour tiles
     for wind in ["east", "south", "west", "north"]:
-        img = pygame.image.load(
-            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "wind-" + wind + ".png"))
+        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "wind-" + wind + ".png"))
         tiles.append(img)
     for dragon in ["chun", "haku", "hatsu"]:
         img = pygame.image.load(
@@ -82,6 +81,30 @@ def _load_38px_tile_sprites():
     return tiles
 
 
+def _wind_ordinal_to_string(ordinal):
+    if ordinal == 0:
+        return u"東"
+    if ordinal == 1:
+        return u"南"
+    if ordinal == 2:
+        return u"西"
+    else:
+        return u"北"
+
+
+def _position_to_angle_degrees(position):
+    if position == 0:  # 自分
+        return 0
+    elif position == 1:  # 下家
+        return -90
+    elif position == 2:  # 対面
+        return -180
+    elif position == 3:  # 上家
+        return -270
+    else:
+        raise ValueError("Position must be 0-3")
+
+
 class InGameAbstractScreen(AbstractScreen):
     def __init__(self, client):
         self.client = client
@@ -101,26 +124,14 @@ class InGameAbstractScreen(AbstractScreen):
         self.tile_rects = []
         self.step = 0
 
+    # Private methods #
+
     def _get_tile_image(self, tile_id, small=False):
         if small:
             return self.tiles_38px[tile_id]
         return self.tiles_64px[tile_id]
 
-    def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
-        cx, cy = center_pos
-        tile_width = self._get_tile_image(0).get_width()
-        tile_height = self._get_tile_image(0).get_height()
-        total_width = tile_width * len(tiles)
-        x = cx - (total_width / 2)
-        y = cy - (tile_height / 2)
-        for tile in tiles:
-            self._draw_tile(canvas, tile, (x, y))
-            x += tile_width
-        if tsumohai is not None:
-            x += 0.5 * tile_width
-            self._draw_tile(canvas, tsumohai, (x, y))
-
-    # Superclass Methods #
+    # Superclass methods #
 
     def on_mouse_up(self):
         pass
@@ -138,8 +149,7 @@ class InGameAbstractScreen(AbstractScreen):
         # draw footer text
         footer_font = pygame.font.SysFont("Arial", 13)
         footer_text = footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
-        canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2,
-                                  canvas.get_height() - 25))
+        canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
 
         for n in range(4):
             self._draw_discards(canvas, self.discards[n], n)
@@ -154,8 +164,23 @@ class InGameAbstractScreen(AbstractScreen):
         tile_width = self._get_tile_image(0, True).get_width()
         pygame.draw.rect(canvas, (0, 0, 0),
                          pygame.Rect(canvas.get_width() / 2 - tile_width * 3, canvas.get_height() / 2 - tile_width * 3,
-                                     tile_width * 6,
-                                     tile_width * 6), 1)
+                                     tile_width * 6, tile_width * 6), 1)
+
+    # Drawing methods #
+
+    def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
+        cx, cy = center_pos
+        tile_width = self._get_tile_image(0).get_width()
+        tile_height = self._get_tile_image(0).get_height()
+        total_width = tile_width * len(tiles)
+        x = cx - (total_width / 2)
+        y = cy - (tile_height / 2)
+        for tile in tiles:
+            self._draw_tile(canvas, tile, (x, y))
+            x += tile_width
+        if tsumohai is not None:
+            x += 0.5 * tile_width
+            self._draw_tile(canvas, tsumohai, (x, y))
 
     def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0):
         x, y = pos
@@ -174,7 +199,7 @@ class InGameAbstractScreen(AbstractScreen):
         x = canvas.get_width() - 3 * tile_width / 2
         y = canvas.get_height() - 3 * tile_height / 2
         for call in calls:
-            rotation = self._position_to_angle_degrees(position)
+            rotation = _position_to_angle_degrees(position)
             tile_id, called, call_type = call
             if call_type == _CallType.NUKE:
                 num_tiles = 1
@@ -217,7 +242,7 @@ class InGameAbstractScreen(AbstractScreen):
         for tile in tiles:
             x = cx + (x_count - 3) * tile_width
             y = cy + y_count * tile_height + 3.5 * tile_width
-            rotation = self._position_to_angle_degrees(position)
+            rotation = _position_to_angle_degrees(position)
             pos = rotate((cx, cy), (x, y), rotation)
             self._draw_tile(canvas, tile, pos, True, rotation)
             x_count += 1
@@ -232,31 +257,7 @@ class InGameAbstractScreen(AbstractScreen):
         seat_wind_font = pygame.font.SysFont("Arial", 40)
         for idx in range(len(scores)):
             score_text = score_font.render(str(scores[idx]), 1, (0, 0, 0))
-            seat_wind_text = seat_wind_font.render(self._wind_ordinal_to_string(positions[idx]), 1, (0, 0, 0))
+            seat_wind_text = seat_wind_font.render(_wind_ordinal_to_string(positions[idx]), 1, (0, 0, 0))
             if positions[idx] == 0:
                 canvas.blit(seat_wind_text, (cx - seat_wind_text.get_width() / 2, cy))
                 canvas.blit(score_text, (cx - score_text.get_width() / 2, cy + 50))
-
-    @staticmethod
-    def _wind_ordinal_to_string(ordinal):
-        if ordinal == 0:
-            return u"東"
-        if ordinal == 1:
-            return u"南"
-        if ordinal == 2:
-            return u"西"
-        else:
-            return u"北"
-
-    @staticmethod
-    def _position_to_angle_degrees(position):
-        if position == 0:  # 自分
-            return 0
-        elif position == 1:  # 下家
-            return -90
-        elif position == 2:  # 対面
-            return -180
-        elif position == 3:  # 上家
-            return -270
-        else:
-            raise ValueError("Position must be 0-3")

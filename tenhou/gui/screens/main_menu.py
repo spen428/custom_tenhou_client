@@ -3,9 +3,10 @@ import os
 import pygame
 
 import tenhou.gui.main
+from tenhou.gui.screens import Screen
 
 
-class Button(object):
+class _MainMenuButton(object):
     def __init__(self, text, on_click=None):
         self.text = text
         self.on_click = on_click
@@ -13,22 +14,26 @@ class Button(object):
         self.rect = None
 
 
-class _Status(object):
+class _LoginStatus(object):
     NOT_LOGGED_IN = 0
     LOGGING_IN = 1
     LOGGED_IN = 2
 
 
-class MainMenu(object):
+class MainMenuScreen(Screen):
     def __init__(self, client):
         self.client = client
-        self.tenhou_logo = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))
-        self.login_buttons = [Button("Log in", self._log_in), Button("Play anonymously", self._play_anonymously),
-                              Button("Open replay", self._open_replay), Button("Exit game", self._exit_game),
-                              Button("InGameUi Test", self._ui_test)]
-        self.lobby_buttons = [Button("Join lobby", self._join_lobby),
-                              Button("Log out", self._log_out)]
-        self.status = _Status.NOT_LOGGED_IN
+        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))
+        self.login_buttons = [_MainMenuButton("Log in", self._log_in),
+                              _MainMenuButton("Play anonymously", self._play_anonymously),
+                              _MainMenuButton("Open replay", self._open_replay),
+                              _MainMenuButton("Exit game", self._exit_game),
+                              _MainMenuButton("InGameUi Test", self._ui_test)]
+        self.lobby_buttons = [_MainMenuButton("Join lobby", self._join_lobby),
+                              _MainMenuButton("Log out", self._log_out)]
+        self.status = _LoginStatus.NOT_LOGGED_IN
+
+    # Private Methods #
 
     def _exit_game(self):
         self.client.running = False
@@ -44,17 +49,25 @@ class MainMenu(object):
 
     def _log_out(self):
         if self.client.log_out():
-            self.status = _Status.NOT_LOGGED_IN
+            self.status = _LoginStatus.NOT_LOGGED_IN
 
     def _join_lobby(self):
         self.client.join_lobby()
 
     def _play_anonymously(self):
-        self.status = _Status.LOGGING_IN
+        self.status = _LoginStatus.LOGGING_IN
         if self.client.log_in():
-            self.status = _Status.LOGGED_IN
+            self.status = _LoginStatus.LOGGED_IN
         else:
-            self.status = _Status.NOT_LOGGED_IN
+            self.status = _LoginStatus.NOT_LOGGED_IN
+
+    def _get_buttons(self):
+        if self.status in [_LoginStatus.NOT_LOGGED_IN, _LoginStatus.LOGGING_IN]:
+            return self.login_buttons
+        elif self.status is _LoginStatus.LOGGED_IN:
+            return self.lobby_buttons
+
+    # Superclass methods #
 
     def on_mouse_up(self):
         pos = pygame.mouse.get_pos()
@@ -70,27 +83,20 @@ class MainMenu(object):
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 btn.hover = True
 
-    def _get_buttons(self):
-        if self.status in [_Status.NOT_LOGGED_IN, _Status.LOGGING_IN]:
-            return self.login_buttons
-        elif self.status is _Status.LOGGED_IN:
-            return self.lobby_buttons
-
     def draw_to_canvas(self, canvas):
-        # draw title
-        x = canvas.get_width() / 2 - self.tenhou_logo.get_width() / 2
+        # draw logo
+        x = canvas.get_width() / 2 - self.logo_image.get_width() / 2
         y = 25
-        canvas.blit(self.tenhou_logo, (x, y))
+        canvas.blit(self.logo_image, (x, y))
 
         # draw footer text
         footer_font = pygame.font.SysFont("Arial", 13)
         footer_text = footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
-        canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2,
-                                  canvas.get_height() - 25))
+        canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
 
         # draw buttons
-        btn_color_normal = (255, 255, 255)
-        btn_color_hover = (255, 255, 100)
+        btn_color_normal = (255, 255, 255)  # White
+        btn_color_hover = (255, 255, 100)  # Pale yellow
         btn_width = 200
         btn_height = 50
         num_btns = len(self._get_buttons())

@@ -1,11 +1,11 @@
+import math
 import os
+from random import randint
 
 import pygame
 
 import tenhou.gui.main
-import tenhou.gui.main
-from random import randint
-import math
+from tenhou.gui.screens import Screen
 
 
 def rotate(origin, point, degrees):
@@ -30,53 +30,63 @@ class _CallType(object):
         return call_type in [_CallType.ANKAN, _CallType.DAIMINKAN, _CallType.SHOUMINKAN]
 
 
-class InGameUi(object):
+def _load_64px_tile_sprites():
+    tiles = []
+    for suit in ["bamboo", "man", "pin"]:
+        for number in range(1, 10):
+            name = "{}{}.png".format(suit, number)
+            img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", name))
+            tiles.append(img)
+    for wind in ["east", "south", "west", "north"]:
+        img = pygame.image.load(
+            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "wind-" + wind + ".png"))
+        tiles.append(img)
+    for dragon in ["chun", "haku", "hatsu"]:
+        img = pygame.image.load(
+            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "dragon-" + dragon + ".png"))
+        tiles.append(img)
+    for suit in ["bamboo", "man", "pin"]:
+        img = pygame.image.load(
+            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "red-dora-" + suit + "5.png"))
+        tiles.append(img)
+    img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "face-down.png"))
+    tiles.append(img)
+    return tiles
+
+
+def _load_38px_tile_sprites():
+    tiles = []
+    for suit in "SMP":
+        for number in range(1, 10):
+            name = "{}{}.gif".format(suit, number)
+            img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", name))
+            tiles.append(img)
+    for tile in ["E", "S", "W", "N", "D1", "D2", "D3"]:
+        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", tile + ".gif"))
+        tiles.append(img)
+    for suit in "SMP":
+        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", suit + "5d.gif"))
+        tiles.append(img)
+    img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", "back.gif"))
+    tiles.append(img)
+    return tiles
+
+
+class InGameScreen(Screen):
     def __init__(self, client):
         self.client = client
         # TILES 64
-        self.tiles64 = []
-        for suit in ["bamboo", "man", "pin"]:
-            for number in range(1, 10):
-                name = "{}{}.png".format(suit, number)
-                img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", name))
-                self.tiles64.append(img)
-        for wind in ["east", "south", "west", "north"]:
-            img = pygame.image.load(
-                os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "wind-" + wind + ".png"))
-            self.tiles64.append(img)
-        for dragon in ["chun", "haku", "hatsu"]:
-            img = pygame.image.load(
-                os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "dragon-" + dragon + ".png"))
-            self.tiles64.append(img)
-        for suit in ["bamboo", "man", "pin"]:
-            img = pygame.image.load(
-                os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "red-dora-" + suit + "5.png"))
-            self.tiles64.append(img)
-        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "face-down.png"))
-        self.tiles64.append(img)
+        self.tiles_64px = _load_64px_tile_sprites()
         # TILES 38
-        self.tiles38 = []
-        for suit in "SMP":
-            for number in range(1, 10):
-                name = "{}{}.gif".format(suit, number)
-                img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", name))
-                self.tiles38.append(img)
-        for tile in ["E", "S", "W", "N", "D1", "D2", "D3"]:
-            img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", tile + ".gif"))
-            self.tiles38.append(img)
-        for suit in "SMP":
-            img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", suit + "5d.gif"))
-            self.tiles38.append(img)
-        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", "back.gif"))
-        self.tiles38.append(img)
+        self.tiles_38px = _load_38px_tile_sprites()
         # Other
-        self.discards = [[randint(0, len(self.tiles38) - 2) for _ in range(21)] for _ in range(4)]
+        self.discards = [[randint(0, len(self.tiles_38px) - 2) for _ in range(21)] for _ in range(4)]
         self.calls = []
         for _ in range(4):
-            player_calls = [(randint(0, len(self.tiles38) - 2), 2, _CallType.SHOUMINKAN),
-                            (len(self.tiles38) - 8, 4, _CallType.NUKE),
-                            (randint(0, len(self.tiles38) - 2), 0, _CallType.DAIMINKAN),
-                            (randint(0, len(self.tiles38) - 2), 0, _CallType.PON)]
+            player_calls = [(randint(0, len(self.tiles_38px) - 2), 2, _CallType.SHOUMINKAN),
+                            (len(self.tiles_38px) - 8, 4, _CallType.NUKE),
+                            (randint(0, len(self.tiles_38px) - 2), 0, _CallType.DAIMINKAN),
+                            (randint(0, len(self.tiles_38px) - 2), 0, _CallType.PON)]
             self.calls.append(player_calls)
         self.tile_rects = []
         self.step = 0
@@ -89,11 +99,11 @@ class InGameUi(object):
 
     def _get_tile_image(self, tile_id, small=False):
         if small:
-            return self.tiles38[tile_id]
-        return self.tiles64[tile_id]
+            return self.tiles_38px[tile_id]
+        return self.tiles_64px[tile_id]
 
-    def _draw_hand(self, canvas, cpos, tiles, tsumohai=None):
-        cx, cy = cpos
+    def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
+        cx, cy = center_pos
         tile_width = self._get_tile_image(0).get_width()
         tile_height = self._get_tile_image(0).get_height()
         total_width = tile_width * len(tiles)

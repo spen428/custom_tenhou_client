@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import pygame
 import os
 import socket
-from tenhou.gui.main_menu import MainMenu
-from tenhou.gui.in_game_ui import InGameUi
+
+import pygame
+
 from tenhou.client import TenhouClient
+from tenhou.gui.screens.in_game_ui import InGameScreen
+from tenhou.gui.screens.main_menu import MainMenuScreen
 from utils.settings_handler import settings
+
+
 def get_resource_dir():
     return os.path.join("tenhou", "gui", "resources")
 
@@ -21,7 +25,7 @@ class Gui(object):
 
         self.clock = pygame.time.Clock()
         self.framerate_limit = framerate_limit
-        self.current_menu = MainMenu(self)
+        self.current_screen = MainMenuScreen(self)
         self.running = False
 
     def run(self):
@@ -48,7 +52,7 @@ class Gui(object):
 
             # Draw game
             self.canvas.fill((58, 92, 182))
-            self.current_menu.draw_to_canvas(self.canvas)
+            self.current_screen.draw_to_canvas(self.canvas)
 
             # Update Pygame display.
             self.canvas = self.canvas.convert()
@@ -61,10 +65,10 @@ class Gui(object):
         pygame.quit()
 
     def on_mouse_up(self):
-        self.current_menu.on_mouse_up()
+        self.current_screen.on_mouse_up()
 
     def on_mouse_motion(self):
-        self.current_menu.on_mouse_motion()
+        self.current_screen.on_mouse_motion()
 
     def log_in(self):
         if self.tenhou is not None:
@@ -92,4 +96,4 @@ class Gui(object):
         pass
 
     def ui_test(self):
-        self.current_menu = InGameUi(self)
+        self.current_screen = InGameScreen(self)

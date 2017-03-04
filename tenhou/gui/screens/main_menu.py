@@ -32,11 +32,6 @@ class MainMenuScreen(Screen):
         self.lobby_buttons = [_MainMenuButton("Join lobby", self._join_lobby),
                               _MainMenuButton("Log out", self._log_out)]
         self.status = _LoginStatus.NOT_LOGGED_IN
-        self.resized = True
-        self.canvas_width = 0
-        self.canvas_height = 0
-        self.half_canvas_width = 0
-        self.half_canvas_height = 0
         # Constant render stuff
         self._footer_font = pygame.font.SysFont("Arial", 13)
         self._footer_text = self._footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
@@ -97,32 +92,24 @@ class MainMenuScreen(Screen):
                 btn.hover = True
 
     def on_window_resized(self):
-        self.resized = True
+        pass
 
     def draw_to_canvas(self, canvas):
-        # update window size
-        if self.resized:
-            self.canvas_width = canvas.get_width()
-            self.canvas_height = canvas.get_height()
-            self.half_canvas_width = self.canvas_width / 2
-            self.half_canvas_height = self.canvas_height / 2
-            self.resized = False
-
         # draw logo
-        x = self.half_canvas_width - self.logo_image.get_width() / 2
+        x = canvas.get_width() / 2 - self.logo_image.get_width() / 2
         y = 25
         canvas.blit(self.logo_image, (x, y))
 
         # draw footer text
-        x = self.half_canvas_width - self._footer_text.get_width() / 2
-        y = self.canvas_height - 25
+        x = canvas.get_width() / 2 - self._footer_text.get_width() / 2
+        y = canvas.get_height() - 25
         canvas.blit(self._footer_text, (x, y))
 
         # draw buttons
         num_buttons = len(self._get_buttons())
         btn_v_spacing = 25
-        x = self.half_canvas_width - self._button_width_px / 2
-        y = self.half_canvas_height - (num_buttons * (self._button_height_px + btn_v_spacing)) / 2
+        x = canvas.get_width() / 2 - self._button_width_px / 2
+        y = canvas.get_height() / 2 - (num_buttons * (self._button_height_px + btn_v_spacing)) / 2
         for btn in self._get_buttons():
             # determine button colour
             if btn.hover:

@@ -32,6 +32,14 @@ class MainMenuScreen(Screen):
         self.lobby_buttons = [_MainMenuButton("Join lobby", self._join_lobby),
                               _MainMenuButton("Log out", self._log_out)]
         self.status = _LoginStatus.NOT_LOGGED_IN
+        # Constant render stuff
+        self._footer_font = pygame.font.SysFont("Arial", 13)
+        self._footer_text = self._footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
+        self._button_font = pygame.font.SysFont("Arial", 16)
+        self._button_width_px = 200
+        self._button_height_px = 50
+        self._button_color_normal = (255, 255, 255)  # White
+        self._button_color_hover = (255, 255, 100)  # Pale yellow
 
     # Private Methods #
 
@@ -90,26 +98,26 @@ class MainMenuScreen(Screen):
         canvas.blit(self.logo_image, (x, y))
 
         # draw footer text
-        footer_font = pygame.font.SysFont("Arial", 13)
-        footer_text = footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
-        canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
+        x = canvas.get_width() / 2 - self._footer_text.get_width() / 2
+        y = canvas.get_height() - 25
+        canvas.blit(self._footer_text, (x, y))
 
         # draw buttons
-        btn_color_normal = (255, 255, 255)  # White
-        btn_color_hover = (255, 255, 100)  # Pale yellow
-        btn_width = 200
-        btn_height = 50
-        num_btns = len(self._get_buttons())
-        v_spacing = 25
-        x = canvas.get_width() / 2 - btn_width / 2
-        y = canvas.get_height() / 2 - (num_btns * (btn_height + v_spacing)) / 2
-        btn_font = pygame.font.SysFont("Arial", 16)
+        num_buttons = len(self._get_buttons())
+        btn_v_spacing = 25
+        x = canvas.get_width() / 2 - self._button_width_px / 2
+        y = canvas.get_height() / 2 - (num_buttons * (self._button_height_px + btn_v_spacing)) / 2
         for btn in self._get_buttons():
-            btn_color = btn_color_hover if btn.hover else btn_color_normal
-            rect = pygame.draw.rect(canvas, btn_color, (x, y, btn_width, btn_height), 0)
-            btn.rect = rect
-            btn_label = btn_font.render(btn.text, 1, (0, 0, 0))
-            bx = x + (btn_width / 2 - btn_label.get_width() / 2)
-            by = y + (btn_height / 2 - btn_label.get_height() / 2)
-            canvas.blit(btn_label, (bx, by))
-            y += v_spacing + btn_height
+            # determine button colour
+            if btn.hover:
+                btn_color = self._button_color_hover
+            else:
+                btn_color = self._button_color_normal
+            # draw rectangle
+            btn.rect = pygame.draw.rect(canvas, btn_color, (x, y, self._button_width_px, self._button_height_px), 0)
+            # draw label
+            btn_label = self._button_font.render(btn.text, 1, (0, 0, 0))
+            label_x = x + (self._button_width_px / 2 - btn_label.get_width() / 2)
+            label_y = y + (self._button_height_px / 2 - btn_label.get_height() / 2)
+            canvas.blit(btn_label, (label_x, label_y))
+            y += btn_v_spacing + self._button_height_px

@@ -124,6 +124,8 @@ class InGameScreen(AbstractScreen):
         self.tiles_38px = _load_38px_tile_sprites()
         # WINDS
         self.wind_sprites = _load_wind_sprites()
+        self.riichi_stick_sprite = pygame.image.load(
+            os.path.join(tenhou.gui.main.get_resource_dir(), "riichi_stick.png"))
         # Other
         self.discards = [[randint(0, len(self.tiles_38px) - 2) for _ in range(21)] for _ in range(4)]
         self.calls = []
@@ -294,40 +296,57 @@ class InGameScreen(AbstractScreen):
     def _draw_centre_console(self, canvas, positions, scores, riichi_states):
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
+        tile_img = self._get_tile_image(0, True)
+        tile_width = tile_img.get_width()
+        tile_height = tile_img.get_height()
+        wind_offset = tile_height * 1.20
+        score_offset = tile_height * 2.15
+        riichi_offset = tile_height * 2.75
+
         score_font = pygame.font.SysFont("Arial", 16)
-        for idx in range(len(scores)):
+
+        for idx in range(len(positions)):
             score_text = score_font.render(str(scores[idx]), 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[positions[idx]]
-            wind_x = centre_x
-            wind_y = centre_y
-            score_x = centre_x
-            score_y = centre_y
+            riichi_sprite = self.riichi_stick_sprite
             if positions[idx] == 0:  # Self
-                wind_x -= wind_sprite.get_width() / 2
-                wind_y += 10
-                score_x -= score_text.get_width() / 2
-                score_y += 50
-            if positions[idx] == 2:  # Toimen
-                wind_sprite = pygame.transform.rotate(wind_sprite, 180)
-                wind_x -= wind_sprite.get_width() / 2
-                wind_y -= wind_sprite.get_height() + 10
-                score_x -= score_text.get_width() / 2
-                score_y -= 50
+                wind_x = centre_x - wind_sprite.get_width() / 2
+                wind_y = centre_y + wind_offset - wind_sprite.get_height() / 2
+                score_x = centre_x - score_text.get_width() / 2
+                score_y = centre_y + score_offset - score_text.get_height() / 2
+                riichi_x = centre_x - riichi_sprite.get_width() / 2
+                riichi_y = centre_y + riichi_offset - riichi_sprite.get_height() / 2
             if positions[idx] == 1:  # Shimocha
                 wind_sprite = pygame.transform.rotate(wind_sprite, 90)
-                # TODO
-                wind_x += 5
-                wind_y -= wind_sprite.get_width() / 2
-                score_x += 50
-                score_y -= 0
+                wind_x = centre_x + wind_offset - wind_sprite.get_width() / 2
+                wind_y = centre_y - wind_sprite.get_height() / 2
+                score_text = pygame.transform.rotate(score_text, 90)
+                score_x = centre_x + score_offset - score_text.get_width() / 2
+                score_y = centre_y - score_text.get_height() / 2
+                riichi_sprite = pygame.transform.rotate(riichi_sprite, 90)
+                riichi_x = centre_x + riichi_offset - riichi_sprite.get_width() / 2
+                riichi_y = centre_y - riichi_sprite.get_height() / 2
+            if positions[idx] == 2:  # Toimen
+                wind_sprite = pygame.transform.rotate(wind_sprite, 180)
+                wind_x = centre_x - wind_sprite.get_width() / 2
+                wind_y = centre_y - wind_offset - wind_sprite.get_height() / 2
+                score_text = pygame.transform.rotate(score_text, 180)
+                score_x = centre_x - score_text.get_width() / 2
+                score_y = centre_y - score_offset - score_text.get_height() / 2
+                riichi_sprite = pygame.transform.rotate(riichi_sprite, 180)
+                riichi_x = centre_x - riichi_sprite.get_width() / 2
+                riichi_y = centre_y - riichi_offset - riichi_sprite.get_height() / 2
             if positions[idx] == 3:  # Kamicha
                 wind_sprite = pygame.transform.rotate(wind_sprite, -90)
-                # TODO
-                wind_x -= wind_sprite.get_height() / 2 + 30
-                wind_y -= wind_sprite.get_width() / 2
-                score_x -= 50
-                score_y -= 0
-                pass
+                wind_x = centre_x - wind_offset - wind_sprite.get_width() / 2
+                wind_y = centre_y - wind_sprite.get_height() / 2
+                score_text = pygame.transform.rotate(score_text, -90)
+                score_x = centre_x - score_offset - score_text.get_width() / 2
+                score_y = centre_y - score_text.get_height() / 2
+                riichi_sprite = pygame.transform.rotate(riichi_sprite, -90)
+                riichi_x = centre_x - riichi_offset - riichi_sprite.get_width() / 2
+                riichi_y = centre_y - riichi_sprite.get_height() / 2
 
             canvas.blit(wind_sprite, (wind_x, wind_y))
             canvas.blit(score_text, (score_x, score_y))
+            canvas.blit(riichi_sprite, (riichi_x, riichi_y))

@@ -286,6 +286,12 @@ class InGameScreen(AbstractScreen):
             x = centre_x + (x_count - 3) * tile_width
             y = centre_y + discard_offset + y_count * tile_height
             rotation = _position_to_angle_degrees(position)
+            # Positioning hacks
+            if position in [1, 2]:
+                x += tile_width
+            if position in [2, 3]:
+                y += tile_height
+            # Rotate into place
             pos = rotate((centre_x, centre_y), (x, y), rotation)
             self._draw_tile(canvas, tile, pos, True, rotation)
             x_count += 1

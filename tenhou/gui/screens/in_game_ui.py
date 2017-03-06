@@ -169,6 +169,7 @@ class InGameScreen(AbstractScreen):
         scores = [72300, 8200, 11500, 23200]
         self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0),
                                   [True, False, False, True])
+        self._draw_corner_text(canvas, ["line{}".format(n) for n in range(8)])
 
         if self.DEBUG:  # Draw positioning lines
             # Center cross
@@ -288,6 +289,18 @@ class InGameScreen(AbstractScreen):
             if x_count == 6 and y_count < 2:
                 x_count = 0
                 y_count += 1
+
+    def _draw_corner_text(self, canvas, lines):
+        font_size = 13
+        canvas_width = canvas.get_width()
+        x_offset = y_offset = font_size * 1.5
+        font = pygame.font.SysFont("Arial", font_size)
+        y = 2 * y_offset
+        for line in lines:
+            text = font.render(line, 1, (0, 0, 0))
+            x = canvas_width - text.get_width() - x_offset
+            canvas.blit(text, (x, y))
+            y += y_offset
 
     def _draw_centre_console(self, canvas, positions, scores, score_deltas, riichi_states):
         centre_x = canvas.get_width() / 2

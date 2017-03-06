@@ -20,7 +20,7 @@ class _LoginStatus(object):
     LOGGED_IN = 2
 
 
-class MainMenuAbstractScreen(AbstractScreen):
+class MainMenuScreen(AbstractScreen):
     def __init__(self, client):
         self.client = client
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))

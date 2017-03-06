@@ -6,8 +6,8 @@ import socket
 import pygame
 
 from tenhou.client import TenhouClient
-from tenhou.gui.screens.in_game_ui import InGameAbstractScreen
-from tenhou.gui.screens.main_menu import MainMenuAbstractScreen
+from tenhou.gui.screens.in_game_ui import InGameScreen
+from tenhou.gui.screens.main_menu import MainMenuScreen
 from utils.settings_handler import settings
 
 
@@ -26,7 +26,7 @@ class Gui(object):
         self.canvas = pygame.Surface(self.screen.get_size())
         self.clock = pygame.time.Clock()
         self.framerate_limit = framerate_limit
-        self.current_screen = MainMenuAbstractScreen(self)
+        self.current_screen = MainMenuScreen(self)
         self.running = False
 
     def run(self):
@@ -104,4 +104,4 @@ class Gui(object):
         pass
 
     def ui_test(self):
-        self.current_screen = InGameAbstractScreen(self)
+        self.current_screen = InGameScreen(self)

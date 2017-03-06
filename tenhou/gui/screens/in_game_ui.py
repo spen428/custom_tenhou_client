@@ -32,53 +32,62 @@ class _CallType(object):
 
 def _load_64px_tile_sprites():
     tiles = []
+    resource_dir = tenhou.gui.main.get_resource_dir()
     # suited tiles
     for suit in ["bamboo", "man", "pin"]:
         for number in range(1, 10):
             name = "{}{}.png".format(suit, number)
-            img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", name))
+            img = pygame.image.load(os.path.join(resource_dir, "tiles_64", name))
             tiles.append(img)
         # dora fives
-        img = pygame.image.load(
-            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "red-dora-" + suit + "5.png"))
+        img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "red-dora-" + suit + "5.png"))
         tiles.append(img)
 
     # honour tiles
     for wind in ["east", "south", "west", "north"]:
-        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "wind-" + wind + ".png"))
+        img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "wind-" + wind + ".png"))
         tiles.append(img)
     for dragon in ["chun", "haku", "hatsu"]:
-        img = pygame.image.load(
-            os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "dragon-" + dragon + ".png"))
+        img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "dragon-" + dragon + ".png"))
         tiles.append(img)
 
     # back of tile
-    img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_64", "face-down.png"))
+    img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "face-down.png"))
     tiles.append(img)
     return tiles
 
 
 def _load_38px_tile_sprites():
     tiles = []
+    resource_dir = tenhou.gui.main.get_resource_dir()
     # suited tiles
     for suit in "SMP":
         for number in range(1, 10):
             name = "{}{}.gif".format(suit, number)
-            img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", name))
+            img = pygame.image.load(os.path.join(resource_dir, "tiles_38", name))
             tiles.append(img)
         # dora fives
-        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", suit + "5d.gif"))
+        img = pygame.image.load(os.path.join(resource_dir, "tiles_38", suit + "5d.gif"))
         tiles.append(img)
 
     # honour tiles
     for tile in ["E", "S", "W", "N", "D1", "D2", "D3"]:
-        img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", tile + ".gif"))
+        img = pygame.image.load(os.path.join(resource_dir, "tiles_38", tile + ".gif"))
         tiles.append(img)
 
     # back of tile
-    img = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tiles_38", "back.gif"))
+    img = pygame.image.load(os.path.join(resource_dir, "tiles_38", "back.gif"))
     tiles.append(img)
     return tiles
+
+
+def _load_wind_sprites():
+    winds = []
+    resource_dir = tenhou.gui.main.get_resource_dir()
+    for wind in ["east", "south", "west", "north"]:
+        img = pygame.image.load(os.path.join(resource_dir, wind + ".png"))
+        winds.append(img)
+    return winds
 
 
 def _wind_ordinal_to_string(ordinal):
@@ -105,13 +114,16 @@ def _position_to_angle_degrees(position):
         raise ValueError("Position must be 0-3")
 
 
-class InGameAbstractScreen(AbstractScreen):
+class InGameScreen(AbstractScreen):
     def __init__(self, client):
+        self.DEBUG = True
         self.client = client
         # TILES 64
         self.tiles_64px = _load_64px_tile_sprites()
         # TILES 38
         self.tiles_38px = _load_38px_tile_sprites()
+        # WINDS
+        self.wind_sprites = _load_wind_sprites()
         # Other
         self.discards = [[randint(0, len(self.tiles_38px) - 2) for _ in range(21)] for _ in range(4)]
         self.calls = []
@@ -151,20 +163,35 @@ class InGameAbstractScreen(AbstractScreen):
         footer_text = footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
         canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
 
-        for n in range(4):
-            self._draw_discards(canvas, self.discards[n], n)
-            self._draw_calls(canvas, self.calls[n], n)
-        hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
-        self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
-        self._draw_center_console(canvas, [0, 1, 2, 3], [72300, 8200, 11500, 23200], [True, False, False, True])
+        for n in range(len(self.discards)):
+            pass
+            # self._draw_discards(canvas, self.discards[n], n)
+            # self._draw_calls(canvas, self.calls[n], n)
+        # hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
+        # self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
+        self._draw_centre_console(canvas, [0, 1, 2, 3], [72300, 8200, 11500, 23200], [True, False, False, True])
 
-        # Debug lines
-        pygame.draw.line(canvas, (0, 0, 0), (0, canvas.get_height() / 2), (canvas.get_width(), canvas.get_height() / 2))
-        pygame.draw.line(canvas, (0, 0, 0), (canvas.get_width() / 2, 0), (canvas.get_width() / 2, canvas.get_height()))
-        tile_width = self._get_tile_image(0, True).get_width()
-        pygame.draw.rect(canvas, (0, 0, 0),
-                         pygame.Rect(canvas.get_width() / 2 - tile_width * 3, canvas.get_height() / 2 - tile_width * 3,
-                                     tile_width * 6, tile_width * 6), 1)
+        if self.DEBUG:  # Draw positioning lines
+            canvas_width = canvas.get_width()
+            canvas_height = canvas.get_height()
+            centre_x = canvas_width / 2
+            centre_y = canvas_height / 2
+            # Center cross
+            pygame.draw.line(canvas, (0, 0, 0), (0, centre_x), (canvas_width, centre_y))
+            pygame.draw.line(canvas, (0, 0, 0), (centre_x, 0), (centre_x, canvas_height))
+            # Center squares
+            tile_width = self._get_tile_image(0, True).get_width()
+            for n in [1.5, 3.0, 4.5, 6.0]:
+                width = tile_width * n
+                x = centre_x - width / 2
+                y = centre_y - width / 2
+                pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, width), 1)
+            # Discard zones
+            width = tile_width * 6
+            height = tile_height * 3
+            x = centre_x + width / 2
+            y = centre_y + height / 2
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)
 
     # Drawing methods #
 
@@ -250,14 +277,43 @@ class InGameAbstractScreen(AbstractScreen):
                 x_count = 0
                 y_count += 1
 
-    def _draw_center_console(self, canvas, positions, scores, riichi_states):
-        cx = canvas.get_width() / 2
-        cy = canvas.get_height() / 2
+    def _draw_centre_console(self, canvas, positions, scores, riichi_states):
+        centre_x = canvas.get_width() / 2
+        centre_y = canvas.get_height() / 2
         score_font = pygame.font.SysFont("Arial", 16)
-        seat_wind_font = pygame.font.SysFont("Arial", 40)
         for idx in range(len(scores)):
             score_text = score_font.render(str(scores[idx]), 1, (0, 0, 0))
-            seat_wind_text = seat_wind_font.render(_wind_ordinal_to_string(positions[idx]), 1, (0, 0, 0))
-            if positions[idx] == 0:
-                canvas.blit(seat_wind_text, (cx - seat_wind_text.get_width() / 2, cy))
-                canvas.blit(score_text, (cx - score_text.get_width() / 2, cy + 50))
+            wind_sprite = self.wind_sprites[positions[idx]]
+            wind_x = centre_x
+            wind_y = centre_y
+            score_x = centre_x
+            score_y = centre_y
+            if positions[idx] == 0:  # Self
+                wind_x -= wind_sprite.get_width() / 2
+                wind_y += 10
+                score_x -= score_text.get_width() / 2
+                score_y += 50
+            if positions[idx] == 2:  # Toimen
+                wind_sprite = pygame.transform.rotate(wind_sprite, 180)
+                wind_x -= wind_sprite.get_width() / 2
+                wind_y -= wind_sprite.get_height() + 10
+                score_x -= score_text.get_width() / 2
+                score_y -= 50
+            if positions[idx] == 1:  # Shimocha
+                wind_sprite = pygame.transform.rotate(wind_sprite, 90)
+                # TODO
+                wind_x += 5
+                wind_y -= wind_sprite.get_width() / 2
+                score_x += 50
+                score_y -= 0
+            if positions[idx] == 3:  # Kamicha
+                wind_sprite = pygame.transform.rotate(wind_sprite, -90)
+                # TODO
+                wind_x -= wind_sprite.get_height() / 2 + 30
+                wind_y -= wind_sprite.get_width() / 2
+                score_x -= 50
+                score_y -= 0
+                pass
+
+            canvas.blit(wind_sprite, (wind_x, wind_y))
+            canvas.blit(score_text, (score_x, score_y))

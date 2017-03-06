@@ -20,14 +20,18 @@ class Gui(object):
         pygame.init()
         self.tenhou = None
         if resizable:
-            self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+            self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.HWACCEL)
         else:
             self.screen = pygame.display.set_mode((width, height))
-        self.canvas = pygame.Surface(self.screen.get_size())
+        self.canvas = self._create_canvas()
         self.clock = pygame.time.Clock()
         self.framerate_limit = framerate_limit
         self.current_screen = MainMenuScreen(self)
         self.running = False
+
+    def _create_canvas(self):
+        canvas = pygame.Surface(self.screen.get_size(), flags=pygame.HWACCEL)
+        return canvas
 
     def run(self):
         self.running = True
@@ -48,7 +52,7 @@ class Gui(object):
                     self.on_mouse_motion()
                 elif event.type == pygame.VIDEORESIZE:
                     self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
-                    self.canvas = pygame.Surface(self.screen.get_size())
+                    self.canvas = self._create_canvas()
                     self.on_window_resized()
 
             # Print framerate and playtime in titlebar.

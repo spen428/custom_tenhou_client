@@ -116,6 +116,8 @@ class InGameScreen(AbstractScreen):
         self.step = 0
         self.centre_hover = False
         self.centre_square = None
+        self.hover_tile = None
+        self.tile_hover_colour = (255, 0, 0)
 
     # Private methods #
 
@@ -131,7 +133,13 @@ class InGameScreen(AbstractScreen):
 
     def on_mouse_motion(self):
         pos = pygame.mouse.get_pos()
-        self.centre_hover = self.centre_square.collidepoint(pos)
+        if self.centre_hover is not None:
+            self.centre_hover = self.centre_square.collidepoint(pos)
+        self.hover_tile = None
+        for rect in self.tile_rects:
+            if rect.collidepoint(pos):
+                self.hover_tile = rect
+                break
 
     def on_window_resized(self):
         pass
@@ -169,6 +177,10 @@ class InGameScreen(AbstractScreen):
         scores = [72300, 8200, 11500, 23200]
         self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0),
                                   [True, False, False, True])
+
+        if self.hover_tile is not None:
+            pygame.draw.rect(canvas, self.tile_hover_colour, self.hover_tile, 3)
+
         self._draw_corner_text(canvas, ["line{}".format(n) for n in range(8)])
 
         if self.DEBUG:  # Draw positioning lines

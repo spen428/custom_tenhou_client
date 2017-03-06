@@ -142,7 +142,7 @@ class InGameScreen(AbstractScreen):
                 break
 
     def on_window_resized(self):
-        pass
+        self.centre_square = None
 
     def draw_to_canvas(self, canvas):
         canvas_width = canvas.get_width()

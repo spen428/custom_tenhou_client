@@ -349,4 +349,5 @@ class InGameScreen(AbstractScreen):
 
             canvas.blit(wind_sprite, (wind_x, wind_y))
             canvas.blit(score_text, (score_x, score_y))
-            canvas.blit(riichi_sprite, (riichi_x, riichi_y))
+            if riichi_states[idx]:
+                canvas.blit(riichi_sprite, (riichi_x, riichi_y))

@@ -176,22 +176,36 @@ class InGameScreen(AbstractScreen):
             canvas_height = canvas.get_height()
             centre_x = canvas_width / 2
             centre_y = canvas_height / 2
+
+            tile_img = self._get_tile_image(0, True)
+            tile_width = tile_img.get_width()
+            tile_height = tile_img.get_height()
+
             # Center cross
-            pygame.draw.line(canvas, (0, 0, 0), (0, centre_x), (canvas_width, centre_y))
+            pygame.draw.line(canvas, (0, 0, 0), (0, centre_y), (canvas_width, centre_y))
             pygame.draw.line(canvas, (0, 0, 0), (centre_x, 0), (centre_x, canvas_height))
+
             # Center squares
-            tile_width = self._get_tile_image(0, True).get_width()
             for n in [1.5, 3.0, 4.5, 6.0]:
                 width = tile_width * n
                 x = centre_x - width / 2
                 y = centre_y - width / 2
                 pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, width), 1)
+
             # Discard zones
             width = tile_width * 6
             height = tile_height * 3
-            x = centre_x + width / 2
-            y = centre_y + height / 2
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)
+            x = centre_x - width / 2
+            y = centre_y + height
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Self
+            y = centre_y - 2 * height
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Toimen
+            width, height = height, width  # I love Python
+            x = centre_x + width
+            y = centre_y - height / 2
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Shimocha
+            x = centre_x - 2 * width
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Kamicha
 
     # Drawing methods #
 

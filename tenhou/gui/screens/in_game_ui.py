@@ -166,11 +166,10 @@ class InGameScreen(AbstractScreen):
         canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
 
         for n in range(len(self.discards)):
-            pass
-            # self._draw_discards(canvas, self.discards[n], n)
-            # self._draw_calls(canvas, self.calls[n], n)
-        # hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
-        # self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
+            self._draw_discards(canvas, self.discards[n], n)
+            self._draw_calls(canvas, self.calls[n], n)
+        hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
+        self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
         self._draw_centre_console(canvas, [0, 1, 2, 3], [72300, 8200, 11500, 23200], [True, False, False, True])
 
         if self.DEBUG:  # Draw positioning lines
@@ -280,13 +279,14 @@ class InGameScreen(AbstractScreen):
         a_tile = self._get_tile_image(0, True)
         tile_width = a_tile.get_width()
         tile_height = a_tile.get_height()
-        cx = canvas.get_width() / 2
-        cy = canvas.get_height() / 2
+        centre_x = canvas.get_width() / 2
+        centre_y = canvas.get_height() / 2
+        discard_offset = tile_height * 3
         for tile in tiles:
-            x = cx + (x_count - 3) * tile_width
-            y = cy + y_count * tile_height + 3.5 * tile_width
+            x = centre_x + (x_count - 3) * tile_width
+            y = centre_y + discard_offset + y_count * tile_height
             rotation = _position_to_angle_degrees(position)
-            pos = rotate((cx, cy), (x, y), rotation)
+            pos = rotate((centre_x, centre_y), (x, y), rotation)
             self._draw_tile(canvas, tile, pos, True, rotation)
             x_count += 1
             if x_count == 6 and y_count < 2:

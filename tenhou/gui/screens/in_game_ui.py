@@ -101,17 +101,9 @@ def _wind_ordinal_to_string(ordinal):
         return u"北"
 
 
-def _position_to_angle_degrees(position):
-    if position == 0:  # 自分
-        return 0
-    elif position == 1:  # 下家
-        return -90
-    elif position == 2:  # 対面
-        return -180
-    elif position == 3:  # 上家
-        return -270
-    else:
-        raise ValueError("Position must be 0-3")
+def calculate_score_deltas(scores, position):
+    """Calculate the difference in score for a list of scores, relative to the value at index `position`."""
+    return [scores[idx] - scores[position] for idx in range(len(scores))]
 
 
 class InGameScreen(AbstractScreen):
@@ -137,6 +129,8 @@ class InGameScreen(AbstractScreen):
             self.calls.append(player_calls)
         self.tile_rects = []
         self.step = 0
+        self.centre_hover = False
+        self.centre_square = None
 
     # Private methods #
 
@@ -151,14 +145,31 @@ class InGameScreen(AbstractScreen):
         pass
 
     def on_mouse_motion(self):
-        pass
+        pos = pygame.mouse.get_pos()
+        self.centre_hover = self.centre_square.collidepoint(pos)
 
     def on_window_resized(self):
         pass
 
     def draw_to_canvas(self, canvas):
+        canvas_width = canvas.get_width()
+        canvas_height = canvas.get_height()
+        centre_x = canvas_width / 2
+        centre_y = canvas_height / 2
+
+        tile_img = self._get_tile_image(0, True)
+        tile_width = tile_img.get_width()
+        tile_height = tile_img.get_height()
+
         # Clear storage
         self.tile_rects = []
+
+        # initialise centre square shape
+        if self.centre_square is None:
+            width = tile_width * 6
+            x = centre_x - width / 2
+            y = centre_y - width / 2
+            self.centre_square = pygame.Rect(x, y, width, width)
 
         # draw footer text
         footer_font = pygame.font.SysFont("Arial", 13)
@@ -170,28 +181,21 @@ class InGameScreen(AbstractScreen):
             self._draw_calls(canvas, self.calls[n], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
         self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
-        self._draw_centre_console(canvas, [0, 1, 2, 3], [72300, 8200, 11500, 23200], [True, False, False, True])
+        scores = [72300, 8200, 11500, 23200]
+        self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0), [True, False, False, True])
 
         if self.DEBUG:  # Draw positioning lines
-            canvas_width = canvas.get_width()
-            canvas_height = canvas.get_height()
-            centre_x = canvas_width / 2
-            centre_y = canvas_height / 2
-
-            tile_img = self._get_tile_image(0, True)
-            tile_width = tile_img.get_width()
-            tile_height = tile_img.get_height()
-
             # Center cross
             pygame.draw.line(canvas, (0, 0, 0), (0, centre_y), (canvas_width, centre_y))
             pygame.draw.line(canvas, (0, 0, 0), (centre_x, 0), (centre_x, canvas_height))
 
             # Center squares
-            for n in [1.5, 3.0, 4.5, 6.0]:
+            for n in [1.5, 3.0, 4.5]:
                 width = tile_width * n
                 x = centre_x - width / 2
                 y = centre_y - width / 2
                 pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, width), 1)
+            pygame.draw.rect(canvas, (0, 0, 0), self.centre_square, 1)
 
             # Discard zones
             width = tile_width * 6
@@ -241,7 +245,7 @@ class InGameScreen(AbstractScreen):
         x = canvas.get_width() - 3 * tile_width / 2
         y = canvas.get_height() - 3 * tile_height / 2
         for call in calls:
-            rotation = _position_to_angle_degrees(position)
+            rotation = [0, -90, -180, -270][position]
             tile_id, called, call_type = call
             if call_type == _CallType.NUKE:
                 num_tiles = 1
@@ -285,7 +289,7 @@ class InGameScreen(AbstractScreen):
         for tile in tiles:
             x = centre_x + (x_count - 3) * tile_width
             y = centre_y + discard_offset + y_count * tile_height
-            rotation = _position_to_angle_degrees(position)
+            rotation = [0, -90, -180, -270][position]
             # Positioning hacks
             if position in [1, 2]:
                 x += tile_width
@@ -299,7 +303,7 @@ class InGameScreen(AbstractScreen):
                 x_count = 0
                 y_count += 1
 
-    def _draw_centre_console(self, canvas, positions, scores, riichi_states):
+    def _draw_centre_console(self, canvas, positions, scores, score_deltas, riichi_states):
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
         tile_img = self._get_tile_image(0, True)
@@ -312,7 +316,10 @@ class InGameScreen(AbstractScreen):
         score_font = pygame.font.SysFont("Arial", 16)
 
         for idx in range(len(positions)):
-            score_text = score_font.render(str(scores[idx]), 1, (0, 0, 0))
+            if self.centre_hover:
+                score_text = score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
+            else:
+                score_text = score_font.render(str(scores[idx]), 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[positions[idx]]
             riichi_sprite = self.riichi_stick_sprite
             if positions[idx] == 0:  # Self

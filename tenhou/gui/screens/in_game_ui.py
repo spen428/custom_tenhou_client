@@ -6,6 +6,7 @@ import pygame
 
 import tenhou.gui.main
 from tenhou.gui.screens import AbstractScreen
+from tenhou.utils import calculate_score_deltas
 
 
 def rotate(origin, point, degrees):
@@ -90,22 +91,6 @@ def _load_wind_sprites():
     return winds
 
 
-def _wind_ordinal_to_string(ordinal):
-    if ordinal == 0:
-        return u"東"
-    if ordinal == 1:
-        return u"南"
-    if ordinal == 2:
-        return u"西"
-    else:
-        return u"北"
-
-
-def calculate_score_deltas(scores, position):
-    """Calculate the difference in score for a list of scores, relative to the value at index `position`."""
-    return [scores[idx] - scores[position] for idx in range(len(scores))]
-
-
 class InGameScreen(AbstractScreen):
     def __init__(self, client):
         self.DEBUG = True
@@ -182,7 +167,8 @@ class InGameScreen(AbstractScreen):
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
         self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
         scores = [72300, 8200, 11500, 23200]
-        self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0), [True, False, False, True])
+        self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0),
+                                  [True, False, False, True])
 
         if self.DEBUG:  # Draw positioning lines
             # Center cross

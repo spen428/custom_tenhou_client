@@ -1,3 +1,4 @@
+# coding: utf-8
 import math
 import os
 from random import randint
@@ -118,6 +119,9 @@ class InGameScreen(AbstractScreen):
         self.centre_square = None
         self.hover_tile = None
         self.tile_hover_colour = (255, 0, 0)
+        self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 15)
+        self.score_font = pygame.font.SysFont("Arial", 16)
+        self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 13)
 
     # Private methods #
 
@@ -181,7 +185,8 @@ class InGameScreen(AbstractScreen):
         if self.hover_tile is not None:
             pygame.draw.rect(canvas, self.tile_hover_colour, self.hover_tile, 3)
 
-        self._draw_corner_text(canvas, ["line{}".format(n) for n in range(8)])
+        lines = ["13:17:00", "東風戦喰速赤", "東四局二本", "オーラス"]
+        self._draw_corner_text(canvas, lines)
 
         if self.DEBUG:  # Draw positioning lines
             # Center cross
@@ -303,13 +308,11 @@ class InGameScreen(AbstractScreen):
                 y_count += 1
 
     def _draw_corner_text(self, canvas, lines):
-        font_size = 13
         canvas_width = canvas.get_width()
-        x_offset = y_offset = font_size * 1.5
-        font = pygame.font.SysFont("Arial", font_size)
-        y = 2 * y_offset
+        y_offset = 20
+        x_offset = y = 2 * y_offset
         for line in lines:
-            text = font.render(line, 1, (0, 0, 0))
+            text = self.corner_font.render(line, 1, (0, 0, 0))
             x = canvas_width - text.get_width() - x_offset
             canvas.blit(text, (x, y))
             y += y_offset
@@ -324,13 +327,11 @@ class InGameScreen(AbstractScreen):
         score_offset = tile_height * 2.15
         riichi_offset = tile_height * 2.75
 
-        score_font = pygame.font.SysFont("Arial", 16)
-
         for idx in range(len(positions)):
             if self.centre_hover:
-                score_text = score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
+                score_text = self.score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
             else:
-                score_text = score_font.render(str(scores[idx]), 1, (0, 0, 0))
+                score_text = self.score_font.render(str(scores[idx]), 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[positions[idx]]
             riichi_sprite = self.riichi_stick_sprite
             if positions[idx] == 0:  # Self
@@ -375,3 +376,8 @@ class InGameScreen(AbstractScreen):
             canvas.blit(score_text, (score_x, score_y))
             if riichi_states[idx]:
                 canvas.blit(riichi_sprite, (riichi_x, riichi_y))
+            centre_text_line0 = self.centre_font.render("東四局", 1, (0, 0, 0))
+            centre_text_line1 = self.centre_font.render("二本場", 1, (0, 0, 0))
+            canvas.blit(centre_text_line0,
+                        (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
+            canvas.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))

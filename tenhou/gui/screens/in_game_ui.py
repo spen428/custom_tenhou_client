@@ -95,7 +95,7 @@ def _load_wind_sprites():
 
 class InGameScreen(AbstractScreen):
     def __init__(self, client):
-        self.DEBUG = True
+        self.DEBUG = False
         self.client = client
         # TILES 64
         self.tiles_64px = _load_64px_tile_sprites()
@@ -139,7 +139,7 @@ class InGameScreen(AbstractScreen):
 
     def on_mouse_motion(self):
         pos = pygame.mouse.get_pos()
-        if self.centre_hover is not None and self.centre_square:
+        if self.centre_hover and self.centre_square is not None:
             self.centre_hover = self.centre_square.collidepoint(pos)
         self.hover_tile = None
         for rect in self.tile_rects:
@@ -177,7 +177,7 @@ class InGameScreen(AbstractScreen):
 
         for n in range(len(self.discards)):
             self._draw_discards(canvas, self.discards[n], n)
-            self._draw_calls(canvas, self.calls[n], n)
+            #self._draw_calls(canvas, self.calls[n], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
         self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
         scores = [72300, 8200, 11500, 23200]
@@ -296,6 +296,7 @@ class InGameScreen(AbstractScreen):
         centre_y = canvas.get_height() / 2
         discard_offset = tile_height * 3
         for tile in tiles:
+
             x = centre_x + (x_count - 3) * tile_width
             y = centre_y + discard_offset + y_count * tile_height
             rotation = [0, -90, -180, -270][position]

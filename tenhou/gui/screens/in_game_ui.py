@@ -1,13 +1,14 @@
 # coding: utf-8
 import math
 import os
+import time
 from random import randint
 
 import pygame
 
 import tenhou.gui.main
 from tenhou.gui.screens import AbstractScreen
-from tenhou.utils import calculate_score_deltas
+from tenhou.utils import calculate_score_deltas, seconds_to_time_string
 
 
 def rotate(origin, point, degrees):
@@ -122,6 +123,7 @@ class InGameScreen(AbstractScreen):
         self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 15)
         self.score_font = pygame.font.SysFont("Arial", 16)
         self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 13)
+        self.start_time_secs = time.time()
 
     # Private methods #
 
@@ -185,7 +187,10 @@ class InGameScreen(AbstractScreen):
         if self.hover_tile is not None:
             pygame.draw.rect(canvas, self.tile_hover_colour, self.hover_tile, 3)
 
-        lines = ["13:17:00", "東風戦喰速赤", "東四局二本", "オーラス"]
+        time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
+        time_string = seconds_to_time_string(time_delta_secs)
+
+        lines = [time_string, "東風戦喰速赤", "東四局二本", "オーラス"]
         self._draw_corner_text(canvas, lines)
 
         if self.DEBUG:  # Draw positioning lines

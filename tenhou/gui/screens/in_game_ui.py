@@ -111,7 +111,7 @@ class InGameScreen(AbstractScreen):
             self.discards.append([])
             for _ in range(21):
                 tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
-                riichi = False
+                riichi = not bool(randint(0, 10))
                 tsumogiri = not bool(randint(0, 5))
                 self.discards[n].append((tile_id, tile_sprite_id, riichi, tsumogiri))
         self.calls = []
@@ -269,9 +269,11 @@ class InGameScreen(AbstractScreen):
             if discard_timer_text is not None:
                 canvas.blit(discard_timer_text, (x - discard_timer_text.get_width() / 2 + tile_width / 2, y - 13))
 
-    def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0, highlight_id=None):
+    def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0, highlight_id=None, riichi=False):
         x, y = pos
         tile_image = self._get_tile_image(tile_id, small)
+        if riichi:
+            rotation += 90
         if rotation is not 0:
             tile_image = pygame.transform.rotate(tile_image, rotation)
         canvas.blit(tile_image, (x, y))
@@ -324,6 +326,7 @@ class InGameScreen(AbstractScreen):
     def _draw_discards(self, canvas, tiles, position):
         x_count = 0
         y_count = 0
+        riichi_count = 0
         a_tile = self._get_tile_image(0, True)
         tile_width = a_tile.get_width()
         tile_height = a_tile.get_height()
@@ -335,19 +338,29 @@ class InGameScreen(AbstractScreen):
             x = centre_x + (x_count - 3) * tile_width
             y = centre_y + discard_offset + y_count * tile_height
             rotation = [0, -90, -180, -270][position]
+            # Account for riichi tiles
+            x += (tile_height - tile_width) * riichi_count
+            if riichi:
+                riichi_count += 1  # Must appear AFTER the positioning adjustment above
             # Positioning hacks
             if position in [1, 2]:
                 x += tile_width
+                if riichi:
+                    x += (tile_height - tile_width)
             if position in [2, 3]:
                 y += tile_height
+                if riichi:
+                    y -= (tile_height - tile_width)
             # Rotate into place
             pos = rotate((centre_x, centre_y), (x, y), rotation)
+            # Highlight tsumogiri
             hl = 3 if tsumogiri else None
-            self._draw_tile(canvas, tile_sprite_id, pos, True, rotation, highlight_id=hl)
+            self._draw_tile(canvas, tile_sprite_id, pos, True, rotation, highlight_id=hl, riichi=riichi)
             x_count += 1
             if x_count == 6 and y_count < 2:
                 x_count = 0
                 y_count += 1
+                riichi_count = 0
 
     def _draw_corner_text(self, canvas, lines):
         canvas_width = canvas.get_width()

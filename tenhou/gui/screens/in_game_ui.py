@@ -106,7 +106,14 @@ class InGameScreen(AbstractScreen):
         self.riichi_stick_sprite = pygame.image.load(
             os.path.join(tenhou.gui.main.get_resource_dir(), "riichi_stick.png"))
         # Other
-        self.discards = [[randint(0, len(self.tiles_38px) - 2) for _ in range(21)] for _ in range(4)]
+        self.discards = []
+        for n in range(4):
+            self.discards.append([])
+            for _ in range(21):
+                tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
+                riichi = False
+                tsumogiri = not bool(randint(0, 5))
+                self.discards[n].append((tile_id, tile_sprite_id, riichi, tsumogiri))
         self.calls = []
         for _ in range(4):
             player_calls = [(randint(0, len(self.tiles_38px) - 2), 2, _CallType.SHOUMINKAN),
@@ -129,7 +136,9 @@ class InGameScreen(AbstractScreen):
         self.discard_start_secs = time.time()
         self.tile_highlights = [
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-green.png")),
-            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-red.png"))]
+            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-red.png")),
+            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-yellow.png")),
+            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-grey.png"))]
 
     # Private methods #
 
@@ -195,8 +204,7 @@ class InGameScreen(AbstractScreen):
                                   [True, False, False, True], names, ranks)
 
         if self.hover_tile is not None:
-            # canvas.blit(self.tile_highlights[0], (self.hover_tile.x, self.hover_tile.y))
-            pygame.draw.rect(canvas, self.tile_hover_colour, self.hover_tile, 3)
+            self._draw_highlight(canvas, self.hover_tile, 0)
 
         time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
         time_string = seconds_to_time_string(time_delta_secs)
@@ -261,13 +269,16 @@ class InGameScreen(AbstractScreen):
             if discard_timer_text is not None:
                 canvas.blit(discard_timer_text, (x - discard_timer_text.get_width() / 2 + tile_width / 2, y - 13))
 
-    def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0):
+    def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0, highlight_id=None):
         x, y = pos
         tile_image = self._get_tile_image(tile_id, small)
         if rotation is not 0:
             tile_image = pygame.transform.rotate(tile_image, rotation)
         canvas.blit(tile_image, (x, y))
-        self.tile_rects.append(pygame.Rect(x, y, tile_image.get_width(), tile_image.get_height()))
+        rect = pygame.Rect(x, y, tile_image.get_width(), tile_image.get_height())
+        self.tile_rects.append(rect)
+        if highlight_id is not None:
+            self._draw_highlight(canvas, rect, highlight_id)
 
     def _draw_calls(self, canvas, calls, position):
         a_tile = self._get_tile_image(0, True)
@@ -320,7 +331,7 @@ class InGameScreen(AbstractScreen):
         centre_y = canvas.get_height() / 2
         discard_offset = tile_height * 3.25
         for tile in tiles:
-
+            tile_id, tile_sprite_id, riichi, tsumogiri = tile
             x = centre_x + (x_count - 3) * tile_width
             y = centre_y + discard_offset + y_count * tile_height
             rotation = [0, -90, -180, -270][position]
@@ -331,7 +342,8 @@ class InGameScreen(AbstractScreen):
                 y += tile_height
             # Rotate into place
             pos = rotate((centre_x, centre_y), (x, y), rotation)
-            self._draw_tile(canvas, tile, pos, True, rotation)
+            hl = 3 if tsumogiri else None
+            self._draw_tile(canvas, tile_sprite_id, pos, True, rotation, highlight_id=hl)
             x_count += 1
             if x_count == 6 and y_count < 2:
                 x_count = 0
@@ -425,3 +437,7 @@ class InGameScreen(AbstractScreen):
             canvas.blit(centre_text_line0,
                         (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
             canvas.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
+
+    def _draw_highlight(self, canvas, rect, highlight_id):
+        hl = pygame.transform.scale(self.tile_highlights[highlight_id], (rect.width, rect.height))
+        canvas.blit(hl, (rect.x, rect.y))

@@ -122,7 +122,8 @@ class InGameScreen(AbstractScreen):
         self.tile_hover_colour = (255, 0, 0)
         self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 15)
         self.score_font = pygame.font.SysFont("Arial", 16)
-        self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 13)
+        self.name_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
+        self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
         self.start_time_secs = time.time()
 
     # Private methods #
@@ -181,8 +182,9 @@ class InGameScreen(AbstractScreen):
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
         self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
         scores = [72300, 8200, 11500, 23200]
+        names = ["Dave", "てつやち", "藤田プロ", "Mark"]
         self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0),
-                                  [True, False, False, True])
+                                  [True, False, False, True], names)
 
         if self.hover_tile is not None:
             pygame.draw.rect(canvas, self.tile_hover_colour, self.hover_tile, 3)
@@ -208,7 +210,7 @@ class InGameScreen(AbstractScreen):
 
             # Discard zones
             width = tile_width * 6
-            height = tile_height * 3
+            height = tile_height * 3.25
             x = centre_x - width / 2
             y = centre_y + height
             pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Self
@@ -224,12 +226,12 @@ class InGameScreen(AbstractScreen):
     # Drawing methods #
 
     def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
-        cx, cy = center_pos
+        centre_x, centre_y = center_pos
         tile_width = self._get_tile_image(0).get_width()
         tile_height = self._get_tile_image(0).get_height()
         total_width = tile_width * len(tiles)
-        x = cx - (total_width / 2)
-        y = cy - (tile_height / 2)
+        x = centre_x - (total_width / 2)
+        y = canvas.get_height() - tile_height - 30
         for tile in tiles:
             self._draw_tile(canvas, tile, (x, y))
             x += tile_width
@@ -294,7 +296,7 @@ class InGameScreen(AbstractScreen):
         tile_height = a_tile.get_height()
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
-        discard_offset = tile_height * 3
+        discard_offset = tile_height * 3.25
         for tile in tiles:
 
             x = centre_x + (x_count - 3) * tile_width
@@ -323,7 +325,7 @@ class InGameScreen(AbstractScreen):
             canvas.blit(text, (x, y))
             y += y_offset
 
-    def _draw_centre_console(self, canvas, positions, scores, score_deltas, riichi_states):
+    def _draw_centre_console(self, canvas, positions, scores, score_deltas, riichi_states, names):
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
         tile_img = self._get_tile_image(0, True)
@@ -331,13 +333,15 @@ class InGameScreen(AbstractScreen):
         tile_height = tile_img.get_height()
         wind_offset = tile_height * 1.20
         score_offset = tile_height * 2.15
-        riichi_offset = tile_height * 2.75
+        name_offset = score_offset + 20
+        riichi_offset = tile_height * 3.00
 
         for idx in range(len(positions)):
             if self.centre_hover:
                 score_text = self.score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
             else:
                 score_text = self.score_font.render(str(scores[idx]), 1, (0, 0, 0))
+            name_text = self.name_font.render(names[idx], 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[positions[idx]]
             riichi_sprite = self.riichi_stick_sprite
             if positions[idx] == 0:  # Self
@@ -345,6 +349,8 @@ class InGameScreen(AbstractScreen):
                 wind_y = centre_y + wind_offset - wind_sprite.get_height() / 2
                 score_x = centre_x - score_text.get_width() / 2
                 score_y = centre_y + score_offset - score_text.get_height() / 2
+                name_x = centre_x - name_text.get_width() / 2
+                name_y = centre_y + name_offset - name_text.get_height() / 2
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y + riichi_offset - riichi_sprite.get_height() / 2
             if positions[idx] == 1:  # Shimocha
@@ -354,6 +360,9 @@ class InGameScreen(AbstractScreen):
                 score_text = pygame.transform.rotate(score_text, 90)
                 score_x = centre_x + score_offset - score_text.get_width() / 2
                 score_y = centre_y - score_text.get_height() / 2
+                name_text = pygame.transform.rotate(name_text, 90)
+                name_x = centre_x + name_offset - name_text.get_width() / 2
+                name_y = centre_y - name_text.get_height() / 2
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 90)
                 riichi_x = centre_x + riichi_offset - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_sprite.get_height() / 2
@@ -364,6 +373,9 @@ class InGameScreen(AbstractScreen):
                 score_text = pygame.transform.rotate(score_text, 180)
                 score_x = centre_x - score_text.get_width() / 2
                 score_y = centre_y - score_offset - score_text.get_height() / 2
+                name_text = pygame.transform.rotate(name_text, 180)
+                name_x = centre_x - name_text.get_width() / 2
+                name_y = centre_y - name_offset - name_text.get_height() / 2
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 180)
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_offset - riichi_sprite.get_height() / 2
@@ -374,12 +386,16 @@ class InGameScreen(AbstractScreen):
                 score_text = pygame.transform.rotate(score_text, -90)
                 score_x = centre_x - score_offset - score_text.get_width() / 2
                 score_y = centre_y - score_text.get_height() / 2
+                name_text = pygame.transform.rotate(name_text, -90)
+                name_x = centre_x - name_offset - name_text.get_width() / 2
+                name_y = centre_y - name_text.get_height() / 2
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, -90)
                 riichi_x = centre_x - riichi_offset - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_sprite.get_height() / 2
 
             canvas.blit(wind_sprite, (wind_x, wind_y))
             canvas.blit(score_text, (score_x, score_y))
+            canvas.blit(name_text, (name_x, name_y))
             if riichi_states[idx]:
                 canvas.blit(riichi_sprite, (riichi_x, riichi_y))
             centre_text_line0 = self.centre_font.render("東四局", 1, (0, 0, 0))

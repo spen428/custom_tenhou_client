@@ -139,7 +139,7 @@ class InGameScreen(AbstractScreen):
 
     def on_mouse_motion(self):
         pos = pygame.mouse.get_pos()
-        if self.centre_hover and self.centre_square is not None:
+        if self.centre_square is not None:
             self.centre_hover = self.centre_square.collidepoint(pos)
         self.hover_tile = None
         for rect in self.tile_rects:

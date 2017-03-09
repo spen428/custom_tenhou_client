@@ -122,9 +122,14 @@ class InGameScreen(AbstractScreen):
         self.tile_hover_colour = (255, 0, 0)
         self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 15)
         self.score_font = pygame.font.SysFont("Arial", 16)
+        self.discard_timer_font = pygame.font.SysFont("Arial", 10)
         self.name_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
         self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
         self.start_time_secs = time.time()
+        self.discard_start_secs = time.time()
+        self.tile_highlights = [
+            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-green.png")),
+            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-red.png"))]
 
     # Private methods #
 
@@ -163,6 +168,8 @@ class InGameScreen(AbstractScreen):
 
         # Clear storage
         self.tile_rects = []
+        if self._get_discard_time() <= 0:
+            self.discard_start_secs = time.time()
 
         # initialise centre square shape
         if self.centre_square is None:
@@ -178,15 +185,17 @@ class InGameScreen(AbstractScreen):
 
         for n in range(len(self.discards)):
             self._draw_discards(canvas, self.discards[n], n)
-            #self._draw_calls(canvas, self.calls[n], n)
+            # self._draw_calls(canvas, self.calls[n], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
         self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
         scores = [72300, 8200, 11500, 23200]
         names = ["Dave", "てつやち", "藤田プロ", "Mark"]
+        ranks = ["四段", "初段", "八段", "２級"]
         self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0),
-                                  [True, False, False, True], names)
+                                  [True, False, False, True], names, ranks)
 
         if self.hover_tile is not None:
+            # canvas.blit(self.tile_highlights[0], (self.hover_tile.x, self.hover_tile.y))
             pygame.draw.rect(canvas, self.tile_hover_colour, self.hover_tile, 3)
 
         time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
@@ -223,9 +232,20 @@ class InGameScreen(AbstractScreen):
             x = centre_x - 2 * width
             pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Kamicha
 
+    # Game information methods #
+
+    def _get_discard_time(self):
+        now = time.time()
+        discard_time_secs = 4.0  # TODO
+        return self.discard_start_secs + discard_time_secs - now
+
     # Drawing methods #
 
     def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
+        discard_time = self._get_discard_time()
+        if discard_time is not None:
+            time_string = "{0:.2f}".format(discard_time)
+            discard_timer_text = self.discard_timer_font.render(time_string, 1, (255, 255, 255))
         centre_x, centre_y = center_pos
         tile_width = self._get_tile_image(0).get_width()
         tile_height = self._get_tile_image(0).get_height()
@@ -238,6 +258,8 @@ class InGameScreen(AbstractScreen):
         if tsumohai is not None:
             x += 0.5 * tile_width
             self._draw_tile(canvas, tsumohai, (x, y))
+            if discard_timer_text is not None:
+                canvas.blit(discard_timer_text, (x - discard_timer_text.get_width() / 2 + tile_width / 2, y - 13))
 
     def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0):
         x, y = pos
@@ -325,7 +347,7 @@ class InGameScreen(AbstractScreen):
             canvas.blit(text, (x, y))
             y += y_offset
 
-    def _draw_centre_console(self, canvas, positions, scores, score_deltas, riichi_states, names):
+    def _draw_centre_console(self, canvas, positions, scores, score_deltas, riichi_states, names, ranks):
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
         tile_img = self._get_tile_image(0, True)
@@ -341,7 +363,7 @@ class InGameScreen(AbstractScreen):
                 score_text = self.score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
             else:
                 score_text = self.score_font.render(str(scores[idx]), 1, (0, 0, 0))
-            name_text = self.name_font.render(names[idx], 1, (0, 0, 0))
+            name_text = self.name_font.render("{0}・{1}".format(names[idx], ranks[idx]), 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[positions[idx]]
             riichi_sprite = self.riichi_stick_sprite
             if positions[idx] == 0:  # Self

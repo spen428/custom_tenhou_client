@@ -294,47 +294,7 @@ class InGameScreen(AbstractScreen):
         :param position: the player position at which to draw the calls
         :return: None
         """
-        a_tile = self._get_tile_image(0, True)
-        tile_width = a_tile.get_width()
-        tile_height = a_tile.get_height()
-        cx = surface.get_width() / 2
-        cy = surface.get_height() / 2
-        x = surface.get_width() - 3 * tile_width / 2
-        y = surface.get_height() - 3 * tile_height / 2
-        for call in calls:
-            rotation = [0, -90, -180, -270][position]
-            # Determine number of tiles to display, depending on call type
-            if call.call_type == CallType.NUKE:
-                num_tiles = 1
-            elif call.call_type in [CallType.DAIMINKAN, CallType.ANKAN]:
-                num_tiles = 4
-            else:
-                num_tiles = 3
-
-            # Determine positions and blit tiles
-            for idx in range(num_tiles):
-                if call.call_type != CallType.NUKE and idx == call.call_tile:
-                    x -= (tile_height - tile_width)
-                    y += (tile_height - tile_width)
-                    pos = rotate((cx, cy), (x, y), rotation)
-                    self._draw_tile(surface, call.tile_id, pos, True, rotation + 90)
-                    if call.call_type == CallType.SHOUMINKAN:
-                        pos = rotate((cx, cy), (x, y - tile_width), rotation)
-                        self._draw_tile(surface, call.tile_id, pos, True, rotation + 90)
-                    x -= tile_width
-                    y -= (tile_height - tile_width)
-                else:
-                    pos = rotate((cx, cy), (x, y), rotation)
-                    self._draw_tile(surface, call.tile_id, pos, True, rotation)
-                    x -= tile_width
-                    if call.call_type == CallType.NUKE:
-                        myfont = pygame.font.SysFont("Monospace", 13)
-                        myfont.set_bold(True)
-                        nuke_text = myfont.render("{}x".format(call.call_tile), 1, (0, 0, 0))
-                        tx = x + tile_width + nuke_text.get_width() / 4
-                        ty = y + tile_height
-                        pos = rotate((cx, cy), (tx, ty), rotation)
-                        surface.blit(nuke_text, pos)
+        pass
 
     def _draw_discards(self, canvas, tiles, position):
         x_count = 0

@@ -278,39 +278,46 @@ class InGameScreen(AbstractScreen):
                 self._draw_tile(surface, call.tile_id, coordinates, True, rotation, sideways=is_call_tile)
                 x -= tile_height if is_call_tile else tile_width
 
-    def _draw_discards(self, canvas, tiles, position):
-        x_count = 0
-        y_count = 0
-        riichi_count = 0
+    def _draw_discards(self, surface: pygame.Surface, tiles, position: int):
         a_tile = self._get_tile_image(0, True)
         tile_width = a_tile.get_width()
         tile_height = a_tile.get_height()
-        centre_x = canvas.get_width() / 2
-        centre_y = canvas.get_height() / 2
+        centre_x = surface.get_width() / 2
+        centre_y = surface.get_height() / 2
+
         discard_offset = tile_height * 3.25
+        rotation = [0, -90, -180, -270][position]
+        x_count = 0
+        y_count = 0
+        riichi_count = 0
+
         for tile in tiles:
             tile_id, tile_sprite_id, riichi, tsumogiri = tile
             x = centre_x + (x_count - 3) * tile_width
             y = centre_y + discard_offset + y_count * tile_height
-            rotation = [0, -90, -180, -270][position]
+
             # Account for riichi tiles
             x += (tile_height - tile_width) * riichi_count
             if riichi:
                 riichi_count += 1  # Must appear AFTER the positioning adjustment above
+
             # Positioning hacks
-            if position in [1, 2]:
+            if position in [Position.SHIMOCHA, Position.TOIMEN]:
                 x += tile_width
                 if riichi:
                     x += (tile_height - tile_width)
-            if position in [2, 3]:
+            if position in [Position.TOIMEN, Position.KAMICHA]:
                 y += tile_height
                 if riichi:
                     y -= (tile_height - tile_width)
+
             # Rotate into place
             pos = rotate((centre_x, centre_y), (x, y), rotation)
+
             # Highlight tsumogiri
             hl = 3 if tsumogiri else None
-            self._draw_tile(canvas, tile_sprite_id, pos, True, rotation, highlight_id=hl, sideways=riichi)
+
+            self._draw_tile(surface, tile_sprite_id, pos, True, rotation, highlight_id=hl, sideways=riichi)
             x_count += 1
             if x_count == 6 and y_count < 2:
                 x_count = 0
@@ -346,7 +353,7 @@ class InGameScreen(AbstractScreen):
             name_text = self.name_font.render("{0}・{1}".format(names[idx], ranks[idx]), 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[positions[idx]]
             riichi_sprite = self.riichi_stick_sprite
-            if positions[idx] == 0:  # Self
+            if positions[idx] == Position.JIBUN:
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y + wind_offset - wind_sprite.get_height() / 2
                 score_x = centre_x - score_text.get_width() / 2
@@ -355,7 +362,7 @@ class InGameScreen(AbstractScreen):
                 name_y = centre_y + name_offset - name_text.get_height() / 2
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y + riichi_offset - riichi_sprite.get_height() / 2
-            if positions[idx] == 1:  # Shimocha
+            if positions[idx] == Position.SHIMOCHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 90)
                 wind_x = centre_x + wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2
@@ -368,7 +375,7 @@ class InGameScreen(AbstractScreen):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 90)
                 riichi_x = centre_x + riichi_offset - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_sprite.get_height() / 2
-            if positions[idx] == 2:  # Toimen
+            if positions[idx] == Position.TOIMEN:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 180)
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_offset - wind_sprite.get_height() / 2
@@ -381,7 +388,7 @@ class InGameScreen(AbstractScreen):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 180)
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_offset - riichi_sprite.get_height() / 2
-            if positions[idx] == 3:  # Kamicha
+            if positions[idx] == Position.KAMICHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, -90)
                 wind_x = centre_x - wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2

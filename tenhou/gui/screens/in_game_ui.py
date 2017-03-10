@@ -298,15 +298,23 @@ class InGameScreen(AbstractScreen):
                         coordinates = rotate((centre_x, centre_y), (x, y), rotation)
                         self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=True)
                         y += tile_width
-                        n += 1
+                        if n is not num_tiles - 1:
+                            n += 1
                 coordinates = rotate((centre_x, centre_y), (x, y), rotation)
                 self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=is_call_tile)
                 if call.call_type == CallType.NUKE:
                     txt = "{}x".format(len(call.tile_ids))
                     nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
-                    nuke_text = pygame.transform.rotate(nuke_text, tile_rotation)
                     tx = x + tile_width / 2 - nuke_text.get_width() / 2
                     ty = y - nuke_text.get_height()
+
+                    # Even more positioning hacks holy shit I've got to fix these
+                    if position in [Position.SHIMOCHA, Position.TOIMEN]:
+                        tx -= tile_width / 2 + nuke_text.get_width() / 2
+                    if position in [Position.TOIMEN, Position.KAMICHA]:
+                        ty -= nuke_text.get_height() * 2
+
+                    nuke_text = pygame.transform.rotate(nuke_text, tile_rotation)
                     coordinates = rotate((centre_x, centre_y), (tx, ty), rotation)
                     surface.blit(nuke_text, coordinates)
                 x -= tile_width

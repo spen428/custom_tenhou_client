@@ -12,9 +12,9 @@ class CallType(object):
 
 
 class Call(object):
-    def __init__(self, tile_id: int, call_tile: int, call_type: CallType):
+    def __init__(self, tile_ids: [int], call_tile: int, call_type: CallType):
         self.call_type = call_type
-        self.tile_id = tile_id
+        self.tile_ids = tile_ids
         self.call_tile = call_tile
 
 

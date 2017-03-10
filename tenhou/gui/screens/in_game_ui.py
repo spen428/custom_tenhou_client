@@ -103,11 +103,14 @@ class InGameScreen(AbstractScreen):
                 self.discards[n].append((tile_id, tile_sprite_id, riichi, tsumogiri))
         self.calls = []
         for _ in range(4):
-            player_calls = [Call(randint(0, len(self.tiles_38px) - 2), 2, CallType.SHOUMINKAN),
-                            Call(randint(0, len(self.tiles_38px) - 2), 0, CallType.DAIMINKAN),
-                            Call(randint(0, len(self.tiles_38px) - 2), 0, CallType.PON)]
+            r = [randint(0, len(self.tiles_38px) - 2) for _ in range(3)]
+            r.append(randint(0, len(self.tiles_38px) - 6))
+            player_calls = [Call([r[0] for _ in range(4)], randint(0, 3), CallType.SHOUMINKAN),
+                            Call([r[1] for _ in range(4)], randint(0, 3), CallType.DAIMINKAN),
+                            Call([r[2] for _ in range(3)], randint(0, 2), CallType.PON),
+                            Call([r[3] + n for n in range(3)], randint(0, 2), CallType.CHII)]
             self.calls.append(player_calls)
-        self.nuke = [Call(len(self.tiles_38px) - 5, randint(1, 4), CallType.NUKE) for _ in range(4)]
+        self.nuke = [Call([len(self.tiles_38px) - 5 for _ in range(randint(1, 4))], 0, CallType.NUKE) for _ in range(4)]
         self.tile_rects = []
         self.step = 0
         self.centre_hover = False
@@ -276,7 +279,7 @@ class InGameScreen(AbstractScreen):
                 num_tiles = 1
             # Draw tiles
             for n in range(num_tiles):
-                is_call_tile = (n == call.call_tile)
+                is_call_tile = (call.call_type is not CallType.NUKE and n is call.call_tile)
                 if is_call_tile:
                     # More positioning hacks
                     if position in [Position.SHIMOCHA, Position.TOIMEN]:
@@ -290,13 +293,13 @@ class InGameScreen(AbstractScreen):
                     if call.call_type == CallType.SHOUMINKAN:
                         y -= tile_width
                         coordinates = rotate((centre_x, centre_y), (x, y), rotation)
-                        self._draw_tile(surface, call.tile_id, coordinates, True, rotation, sideways=True)
+                        self._draw_tile(surface, call.tile_ids[n], coordinates, True, rotation, sideways=True)
                         y += tile_width
                         n += 1
                 coordinates = rotate((centre_x, centre_y), (x, y), rotation)
-                self._draw_tile(surface, call.tile_id, coordinates, True, rotation, sideways=is_call_tile)
+                self._draw_tile(surface, call.tile_ids[n], coordinates, True, rotation, sideways=is_call_tile)
                 if call.call_type == CallType.NUKE:
-                    txt = "{}x".format(4)  # TODO
+                    txt = "{}x".format(len(call.tile_ids))
                     nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
                     nuke_text = pygame.transform.rotate(nuke_text, rotation)
                     tx = x + tile_width / 2 - nuke_text.get_width() / 2

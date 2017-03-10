@@ -21,12 +21,12 @@ def set_up_logging():
         os.mkdir(logs_directory)
 
     file_name = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '.log'
-    #fh = logging.FileHandler(os.path.join(logs_directory, file_name))
-    #fh.setLevel(logging.DEBUG)
+    # fh = logging.FileHandler(os.path.join(logs_directory, file_name))
+    # fh.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     ch.setFormatter(formatter)
-    #fh.setFormatter(formatter)
+    # fh.setFormatter(formatter)
 
     logger.addHandler(ch)
-    #logger.addHandler(fh)
+    # logger.addHandler(fh)

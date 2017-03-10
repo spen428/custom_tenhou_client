@@ -6,26 +6,12 @@ import tenhou.gui.main
 from tenhou.gui.screens import AbstractScreen, MenuButton
 
 
-class _LoginStatus(object):
-    NOT_LOGGED_IN = 0
-    LOGGING_IN = 1
-    LOGGED_IN = 2
-
-
-class MainMenuScreen(AbstractScreen):
+class EscMenuScreen(AbstractScreen):
     def __init__(self, client):
         self.client = client
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))
-        self.login_buttons = [MenuButton("Log in", self._log_in),
-                              MenuButton("Play anonymously", self._play_anonymously),
-                              MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
-                              MenuButton("InGameScreen Test", self._ui_test),
-                              MenuButton("EscMenuScreen Test", self._esc_test)]
-        self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
-        self.status = _LoginStatus.NOT_LOGGED_IN
+        self.menu_buttons = [MenuButton("Leave game", self._nop)]
         # Constant render stuff
-        self._footer_font = pygame.font.SysFont("Arial", 13)
-        self._footer_text = self._footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
         self._button_font = pygame.font.SysFont("Arial", 16)
         self._button_width_px = 200
         self._button_height_px = 50
@@ -34,53 +20,21 @@ class MainMenuScreen(AbstractScreen):
 
     # Private Methods #
 
-    def _exit_game(self):
-        self.client.running = False
-
-    def _ui_test(self):
-        self.client.ui_test()
-
-    def _esc_test(self):
-        self.client.esc_test()
-
-    def _log_in(self):
+    def _nop(self):
         pass
-
-    def _open_replay(self):
-        pass
-
-    def _log_out(self):
-        if self.client.log_out():
-            self.status = _LoginStatus.NOT_LOGGED_IN
-
-    def _join_lobby(self):
-        self.client.join_lobby()
-
-    def _play_anonymously(self):
-        self.status = _LoginStatus.LOGGING_IN
-        if self.client.log_in():
-            self.status = _LoginStatus.LOGGED_IN
-        else:
-            self.status = _LoginStatus.NOT_LOGGED_IN
-
-    def _get_buttons(self):
-        if self.status in [_LoginStatus.NOT_LOGGED_IN, _LoginStatus.LOGGING_IN]:
-            return self.login_buttons
-        elif self.status is _LoginStatus.LOGGED_IN:
-            return self.lobby_buttons
 
     # Superclass methods #
 
     def on_mouse_up(self):
         pos = pygame.mouse.get_pos()
-        for btn in self._get_buttons():
+        for btn in self.menu_buttons:
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 if btn.on_click is not None:
                     btn.on_click()
 
     def on_mouse_motion(self):
         pos = pygame.mouse.get_pos()
-        for btn in self._get_buttons():
+        for btn in self.menu_buttons:
             btn.hover = False
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 btn.hover = True
@@ -94,17 +48,12 @@ class MainMenuScreen(AbstractScreen):
         y = 25
         canvas.blit(self.logo_image, (x, y))
 
-        # draw footer text
-        x = canvas.get_width() / 2 - self._footer_text.get_width() / 2
-        y = canvas.get_height() - 25
-        canvas.blit(self._footer_text, (x, y))
-
         # draw buttons
-        num_buttons = len(self._get_buttons())
+        num_buttons = len(self.menu_buttons)
         btn_v_spacing = 25
         x = canvas.get_width() / 2 - self._button_width_px / 2
         y = canvas.get_height() / 2 - (num_buttons * (self._button_height_px + btn_v_spacing)) / 2
-        for btn in self._get_buttons():
+        for btn in self.menu_buttons:
             # determine button colour
             if btn.hover:
                 btn_color = self._button_color_hover

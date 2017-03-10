@@ -6,6 +6,7 @@ import socket
 import pygame
 
 from tenhou.client import TenhouClient
+from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.gui.screens.in_game_ui import InGameScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
 from utils.settings_handler import settings
@@ -109,3 +110,6 @@ class Gui(object):
 
     def ui_test(self):
         self.current_screen = InGameScreen(self)
+
+    def esc_test(self):
+        self.current_screen = EscMenuScreen(self)

@@ -287,15 +287,41 @@ class InGameScreen(AbstractScreen):
         if highlight_id is not None:
             self._draw_highlight(canvas, rect, highlight_id)
 
-    def _draw_calls(self, surface: pygame.Surface, calls: [Call], position: int) -> None:
+    def _draw_calls(self, canvas: pygame.Surface, calls: [Call], position: int) -> None:
         """
         Draw player meld calls to a Surface.
-        :param surface: the surface to draw to
+        :param canvas: the surface to draw to
         :param calls: the list of calls
         :param position: the player position at which to draw the calls
         :return: None
         """
-        pass
+        a_tile = self._get_tile_image(0, True)
+        tile_width = a_tile.get_width()
+        tile_height = a_tile.get_height()
+        centre_x = canvas.get_width() / 2
+        centre_y = canvas.get_height() / 2
+
+        rotation = [0, -90, -180, -270][position]
+        x = centre_x + tile_width * 7
+        y = centre_y + tile_height * 8
+
+        # Positioning hack
+        if position in [1, 2]:
+            x += tile_width
+
+        for call in calls:
+            # Determine how many tiles to display
+            num_tiles = 3
+            if CallType.is_kantsu(call.call_type):
+                num_tiles = 4
+            elif call.call_type == CallType.NUKE:
+                num_tiles = 1
+            # Draw tiles
+            for n in range(num_tiles):
+                is_call_tile = n == call.call_tile
+                pos = rotate((centre_x, centre_y), (x, y), rotation)  # Rotate into place
+                self._draw_tile(canvas, call.tile_id, pos, True, rotation, sideways=is_call_tile)
+                x -= tile_height if is_call_tile else tile_width
 
     def _draw_discards(self, canvas, tiles, position):
         x_count = 0

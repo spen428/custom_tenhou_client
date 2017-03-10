@@ -280,6 +280,7 @@ class InGameScreen(AbstractScreen):
                 num_tiles = 4
             elif call.call_type == CallType.NUKE:
                 num_tiles = 1
+
             # Draw tiles
             for n in range(num_tiles):
                 is_call_tile = (call.call_type is not CallType.NUKE and n is call.call_tile)
@@ -376,19 +377,38 @@ class InGameScreen(AbstractScreen):
                 y_count += 1
                 riichi_count = 0
 
-    def _draw_corner_text(self, canvas, lines):
-        canvas_width = canvas.get_width()
+    def _draw_corner_text(self, surface, lines):
+        """
+        Render lines of text in the top right of the screen.
+        :param surface: the surface to render to
+        :param lines: the lines of text as a string list
+        :return: None
+        """
+        canvas_width = surface.get_width()
         y_offset = 20
         x_offset = y = 2 * y_offset
         for line in lines:
             text = self.corner_font.render(line, 1, (0, 0, 0))
             x = canvas_width - text.get_width() - x_offset
-            canvas.blit(text, (x, y))
+            surface.blit(text, (x, y))
             y += y_offset
 
-    def _draw_centre_console(self, canvas, positions, scores, score_deltas, riichi_states, names, ranks):
-        centre_x = canvas.get_width() / 2
-        centre_y = canvas.get_height() / 2
+    def _draw_centre_console(self, surface, seats, scores, score_deltas, riichi_states, names, ranks):
+        """
+        Render the centre console, including player names, seat winds, round information, scores, and riichi sticks.
+        :param surface: the surface to render to
+        :param seats: player seats relative to self as a list of length 4, e.g. [Seat.SHAA, Seat.PEI, Seat.TON,
+        Seat.NAN]. For two and three player mahjong, unused seats should have a value of None.
+        :param scores: scores as an integer list of length 4
+        :param score_deltas: score deltas as an integer list of length 4. This is the difference in score between
+        oneself and other players
+        :param riichi_states: riichi states as a boolean list of length 4
+        :param names: player names as a string list of length 4
+        :param ranks: player ranks as a string list of length 4
+        :return: None
+        """
+        centre_x = surface.get_width() / 2
+        centre_y = surface.get_height() / 2
         tile_img = self._get_tile_image(0, True)
         # tile_width = tile_img.get_width()
         tile_height = tile_img.get_height()
@@ -397,15 +417,17 @@ class InGameScreen(AbstractScreen):
         name_offset = score_offset + 20
         riichi_offset = tile_height * 3.00
 
-        for idx in range(len(positions)):
+        for idx in range(len(seats)):
+            if seats[idx] is None:
+                continue  # For two and three player, some seat positions will be None
             if self.centre_hover:
                 score_text = self.score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
             else:
                 score_text = self.score_font.render(str(scores[idx]), 1, (0, 0, 0))
             name_text = self.name_font.render("{0}・{1}".format(names[idx], ranks[idx]), 1, (0, 0, 0))
-            wind_sprite = self.wind_sprites[positions[idx]]
+            wind_sprite = self.wind_sprites[seats[idx]]
             riichi_sprite = self.riichi_stick_sprite
-            if positions[idx] == Position.JIBUN:
+            if seats[idx] == Position.JIBUN:
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y + wind_offset - wind_sprite.get_height() / 2
                 score_x = centre_x - score_text.get_width() / 2
@@ -414,7 +436,7 @@ class InGameScreen(AbstractScreen):
                 name_y = centre_y + name_offset - name_text.get_height() / 2
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y + riichi_offset - riichi_sprite.get_height() / 2
-            if positions[idx] == Position.SHIMOCHA:
+            if seats[idx] == Position.SHIMOCHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 90)
                 wind_x = centre_x + wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2
@@ -427,7 +449,7 @@ class InGameScreen(AbstractScreen):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 90)
                 riichi_x = centre_x + riichi_offset - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_sprite.get_height() / 2
-            if positions[idx] == Position.TOIMEN:
+            if seats[idx] == Position.TOIMEN:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 180)
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_offset - wind_sprite.get_height() / 2
@@ -440,7 +462,7 @@ class InGameScreen(AbstractScreen):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 180)
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_offset - riichi_sprite.get_height() / 2
-            if positions[idx] == Position.KAMICHA:
+            if seats[idx] == Position.KAMICHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, -90)
                 wind_x = centre_x - wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2
@@ -454,17 +476,24 @@ class InGameScreen(AbstractScreen):
                 riichi_x = centre_x - riichi_offset - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_sprite.get_height() / 2
 
-            canvas.blit(wind_sprite, (wind_x, wind_y))
-            canvas.blit(score_text, (score_x, score_y))
-            canvas.blit(name_text, (name_x, name_y))
+            surface.blit(wind_sprite, (wind_x, wind_y))
+            surface.blit(score_text, (score_x, score_y))
+            surface.blit(name_text, (name_x, name_y))
             if riichi_states[idx]:
-                canvas.blit(riichi_sprite, (riichi_x, riichi_y))
+                surface.blit(riichi_sprite, (riichi_x, riichi_y))
             centre_text_line0 = self.centre_font.render("東四局", 1, (0, 0, 0))
             centre_text_line1 = self.centre_font.render("二本場", 1, (0, 0, 0))
-            canvas.blit(centre_text_line0,
-                        (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
-            canvas.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
+            surface.blit(centre_text_line0,
+                         (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
+            surface.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
 
-    def _draw_highlight(self, canvas, rect, highlight_id):
+    def _draw_highlight(self, surface: pygame.Surface, rect: pygame.Rect, highlight_id: int):
+        """
+        Highlight a rectangle with the specified highlight id
+        :param surface: the surface
+        :param rect: the rectangle
+        :param highlight_id: the highlight id
+        :return: None
+        """
         hl = pygame.transform.scale(self.tile_highlights[highlight_id], (rect.width, rect.height))
-        canvas.blit(hl, (rect.x, rect.y))
+        surface.blit(hl, (rect.x, rect.y))

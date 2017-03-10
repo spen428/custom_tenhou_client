@@ -3,7 +3,7 @@ class CallType(object):
     CHII = 1
     PON = 2
     ANKAN = 3
-    SHOUMINKAN = 4
+    SHOUMINKAN = 4  # AKA "Extended kan"
     DAIMINKAN = 5
 
     @staticmethod

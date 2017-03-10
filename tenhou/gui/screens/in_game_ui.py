@@ -183,7 +183,7 @@ class InGameScreen(AbstractScreen):
             self._draw_discards(canvas, self.discards[n], n)
             self._draw_calls(canvas, [self.nuke[n]] + self.calls[n], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
-        self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
+        # self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
         scores = [72300, 8200, 11500, 23200]
         names = ["Dave", "てつやち", "藤田プロ", "Mark"]
         ranks = ["四段", "初段", "八段", "２級"]
@@ -253,14 +253,17 @@ class InGameScreen(AbstractScreen):
         a_tile = self._get_tile_image(0, True)
         tile_width = a_tile.get_width()
         tile_height = a_tile.get_height()
+        tile_diff = tile_height - tile_width
         centre_x = surface.get_width() / 2
         centre_y = surface.get_height() / 2
 
         rotation = [0, -90, -180, -270][position]
-        x = centre_x + tile_width * 7
-        y = centre_y + tile_height * 8
+        x = centre_x + tile_width * 10
+        y = centre_y + tile_height * 7.5
 
         # Positioning hack
+        if position in [Position.KAMICHA, Position.TOIMEN]:
+            y += tile_height
         if position in [Position.SHIMOCHA, Position.TOIMEN]:
             x += tile_width
 
@@ -274,9 +277,40 @@ class InGameScreen(AbstractScreen):
             # Draw tiles
             for n in range(num_tiles):
                 is_call_tile = (n == call.call_tile)
-                coordinates = rotate((centre_x, centre_y), (x, y), rotation)  # Rotate into place
+                if is_call_tile:
+                    # More positioning hacks
+                    if position in [Position.SHIMOCHA, Position.TOIMEN]:
+                        x += tile_diff
+                    if position in [Position.TOIMEN, Position.KAMICHA]:
+                        y -= tile_diff
+
+                    # Adjust for rotation
+                    x -= tile_diff
+                    y += tile_diff
+                    if call.call_type == CallType.SHOUMINKAN:
+                        y -= tile_width
+                        coordinates = rotate((centre_x, centre_y), (x, y), rotation)
+                        self._draw_tile(surface, call.tile_id, coordinates, True, rotation, sideways=True)
+                        y += tile_width
+                        n += 1
+                coordinates = rotate((centre_x, centre_y), (x, y), rotation)
                 self._draw_tile(surface, call.tile_id, coordinates, True, rotation, sideways=is_call_tile)
-                x -= tile_height if is_call_tile else tile_width
+                if call.call_type == CallType.NUKE:
+                    txt = "{}x".format(4)  # TODO
+                    nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
+                    nuke_text = pygame.transform.rotate(nuke_text, rotation)
+                    tx = x + tile_width / 2 - nuke_text.get_width() / 2
+                    ty = y - nuke_text.get_height()
+                    coordinates = rotate((centre_x, centre_y), (tx, ty), rotation)
+                    surface.blit(nuke_text, coordinates)
+                x -= tile_width
+                if is_call_tile:
+                    y -= (tile_height - tile_width)
+                    # Undo positioning hacks
+                    if position in [Position.SHIMOCHA, Position.TOIMEN]:
+                        x -= tile_diff
+                    if position in [Position.TOIMEN, Position.KAMICHA]:
+                        y += tile_diff
 
     def _draw_discards(self, surface: pygame.Surface, tiles, position: int):
         a_tile = self._get_tile_image(0, True)

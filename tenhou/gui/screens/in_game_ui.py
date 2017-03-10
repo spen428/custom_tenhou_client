@@ -255,6 +255,7 @@ class InGameScreen(AbstractScreen):
 
     def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
         discard_time = self._get_discard_time()
+        discard_timer_text = None
         if discard_time is not None:
             time_string = "{0:.2f}".format(discard_time)
             discard_timer_text = self.discard_timer_font.render(time_string, 1, (255, 255, 255))
@@ -349,7 +350,7 @@ class InGameScreen(AbstractScreen):
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
         tile_img = self._get_tile_image(0, True)
-        tile_width = tile_img.get_width()
+        # tile_width = tile_img.get_width()
         tile_height = tile_img.get_height()
         wind_offset = tile_height * 1.20
         score_offset = tile_height * 2.15

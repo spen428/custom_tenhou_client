@@ -199,51 +199,6 @@ class InGameScreen(AbstractScreen):
         lines = [time_string, "東風戦喰速赤", "東四局二本", "オーラス"]
         self._draw_corner_text(canvas, lines)
 
-        if True:  # Draw positioning lines
-            # Center cross
-            pygame.draw.line(canvas, (0, 0, 0), (0, centre_y), (canvas_width, centre_y))
-            pygame.draw.line(canvas, (0, 0, 0), (centre_x, 0), (centre_x, canvas_height))
-
-            # Center squares
-            for n in [1.5, 3.0, 4.5]:
-                width = tile_width * n
-                x = centre_x - width / 2
-                y = centre_y - width / 2
-                pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, width), 1)
-            pygame.draw.rect(canvas, (0, 0, 0), self.centre_square, 1)
-
-            # Discard zones
-            width = tile_width * 6
-            height = tile_height * 3.25
-            x = centre_x - width / 2
-            y = centre_y + height
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Self
-            y = centre_y - 2 * height
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Toimen
-            width, height = height, width  # I love Python
-            x = centre_x + width
-            y = centre_y - height / 2
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Shimocha
-            x = centre_x - 2 * width
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Kamicha
-
-            # Call zones
-            x = centre_x + tile_height * 5 + tile_width * 3
-            y = centre_y + tile_height * 8
-            width = 10 * tile_width
-            height = tile_height
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, -width, height), 1)  # Self
-            x = centre_x - tile_height * 5 - tile_width * 3
-            y = centre_y - tile_height * 9
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Toimen
-            height, width = width, height
-            x = centre_x + tile_height * 8
-            y = centre_y - tile_height * 5 - tile_width * 3
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Shimocha
-            x = centre_x - tile_height * 9
-            y = centre_y + tile_height * 5 + tile_width * 3
-            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, -height), 1)  # Kamicha
-
     # Game information methods #
 
     def _get_discard_time(self):

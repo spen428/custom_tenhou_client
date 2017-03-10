@@ -16,3 +16,10 @@ class Call(object):
         self.call_type = call_type
         self.tile_id = tile_id
         self.call_tile = call_tile
+
+
+class Position(object):
+    JIBUN = 0
+    SHIMOCHA = 1
+    TOIMEN = 2
+    KAMICHA = 3

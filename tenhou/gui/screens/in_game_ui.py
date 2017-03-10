@@ -8,7 +8,7 @@ import pygame
 
 import tenhou.gui.main
 from tenhou.gui.screens import AbstractScreen
-from tenhou.jong.classes import Call, CallType
+from tenhou.jong.classes import Call, CallType, Position
 from tenhou.utils import calculate_score_deltas, seconds_to_time_string
 
 
@@ -242,10 +242,10 @@ class InGameScreen(AbstractScreen):
         if highlight_id is not None:
             self._draw_highlight(canvas, rect, highlight_id)
 
-    def _draw_calls(self, canvas: pygame.Surface, calls: [Call], position: int) -> None:
+    def _draw_calls(self, surface: pygame.Surface, calls: [Call], position: int) -> None:
         """
         Draw player meld calls to a Surface.
-        :param canvas: the surface to draw to
+        :param surface: the surface to draw to
         :param calls: the list of calls
         :param position: the player position at which to draw the calls
         :return: None
@@ -253,15 +253,15 @@ class InGameScreen(AbstractScreen):
         a_tile = self._get_tile_image(0, True)
         tile_width = a_tile.get_width()
         tile_height = a_tile.get_height()
-        centre_x = canvas.get_width() / 2
-        centre_y = canvas.get_height() / 2
+        centre_x = surface.get_width() / 2
+        centre_y = surface.get_height() / 2
 
         rotation = [0, -90, -180, -270][position]
         x = centre_x + tile_width * 7
         y = centre_y + tile_height * 8
 
         # Positioning hack
-        if position in [1, 2]:
+        if position in [Position.SHIMOCHA, Position.TOIMEN]:
             x += tile_width
 
         for call in calls:
@@ -273,9 +273,9 @@ class InGameScreen(AbstractScreen):
                 num_tiles = 1
             # Draw tiles
             for n in range(num_tiles):
-                is_call_tile = n == call.call_tile
-                pos = rotate((centre_x, centre_y), (x, y), rotation)  # Rotate into place
-                self._draw_tile(canvas, call.tile_id, pos, True, rotation, sideways=is_call_tile)
+                is_call_tile = (n == call.call_tile)
+                coordinates = rotate((centre_x, centre_y), (x, y), rotation)  # Rotate into place
+                self._draw_tile(surface, call.tile_id, coordinates, True, rotation, sideways=is_call_tile)
                 x -= tile_height if is_call_tile else tile_width
 
     def _draw_discards(self, canvas, tiles, position):

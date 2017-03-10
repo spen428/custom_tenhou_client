@@ -145,7 +145,7 @@ class InGameScreen(AbstractScreen):
         if self.centre_square is not None:
             self.centre_hover = self.centre_square.collidepoint(pos)
         self.hover_tile = None
-        for rect in self.tile_rects:
+        for rect in reversed(self.tile_rects):
             if rect.collidepoint(pos):
                 self.hover_tile = rect
                 break

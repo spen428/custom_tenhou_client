@@ -83,7 +83,6 @@ def _load_wind_sprites():
 
 class InGameScreen(AbstractScreen):
     def __init__(self, client):
-        self.DEBUG = False
         self.client = client
         # TILES 64
         self.tiles_64px = _load_64px_tile_sprites()
@@ -105,10 +104,10 @@ class InGameScreen(AbstractScreen):
         self.calls = []
         for _ in range(4):
             player_calls = [Call(randint(0, len(self.tiles_38px) - 2), 2, CallType.SHOUMINKAN),
-                            Call(len(self.tiles_38px) - 8, 4, CallType.NUKE),
                             Call(randint(0, len(self.tiles_38px) - 2), 0, CallType.DAIMINKAN),
                             Call(randint(0, len(self.tiles_38px) - 2), 0, CallType.PON)]
             self.calls.append(player_calls)
+        self.nuke = [Call(len(self.tiles_38px) - 5, randint(1, 4), CallType.NUKE) for _ in range(4)]
         self.tile_rects = []
         self.step = 0
         self.centre_hover = False
@@ -182,7 +181,7 @@ class InGameScreen(AbstractScreen):
 
         for n in range(len(self.discards)):
             self._draw_discards(canvas, self.discards[n], n)
-            self._draw_calls(canvas, self.calls[n], n)
+            self._draw_calls(canvas, [self.nuke[n]] + self.calls[n], n)
         hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
         self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
         scores = [72300, 8200, 11500, 23200]
@@ -200,7 +199,7 @@ class InGameScreen(AbstractScreen):
         lines = [time_string, "東風戦喰速赤", "東四局二本", "オーラス"]
         self._draw_corner_text(canvas, lines)
 
-        if self.DEBUG:  # Draw positioning lines
+        if True:  # Draw positioning lines
             # Center cross
             pygame.draw.line(canvas, (0, 0, 0), (0, centre_y), (canvas_width, centre_y))
             pygame.draw.line(canvas, (0, 0, 0), (centre_x, 0), (centre_x, canvas_height))
@@ -227,6 +226,23 @@ class InGameScreen(AbstractScreen):
             pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Shimocha
             x = centre_x - 2 * width
             pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Kamicha
+
+            # Call zones
+            x = centre_x + tile_height * 5 + tile_width * 3
+            y = centre_y + tile_height * 8
+            width = 10 * tile_width
+            height = tile_height
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, -width, height), 1)  # Self
+            x = centre_x - tile_height * 5 - tile_width * 3
+            y = centre_y - tile_height * 9
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Toimen
+            height, width = width, height
+            x = centre_x + tile_height * 8
+            y = centre_y - tile_height * 5 - tile_width * 3
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, height), 1)  # Shimocha
+            x = centre_x - tile_height * 9
+            y = centre_y + tile_height * 5 + tile_width * 3
+            pygame.draw.rect(canvas, (0, 0, 0), pygame.Rect(x, y, width, -height), 1)  # Kamicha
 
     # Game information methods #
 

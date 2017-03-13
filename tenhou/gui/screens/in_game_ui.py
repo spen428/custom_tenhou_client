@@ -245,20 +245,24 @@ class InGameScreen(AbstractScreen):
         # Clear hover state before starting search
         for btn in self.call_buttons:
             btn.hover = False
+        self.hover_tile = None
+        self.centre_hover = False
 
         # Search for hover state
         for btn in self.call_buttons:
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 btn.hover = True
-                break
+                return
 
         if self.centre_square is not None:
             self.centre_hover = self.centre_square.collidepoint(pos)
-        self.hover_tile = None
+            if self.centre_hover:
+                return
+
         for rect in reversed(self.tile_rects):
             if rect.collidepoint(pos):
                 self.hover_tile = rect
-                break
+                return
 
     def on_window_resized(self, event):
         self.centre_square = None

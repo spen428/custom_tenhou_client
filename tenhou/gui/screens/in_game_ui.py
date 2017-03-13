@@ -9,7 +9,7 @@ import pygame
 import tenhou.gui.main
 from tenhou.gui.screens import AbstractScreen, MenuButton
 from tenhou.gui.screens.esc_menu import EscMenuScreen
-from tenhou.jong.classes import Call, CallType, Position, Player
+from tenhou.jong.classes import Call, CallType, Position, Player, Game
 from tenhou.utils import calculate_score_deltas, seconds_to_time_string
 
 DEBUG = True
@@ -85,7 +85,7 @@ def _load_wind_sprites():
 
 
 class InGameScreen(AbstractScreen):
-    def __init__(self, client):
+    def __init__(self, client, game: Game = None):
         self.table_name = None
         self.round_name = None
         self.client = client
@@ -131,9 +131,12 @@ class InGameScreen(AbstractScreen):
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "70perc-black.png"))]
         self.is_esc_menu_open = False
         self.esc_menu = EscMenuScreen(self.client)
-        self.players = []
+        self.game = game
 
         self._test()
+
+    def set_game(self, game: Game):
+        self.game = game
 
     # Private methods #
 
@@ -167,9 +170,10 @@ class InGameScreen(AbstractScreen):
         scores = [72300, 8200, 11500, 23200]
         seats = [0, 1, 2, 3]
 
-        self.players = [None for _ in range(4)]
+        self.game = Game()
+        self.game.players = [None for _ in range(4)]
         for n in range(4):
-            player = self.players[n] = Player(names[n], ranks[n])
+            player = self.game.players[n] = Player(names[n], ranks[n])
             # Discards
             for _ in range(21):
                 tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
@@ -192,10 +196,12 @@ class InGameScreen(AbstractScreen):
             player.score = scores[n]
             player.seat = seats[n]
             player.is_riichi = bool(randint(0, 1))
-        self.players[0].hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]  # Player 1's hand
+        self.game.players[0].hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]  # Player 1's hand
 
-        self.table_name = "東風戦喰速赤"
-        self.round_name = "東四局二本"
+        self.game.table_name = "東風戦喰速赤"
+        self.game.round_name = "東四局"
+        self.game.bonus_counters = 2
+        self.game.start()
 
         for btn in self.call_buttons:
             btn.available = bool(randint(0, 1))
@@ -297,39 +303,44 @@ class InGameScreen(AbstractScreen):
         footer_text = footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
         canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
 
-        for n in range(4):
-            player = self.players[n]
-            self._draw_discards(canvas, player.discards, n)
-            self._draw_calls(canvas, player.calls, n)
-        self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), self.players[0].hand_tiles, 22)
-        self._draw_centre_console(canvas, self.players)
+        # Render game
+        if self.game is not None:
+            for n in range(4):
+                player = self.game.players[n]
+                self._draw_discards(canvas, player.discards, n)
+                self._draw_calls(canvas, player.calls, n)
+            self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8),
+                            self.game.players[0].hand_tiles, 22)
+            self._draw_centre_console(canvas, self.game.players)
 
-        if self.hover_tile is not None:
-            self._draw_highlight(canvas, self.hover_tile, 0)
+            if self.hover_tile is not None:
+                self._draw_highlight(canvas, self.hover_tile, 0)
 
-        time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
-        time_string = seconds_to_time_string(time_delta_secs)
+            time_delta_secs = 0
+            if self.game.start_time_secs >= 0:
+                time_delta_secs = int(time.time() - self.game.start_time_secs)  # Truncate milliseconds
+            time_string = seconds_to_time_string(time_delta_secs)
 
-        oorasu_string = "オーラス" if self._is_oorasu() else ""
-        lines = [time_string, self.table_name, self.round_name, oorasu_string]
-        self._draw_corner_text(canvas, lines)
+            oorasu_string = "オーラス" if self._is_oorasu() else ""
+            lines = [time_string, self.game.table_name, self.game.round_name, oorasu_string]
+            self._draw_corner_text(canvas, lines)
 
-        # Draw call buttons
-        x = canvas_width - self._call_button_width_px - 20
-        y = centre_y + tile_width * 6
-        btn_h_spacing = 10  # Horizontal space between buttons
-        for btn in reversed(self.call_buttons):
-            if not btn.available:
-                continue
+            # Draw call buttons
+            x = canvas_width - self._call_button_width_px - 20
+            y = centre_y + tile_width * 6
+            btn_h_spacing = 10  # Horizontal space between buttons
+            for btn in reversed(self.call_buttons):
+                if not btn.available:
+                    continue
 
-            btn_color = self._call_button_color_hover if btn.hover else self._call_button_color_normal
-            btn.rect = pygame.draw.rect(canvas, btn_color,
-                                        (x, y, self._call_button_width_px, self._call_button_height_px), 0)
-            btn_label = self._call_button_font.render(btn.text, 1, (0, 0, 0))
-            label_x = x + (self._call_button_width_px / 2 - btn_label.get_width() / 2)
-            label_y = y + (self._call_button_height_px / 2 - btn_label.get_height() / 2)
-            canvas.blit(btn_label, (label_x, label_y))
-            x -= btn_h_spacing + self._call_button_width_px
+                btn_color = self._call_button_color_hover if btn.hover else self._call_button_color_normal
+                btn.rect = pygame.draw.rect(canvas, btn_color,
+                                            (x, y, self._call_button_width_px, self._call_button_height_px), 0)
+                btn_label = self._call_button_font.render(btn.text, 1, (0, 0, 0))
+                label_x = x + (self._call_button_width_px / 2 - btn_label.get_width() / 2)
+                label_y = y + (self._call_button_height_px / 2 - btn_label.get_height() / 2)
+                canvas.blit(btn_label, (label_x, label_y))
+                x -= btn_h_spacing + self._call_button_width_px
 
         # Draw 'Esc' menu -- MUST BE CALLED LAST
         if self.is_esc_menu_open:
@@ -614,10 +625,13 @@ class InGameScreen(AbstractScreen):
             surface.blit(name_text, (name_x, name_y))
             if player.is_riichi:
                 surface.blit(riichi_sprite, (riichi_x, riichi_y))
-            centre_text_line0 = self.centre_font.render("東四局", 1, (0, 0, 0))
-            centre_text_line1 = self.centre_font.render("二本場", 1, (0, 0, 0))
+
+            centre_text_line0 = self.centre_font.render(self.game.round_name, 1, (0, 0, 0))
             surface.blit(centre_text_line0,
                          (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
+            bonus = self.game.bonus_counters
+            if bonus > 0:
+                centre_text_line1 = self.centre_font.render("{}本場".format(bonus), 1, (0, 0, 0))
             surface.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
 
     def _draw_highlight(self, surface: pygame.Surface, rect: pygame.Rect, highlight_id: int):

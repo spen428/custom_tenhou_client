@@ -1,3 +1,6 @@
+import time
+
+
 class CallType(object):
     NUKE = 0
     CHII = 1
@@ -38,4 +41,13 @@ class Player(object):
 
 
 class Game(object):
-    pass
+    def __init__(self, players: [Player] = None):
+        self.players = [] if players is None else players
+        self.table_name = None
+        self.round_name = None
+        self.bonus_counters = 0
+        self.start_time_secs = -1
+
+    def start(self):
+        if self.start_time_secs < 0:
+            self.start_time_secs = time.time()

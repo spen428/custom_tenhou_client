@@ -12,8 +12,6 @@ from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import Call, CallType, Position, Player, Game
 from tenhou.utils import calculate_score_deltas, seconds_to_time_string
 
-DEBUG = True
-
 
 def rotate(origin, point, degrees):
     angle = math.radians(degrees)
@@ -112,34 +110,34 @@ class InGameScreen(AbstractScreen):
         self._call_button_color_hover = (255, 255, 100)  # Pale yellow
 
         # Graphics Consts
-        a_tile = self._get_tile_image(0, True)
-        self.tile_width = a_tile.get_width()
-        self.tile_height = a_tile.get_height()
-        self.tile_diff = self.tile_height - self.tile_width
-        a_tile = self._get_tile_image(0, False)
-        self.hand_tile_width = a_tile.get_width()
-        self.hand_tile_height = a_tile.get_height()
-
-        # Other
-        self.tile_rects = []
-        self.centre_hover = False
-        self.centre_square = None
-        self.hover_tile = None
-        self.tile_hover_colour = (255, 0, 0)
-        self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 15)
-        self.score_font = pygame.font.SysFont("Arial", 16)
-        self.discard_timer_font = pygame.font.SysFont("Arial", 10)
-        self.name_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
-        self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
-        self.start_time_secs = time.time()
-        self.discard_start_secs = time.time()
+        self.tile_width = self._get_tile_image(0, True).get_width()
+        self.tile_height = self._get_tile_image(0, True).get_height()
+        self.hand_tile_width = self._get_tile_image(0, False).get_width()
+        self.hand_tile_height = self._get_tile_image(0, False).get_height()
         self.tile_highlights = [
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-green.png")),
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-red.png")),
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-yellow.png")),
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-grey.png")),
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "70perc-black.png"))]
+        self.tile_hover_colour = (255, 0, 0)
+        self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 15)
+        self.score_font = pygame.font.SysFont("Arial", 16)
+        self.discard_timer_font = pygame.font.SysFont("Arial", 10)
+        self.name_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
+        self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
+
+        # Graphics Vars
+        self.tile_rects = []
+        self.centre_hover = False
+        self.centre_square = None
+        self.hover_tile = None
         self.is_esc_menu_open = False
+
+        # Test vars
+        self.discard_start_secs = time.time()
+
+        # Other
         self.esc_menu = EscMenuScreen(self.client)
         self.game = game
 
@@ -234,7 +232,7 @@ class InGameScreen(AbstractScreen):
     def on_key_up(self, event):
         if event.key == pygame.K_ESCAPE:
             self._toggle_esc_menu()
-        if DEBUG and event.key == pygame.K_F5:
+        if event.key == pygame.K_F5:  # TODO : Remove in deployment
             self._test()
 
     def on_mouse_down(self, event):
@@ -327,7 +325,7 @@ class InGameScreen(AbstractScreen):
                 time_delta_secs = int(time.time() - self.game.start_time_secs)  # Truncate milliseconds
             time_string = seconds_to_time_string(time_delta_secs)
 
-            oorasu_string = "オーラス" if self._is_oorasu() else ""
+            oorasu_string = "オーラス" if self.game.is_oorasu() else ""
             lines = [time_string, self.game.table_name, self.game.round_name, oorasu_string]
             self._draw_corner_text(canvas, lines)
 
@@ -359,9 +357,6 @@ class InGameScreen(AbstractScreen):
         discard_time_secs = 4.0  # TODO
         return self.discard_start_secs + discard_time_secs - now
 
-    def _is_oorasu(self):
-        return True  # TODO
-
     # Drawing methods #
 
     def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
@@ -384,18 +379,30 @@ class InGameScreen(AbstractScreen):
                 canvas.blit(discard_timer_text,
                             (x - discard_timer_text.get_width() / 2 + self.hand_tile_width / 2, y - 13))
 
-    def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0, highlight_id=None, sideways=False):
-        x, y = pos
+    def _draw_tile(self, surface: pygame.Surface, tile_id: int, coordinates: (int, int), small: bool = False,
+                   rotation: int = 0, highlight_id=None, sideways: bool = False):
+        """
+        Blit a tile to a surface.
+        :param surface: the surface
+        :param tile_id: the tile id
+        :param coordinates: where to blit the tile, as a tuple (x, y)
+        :param small: whether the tile is small
+        :param rotation: the rotation of the tile, in degrees
+        :param highlight_id: the highlight id (if the tile is to be highlighted)
+        :param sideways: whether the tile is to be rendered on its side (i.e. rotated 90 degrees)
+        :return: None
+        """
+        x, y = coordinates
         tile_image = self._get_tile_image(tile_id, small)
         if sideways:
             rotation += 90
         if rotation is not 0:
             tile_image = pygame.transform.rotate(tile_image, rotation)
-        canvas.blit(tile_image, (x, y))
+        surface.blit(tile_image, (x, y))
         rect = pygame.Rect(x, y, tile_image.get_width(), tile_image.get_height())
         self.tile_rects.append(rect)
         if highlight_id is not None:
-            self._draw_highlight(canvas, rect, highlight_id)
+            self._draw_highlight(surface, rect, highlight_id)
 
     def _draw_calls(self, surface: pygame.Surface, calls: [Call], position: int) -> None:
         """
@@ -435,13 +442,13 @@ class InGameScreen(AbstractScreen):
                 if is_call_tile:
                     # More positioning hacks
                     if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        x += self.tile_diff
+                        x += self.tile_height - self.tile_width
                     if position in [Position.TOIMEN, Position.KAMICHA]:
-                        y -= self.tile_diff
+                        y -= self.tile_height - self.tile_width
 
                     # Adjust for rotation
-                    x -= self.tile_diff
-                    y += self.tile_diff
+                    x -= self.tile_height - self.tile_width
+                    y += self.tile_height - self.tile_width
                     if call.call_type == CallType.SHOUMINKAN:
                         y -= self.tile_width
                         coordinates = rotate((centre_x, centre_y), (x, y), rotation)
@@ -468,12 +475,12 @@ class InGameScreen(AbstractScreen):
                     surface.blit(nuke_text, coordinates)
                 x -= self.tile_width
                 if is_call_tile:
-                    y -= self.tile_diff
+                    y -= self.tile_height - self.tile_width
                     # Undo positioning hacks
                     if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        x -= self.tile_diff
+                        x -= self.tile_height - self.tile_width
                     if position in [Position.TOIMEN, Position.KAMICHA]:
-                        y += self.tile_diff
+                        y += self.tile_height - self.tile_width
 
     def _draw_discards(self, surface: pygame.Surface, tiles, position: int):
         centre_x = surface.get_width() / 2
@@ -495,7 +502,7 @@ class InGameScreen(AbstractScreen):
             y = centre_y + discard_offset + y_count * self.tile_height
 
             # Account for riichi tiles
-            x += self.tile_diff * riichi_count
+            x += self.tile_height - self.tile_width * riichi_count
             if riichi:
                 riichi_count += 1  # Must appear AFTER the positioning adjustment above
 
@@ -503,11 +510,11 @@ class InGameScreen(AbstractScreen):
             if position in [Position.SHIMOCHA, Position.TOIMEN]:
                 x += self.tile_width
                 if riichi:
-                    x += self.tile_diff
+                    x += self.tile_height - self.tile_width
             if position in [Position.TOIMEN, Position.KAMICHA]:
                 y += self.tile_height
                 if riichi:
-                    y -= self.tile_diff
+                    y -= self.tile_height - self.tile_width
 
             # Rotate into place
             pos = rotate((centre_x, centre_y), (x, y), rotation)
@@ -538,7 +545,7 @@ class InGameScreen(AbstractScreen):
             surface.blit(text, (x, y))
             y += y_offset
 
-    def _draw_centre_console(self, surface):
+    def _draw_centre_console(self, surface: pygame.Surface):
         """
         Render the centre console, including player names, seat winds, round information, scores, and riichi sticks.
         :param surface: the surface to render to

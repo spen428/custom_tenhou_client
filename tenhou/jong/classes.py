@@ -51,3 +51,6 @@ class Game(object):
     def start(self):
         if self.start_time_secs < 0:
             self.start_time_secs = time.time()
+
+    def is_oorasu(self):
+        return True  # TODO

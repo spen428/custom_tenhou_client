@@ -102,6 +102,10 @@ class Gui(object):
     def start_game(self):
         pass
 
+    def load_replay(self):
+        test_replay_path = os.path.join(get_resource_dir(), "2017010100gm-00a9-0000-2d7e1616.thr")
+        pass
+
     def leave_game(self):
         self.current_screen = MainMenuScreen(self)
 

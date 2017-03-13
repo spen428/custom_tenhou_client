@@ -298,7 +298,7 @@ class InGameScreen(AbstractScreen):
         for n in range(len(self.discards)):
             self._draw_discards(canvas, self.discards[n], n)
             self._draw_calls(canvas, [self.nuke[n]] + self.calls[n], n)
-        # self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), self.hand_tiles, 22)
+        self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), self.hand_tiles, 22)
         self._draw_centre_console(canvas, [0, 1, 2, 3], self.scores, calculate_score_deltas(self.scores, 0),
                                   [True, False, False, True], self.names, self.ranks)
 

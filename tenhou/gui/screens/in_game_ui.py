@@ -84,6 +84,8 @@ def _load_wind_sprites():
 
 class InGameScreen(AbstractScreen):
     def __init__(self, client):
+        self.table_name = None
+        self.round_name = None
         self.client = client
         # TILES 64
         self.tiles_64px = _load_64px_tile_sprites()
@@ -95,23 +97,8 @@ class InGameScreen(AbstractScreen):
             os.path.join(tenhou.gui.main.get_resource_dir(), "riichi_stick.png"))
         # Other
         self.discards = []
-        for n in range(4):
-            self.discards.append([])
-            for _ in range(21):
-                tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
-                riichi = not bool(randint(0, 10))
-                tsumogiri = not bool(randint(0, 5))
-                self.discards[n].append((tile_id, tile_sprite_id, riichi, tsumogiri))
         self.calls = []
-        for _ in range(4):
-            r = [randint(0, len(self.tiles_38px) - 2) for _ in range(3)]
-            r.append(randint(0, len(self.tiles_38px) - 6))
-            player_calls = [Call([r[0] for _ in range(4)], randint(0, 3), CallType.SHOUMINKAN),
-                            Call([r[1] for _ in range(4)], randint(0, 3), CallType.DAIMINKAN),
-                            Call([r[2] for _ in range(3)], randint(0, 2), CallType.PON),
-                            Call([r[3] + n for n in range(3)], randint(0, 2), CallType.CHII)]
-            self.calls.append(player_calls)
-        self.nuke = [Call([len(self.tiles_38px) - 5 for _ in range(3)], 0, CallType.NUKE) for _ in range(4)]
+        self.nuke = []
         self.tile_rects = []
         self.step = 0
         self.centre_hover = False
@@ -133,8 +120,40 @@ class InGameScreen(AbstractScreen):
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "70perc-black.png"))]
         self.is_esc_menu_open = False
         self.esc_menu = EscMenuScreen(self.client)
+        self.hand_tiles = []
+        self.scores = []
+        self.names = []
+        self.ranks = []
+
+        self._test()
 
     # Private methods #
+
+    def _test(self):
+        for n in range(4):
+            self.discards.append([])
+            for _ in range(21):
+                tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
+                riichi = not bool(randint(0, 10))
+                tsumogiri = not bool(randint(0, 5))
+                self.discards[n].append((tile_id, tile_sprite_id, riichi, tsumogiri))
+        for _ in range(4):
+            r = [randint(0, len(self.tiles_38px) - 2) for _ in range(3)]
+            r.append(randint(0, len(self.tiles_38px) - 6))
+            player_calls = [Call([r[0] for _ in range(4)], randint(0, 3), CallType.SHOUMINKAN),
+                            Call([r[1] for _ in range(4)], randint(0, 3), CallType.DAIMINKAN),
+                            Call([r[2] for _ in range(3)], randint(0, 2), CallType.PON),
+                            Call([r[3] + n for n in range(3)], randint(0, 2), CallType.CHII)]
+            self.calls.append(player_calls)
+        for _ in range(4):
+            call = Call([len(self.tiles_38px) - 5 for _ in range(3)], 0, CallType.NUKE)
+            self.nuke.append(call)
+        self.hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
+        self.scores = [72300, 8200, 11500, 23200]
+        self.names = ["Dave", "てつやち", "藤田プロ", "Mark"]
+        self.ranks = ["四段", "初段", "八段", "２級"]
+        self.table_name = "東風戦喰速赤"
+        self.round_name = "東四局二本"
 
     def _get_tile_image(self, tile_id, small=False):
         if small:
@@ -190,7 +209,7 @@ class InGameScreen(AbstractScreen):
 
         tile_img = self._get_tile_image(0, True)
         tile_width = tile_img.get_width()
-        tile_height = tile_img.get_height()
+        # tile_height = tile_img.get_height()
 
         # Clear storage
         self.tile_rects = []
@@ -212,13 +231,9 @@ class InGameScreen(AbstractScreen):
         for n in range(len(self.discards)):
             self._draw_discards(canvas, self.discards[n], n)
             self._draw_calls(canvas, [self.nuke[n]] + self.calls[n], n)
-        hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
-        # self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), hand_tiles, 22)
-        scores = [72300, 8200, 11500, 23200]
-        names = ["Dave", "てつやち", "藤田プロ", "Mark"]
-        ranks = ["四段", "初段", "八段", "２級"]
-        self._draw_centre_console(canvas, [0, 1, 2, 3], scores, calculate_score_deltas(scores, 0),
-                                  [True, False, False, True], names, ranks)
+        # self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), self.hand_tiles, 22)
+        self._draw_centre_console(canvas, [0, 1, 2, 3], self.scores, calculate_score_deltas(self.scores, 0),
+                                  [True, False, False, True], self.names, self.ranks)
 
         if self.hover_tile is not None:
             self._draw_highlight(canvas, self.hover_tile, 0)
@@ -226,7 +241,8 @@ class InGameScreen(AbstractScreen):
         time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
         time_string = seconds_to_time_string(time_delta_secs)
 
-        lines = [time_string, "東風戦喰速赤", "東四局二本", "オーラス"]
+        oorasu_string = "オーラス" if self._is_oorasu() else ""
+        lines = [time_string, self.table_name, self.round_name, oorasu_string]
         self._draw_corner_text(canvas, lines)
 
         # Draw 'Esc' menu -- MUST BE CALLED LAST
@@ -239,6 +255,9 @@ class InGameScreen(AbstractScreen):
         now = time.time()
         discard_time_secs = 4.0  # TODO
         return self.discard_start_secs + discard_time_secs - now
+
+    def _is_oorasu(self):
+        return True  # TODO
 
     # Drawing methods #
 

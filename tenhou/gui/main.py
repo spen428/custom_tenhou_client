@@ -6,7 +6,6 @@ import socket
 import pygame
 
 from tenhou.client import TenhouClient
-from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.gui.screens.in_game_ui import InGameScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
 from utils.settings_handler import settings
@@ -46,15 +45,19 @@ class Gui(object):
                 if event.type == pygame.QUIT:
                     self.running = False
                 elif event.type == pygame.KEYDOWN:
-                    pass
+                    self.current_screen.on_key_down(event)
+                elif event.type == pygame.KEYUP:
+                    self.current_screen.on_key_up(event)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    self.current_screen.on_mouse_down(event)
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    self.on_mouse_up()
+                    self.current_screen.on_mouse_up(event)
                 elif event.type == pygame.MOUSEMOTION:
-                    self.on_mouse_motion()
+                    self.current_screen.on_mouse_motion(event)
                 elif event.type == pygame.VIDEORESIZE:
                     self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                     self.canvas = self._create_canvas()
-                    self.on_window_resized()
+                    self.current_screen.on_window_resized(event)
 
             # Print framerate and playtime in titlebar.
             text = "Lykat's custom Tenhou client | FPS: {0:.2f}".format(self.clock.get_fps())
@@ -73,15 +76,6 @@ class Gui(object):
         if self.tenhou is not None:
             self.tenhou.end_game()
         pygame.quit()
-
-    def on_mouse_up(self):
-        self.current_screen.on_mouse_up()
-
-    def on_mouse_motion(self):
-        self.current_screen.on_mouse_motion()
-
-    def on_window_resized(self):
-        self.current_screen.on_window_resized()
 
     def log_in(self):
         if self.tenhou is not None:
@@ -108,8 +102,8 @@ class Gui(object):
     def start_game(self):
         pass
 
+    def leave_game(self):
+        self.current_screen = MainMenuScreen(self)
+
     def ui_test(self):
         self.current_screen = InGameScreen(self)
-
-    def esc_test(self):
-        self.current_screen = EscMenuScreen(self)

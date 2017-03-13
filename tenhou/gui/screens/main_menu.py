@@ -19,8 +19,7 @@ class MainMenuScreen(AbstractScreen):
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
                               MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
-                              MenuButton("InGameScreen Test", self._ui_test),
-                              MenuButton("EscMenuScreen Test", self._esc_test)]
+                              MenuButton("InGameScreen Test", self._ui_test)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
         self.status = _LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
@@ -39,9 +38,6 @@ class MainMenuScreen(AbstractScreen):
 
     def _ui_test(self):
         self.client.ui_test()
-
-    def _esc_test(self):
-        self.client.esc_test()
 
     def _log_in(self):
         pass
@@ -71,21 +67,30 @@ class MainMenuScreen(AbstractScreen):
 
     # Superclass methods #
 
-    def on_mouse_up(self):
+    def on_key_down(self, event):
+        pass
+
+    def on_key_up(self, event):
+        pass
+
+    def on_mouse_down(self, event):
+        pass
+
+    def on_mouse_up(self, event):
         pos = pygame.mouse.get_pos()
         for btn in self._get_buttons():
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 if btn.on_click is not None:
                     btn.on_click()
 
-    def on_mouse_motion(self):
+    def on_mouse_motion(self, event):
         pos = pygame.mouse.get_pos()
         for btn in self._get_buttons():
             btn.hover = False
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 btn.hover = True
 
-    def on_window_resized(self):
+    def on_window_resized(self, event):
         pass
 
     def draw_to_canvas(self, canvas):

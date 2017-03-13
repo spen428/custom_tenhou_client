@@ -7,10 +7,16 @@ from tenhou.gui.screens import AbstractScreen, MenuButton
 
 
 class EscMenuScreen(AbstractScreen):
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, parent):
+        self.parent = parent
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))
-        self.menu_buttons = [MenuButton("Leave game", self._nop)]
+        self.menu_buttons = [
+            MenuButton("NOP", self._nop),
+            MenuButton("NOP", self._nop),
+            MenuButton("NOP", self._nop),
+            MenuButton("NOP", self._nop),
+            MenuButton("Leave game", self._leave_game)
+        ]
         # Constant render stuff
         self._button_font = pygame.font.SysFont("Arial", 16)
         self._button_width_px = 200
@@ -23,23 +29,35 @@ class EscMenuScreen(AbstractScreen):
     def _nop(self):
         pass
 
+    def _leave_game(self):
+        self.parent.leave_game()
+
     # Superclass methods #
 
-    def on_mouse_up(self):
+    def on_key_down(self, event):
+        pass
+
+    def on_key_up(self, event):
+        pass
+
+    def on_mouse_down(self, event):
+        pass
+
+    def on_mouse_up(self, event):
         pos = pygame.mouse.get_pos()
         for btn in self.menu_buttons:
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 if btn.on_click is not None:
                     btn.on_click()
 
-    def on_mouse_motion(self):
+    def on_mouse_motion(self, event):
         pos = pygame.mouse.get_pos()
         for btn in self.menu_buttons:
             btn.hover = False
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 btn.hover = True
 
-    def on_window_resized(self):
+    def on_window_resized(self, event):
         pass
 
     def draw_to_canvas(self, canvas):

@@ -5,15 +5,27 @@ class AbstractScreen(metaclass=ABCMeta):
     """Abstract Base Class for all Screen subclasses."""
 
     @abstractmethod
-    def on_mouse_up(self):
+    def on_mouse_down(self, event):
         raise NotImplementedError()
 
     @abstractmethod
-    def on_mouse_motion(self):
+    def on_mouse_up(self, event):
         raise NotImplementedError()
 
     @abstractmethod
-    def on_window_resized(self):
+    def on_mouse_motion(self, event):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def on_key_down(self, event):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def on_key_up(self, event):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def on_window_resized(self, event):
         raise NotImplementedError()
 
     @abstractmethod

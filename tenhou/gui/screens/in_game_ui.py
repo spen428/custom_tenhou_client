@@ -8,6 +8,7 @@ import pygame
 
 import tenhou.gui.main
 from tenhou.gui.screens import AbstractScreen
+from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import Call, CallType, Position
 from tenhou.utils import calculate_score_deltas, seconds_to_time_string
 
@@ -128,7 +129,10 @@ class InGameScreen(AbstractScreen):
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-green.png")),
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-red.png")),
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-yellow.png")),
-            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-grey.png"))]
+            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-grey.png")),
+            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "70perc-black.png"))]
+        self.is_esc_menu_open = False
+        self.esc_menu = EscMenuScreen(self.client)
 
     # Private methods #
 
@@ -137,13 +141,35 @@ class InGameScreen(AbstractScreen):
             return self.tiles_38px[tile_id]
         return self.tiles_64px[tile_id]
 
+    def _toggle_esc_menu(self):
+        self.hover_tile = None
+        self.centre_hover = False
+        self.is_esc_menu_open = not self.is_esc_menu_open
+
     # Superclass methods #
 
-    def on_mouse_up(self):
+    def on_key_down(self, event):
         pass
 
-    def on_mouse_motion(self):
+    def on_key_up(self, event):
+        if event.key == pygame.K_ESCAPE:
+            self._toggle_esc_menu()
+
+    def on_mouse_down(self, event):
+        if self.is_esc_menu_open:
+            self.esc_menu.on_mouse_down(event)
+
+    def on_mouse_up(self, event):
+        if self.is_esc_menu_open:
+            self.esc_menu.on_mouse_up(event)
+
+    def on_mouse_motion(self, event):
         pos = pygame.mouse.get_pos()
+
+        if self.is_esc_menu_open:
+            self.esc_menu.on_mouse_motion(event)
+            return
+
         if self.centre_square is not None:
             self.centre_hover = self.centre_square.collidepoint(pos)
         self.hover_tile = None
@@ -152,8 +178,9 @@ class InGameScreen(AbstractScreen):
                 self.hover_tile = rect
                 break
 
-    def on_window_resized(self):
+    def on_window_resized(self, event):
         self.centre_square = None
+        self.esc_menu.on_window_resized(event)
 
     def draw_to_canvas(self, canvas):
         canvas_width = canvas.get_width()
@@ -201,6 +228,10 @@ class InGameScreen(AbstractScreen):
 
         lines = [time_string, "東風戦喰速赤", "東四局二本", "オーラス"]
         self._draw_corner_text(canvas, lines)
+
+        # Draw 'Esc' menu -- MUST BE CALLED LAST
+        if self.is_esc_menu_open:
+            self._draw_esc_menu(canvas)
 
     # Game information methods #
 
@@ -497,3 +528,8 @@ class InGameScreen(AbstractScreen):
         """
         hl = pygame.transform.scale(self.tile_highlights[highlight_id], (rect.width, rect.height))
         surface.blit(hl, (rect.x, rect.y))
+
+    def _draw_esc_menu(self, surface: pygame.Surface):
+        # Fade everything else
+        self._draw_highlight(surface, pygame.Rect(0, 0, surface.get_width(), surface.get_height()), 4)
+        self.esc_menu.draw_to_canvas(surface)

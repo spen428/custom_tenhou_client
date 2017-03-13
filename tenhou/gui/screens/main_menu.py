@@ -80,7 +80,7 @@ class MainMenuScreen(AbstractScreen):
         pos = pygame.mouse.get_pos()
         for btn in self._get_buttons():
             if btn.rect is not None and btn.rect.collidepoint(pos):
-                if btn.on_click is not None:
+                if callable(btn.on_click):
                     btn.on_click()
 
     def on_mouse_motion(self, event):

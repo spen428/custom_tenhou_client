@@ -7,10 +7,12 @@ from random import randint
 import pygame
 
 import tenhou.gui.main
-from tenhou.gui.screens import AbstractScreen
+from tenhou.gui.screens import AbstractScreen, MenuButton
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import Call, CallType, Position
 from tenhou.utils import calculate_score_deltas, seconds_to_time_string
+
+DEBUG = True
 
 
 def rotate(origin, point, degrees):
@@ -95,6 +97,18 @@ class InGameScreen(AbstractScreen):
         self.wind_sprites = _load_wind_sprites()
         self.riichi_stick_sprite = pygame.image.load(
             os.path.join(tenhou.gui.main.get_resource_dir(), "riichi_stick.png"))
+        # Call buttons
+        self.call_buttons = [MenuButton("ロン", self._call_ron), MenuButton("ツモ", self._call_tsumo),
+                             MenuButton("九種九牌", self._call_kyuushukyuuhai), MenuButton("抜く", self._call_nuku),
+                             MenuButton("チー", self._call_chii), MenuButton("ポン", self._call_pon),
+                             MenuButton("カン", self._call_kan), MenuButton("パス", self._call_pasu)]
+        for btn in self.call_buttons:
+            setattr(btn, "available", False)
+        self._call_button_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 14)
+        self._call_button_width_px = 120
+        self._call_button_height_px = 40
+        self._call_button_color_normal = (255, 255, 255)  # White
+        self._call_button_color_hover = (255, 255, 100)  # Pale yellow
         # Other
         self.discards = []
         self.calls = []
@@ -129,7 +143,32 @@ class InGameScreen(AbstractScreen):
 
     # Private methods #
 
+    def _call_ron(self):
+        pass
+
+    def _call_tsumo(self):
+        pass
+
+    def _call_kyuushukyuuhai(self):
+        pass
+
+    def _call_nuku(self):
+        pass
+
+    def _call_chii(self):
+        pass
+
+    def _call_pon(self):
+        pass
+
+    def _call_kan(self):
+        pass
+
+    def _call_pasu(self):
+        pass
+
     def _test(self):
+        self.discards.clear()
         for n in range(4):
             self.discards.append([])
             for _ in range(21):
@@ -137,6 +176,7 @@ class InGameScreen(AbstractScreen):
                 riichi = not bool(randint(0, 10))
                 tsumogiri = not bool(randint(0, 5))
                 self.discards[n].append((tile_id, tile_sprite_id, riichi, tsumogiri))
+        self.calls.clear()
         for _ in range(4):
             r = [randint(0, len(self.tiles_38px) - 2) for _ in range(3)]
             r.append(randint(0, len(self.tiles_38px) - 6))
@@ -145,6 +185,7 @@ class InGameScreen(AbstractScreen):
                             Call([r[2] for _ in range(3)], randint(0, 2), CallType.PON),
                             Call([r[3] + n for n in range(3)], randint(0, 2), CallType.CHII)]
             self.calls.append(player_calls)
+        self.nuke.clear()
         for _ in range(4):
             call = Call([len(self.tiles_38px) - 5 for _ in range(3)], 0, CallType.NUKE)
             self.nuke.append(call)
@@ -154,6 +195,8 @@ class InGameScreen(AbstractScreen):
         self.ranks = ["四段", "初段", "八段", "２級"]
         self.table_name = "東風戦喰速赤"
         self.round_name = "東四局二本"
+        for btn in self.call_buttons:
+            btn.available = bool(randint(0, 1))
 
     def _get_tile_image(self, tile_id, small=False):
         if small:
@@ -173,6 +216,8 @@ class InGameScreen(AbstractScreen):
     def on_key_up(self, event):
         if event.key == pygame.K_ESCAPE:
             self._toggle_esc_menu()
+        if DEBUG and event.key == pygame.K_F5:
+            self._test()
 
     def on_mouse_down(self, event):
         if self.is_esc_menu_open:
@@ -181,6 +226,14 @@ class InGameScreen(AbstractScreen):
     def on_mouse_up(self, event):
         if self.is_esc_menu_open:
             self.esc_menu.on_mouse_up(event)
+            return
+
+        pos = pygame.mouse.get_pos()
+        for btn in self.call_buttons:
+            if btn.rect is not None and btn.rect.collidepoint(pos):
+                if callable(btn.on_click):
+                    btn.on_click()
+                    break
 
     def on_mouse_motion(self, event):
         pos = pygame.mouse.get_pos()
@@ -188,6 +241,16 @@ class InGameScreen(AbstractScreen):
         if self.is_esc_menu_open:
             self.esc_menu.on_mouse_motion(event)
             return
+
+        # Clear hover state before starting search
+        for btn in self.call_buttons:
+            btn.hover = False
+
+        # Search for hover state
+        for btn in self.call_buttons:
+            if btn.rect is not None and btn.rect.collidepoint(pos):
+                btn.hover = True
+                break
 
         if self.centre_square is not None:
             self.centre_hover = self.centre_square.collidepoint(pos)
@@ -244,6 +307,23 @@ class InGameScreen(AbstractScreen):
         oorasu_string = "オーラス" if self._is_oorasu() else ""
         lines = [time_string, self.table_name, self.round_name, oorasu_string]
         self._draw_corner_text(canvas, lines)
+
+        # Draw call buttons
+        x = canvas_width - self._call_button_width_px - 20
+        y = centre_y + tile_width * 6
+        btn_h_spacing = 10  # Horizontal space between buttons
+        for btn in reversed(self.call_buttons):
+            if not btn.available:
+                continue
+
+            btn_color = self._call_button_color_hover if btn.hover else self._call_button_color_normal
+            btn.rect = pygame.draw.rect(canvas, btn_color,
+                                        (x, y, self._call_button_width_px, self._call_button_height_px), 0)
+            btn_label = self._call_button_font.render(btn.text, 1, (0, 0, 0))
+            label_x = x + (self._call_button_width_px / 2 - btn_label.get_width() / 2)
+            label_y = y + (self._call_button_height_px / 2 - btn_label.get_height() / 2)
+            canvas.blit(btn_label, (label_x, label_y))
+            x -= btn_h_spacing + self._call_button_width_px
 
         # Draw 'Esc' menu -- MUST BE CALLED LAST
         if self.is_esc_menu_open:

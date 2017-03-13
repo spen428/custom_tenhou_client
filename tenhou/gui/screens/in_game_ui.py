@@ -89,14 +89,15 @@ class InGameScreen(AbstractScreen):
         self.table_name = None
         self.round_name = None
         self.client = client
-        # TILES 64
+        # TILES
         self.tiles_64px = _load_64px_tile_sprites()
-        # TILES 38
         self.tiles_38px = _load_38px_tile_sprites()
+
         # WINDS
         self.wind_sprites = _load_wind_sprites()
         self.riichi_stick_sprite = pygame.image.load(
             os.path.join(tenhou.gui.main.get_resource_dir(), "riichi_stick.png"))
+
         # Call buttons
         self.call_buttons = [MenuButton("ロン", self._call_ron), MenuButton("ツモ", self._call_tsumo),
                              MenuButton("九種九牌", self._call_kyuushukyuuhai), MenuButton("抜く", self._call_nuku),
@@ -109,9 +110,18 @@ class InGameScreen(AbstractScreen):
         self._call_button_height_px = 40
         self._call_button_color_normal = (255, 255, 255)  # White
         self._call_button_color_hover = (255, 255, 100)  # Pale yellow
+
+        # Graphics Consts
+        a_tile = self._get_tile_image(0, True)
+        self.tile_width = a_tile.get_width()
+        self.tile_height = a_tile.get_height()
+        self.tile_diff = self.tile_height - self.tile_width
+        a_tile = self._get_tile_image(0, False)
+        self.hand_tile_width = a_tile.get_width()
+        self.hand_tile_height = a_tile.get_height()
+
         # Other
         self.tile_rects = []
-        self.step = 0
         self.centre_hover = False
         self.centre_square = None
         self.hover_tile = None
@@ -282,10 +292,6 @@ class InGameScreen(AbstractScreen):
         centre_x = canvas_width / 2
         centre_y = canvas_height / 2
 
-        tile_img = self._get_tile_image(0, True)
-        tile_width = tile_img.get_width()
-        # tile_height = tile_img.get_height()
-
         # Clear storage
         self.tile_rects = []
         if self._get_discard_time() <= 0:
@@ -293,7 +299,7 @@ class InGameScreen(AbstractScreen):
 
         # initialise centre square shape
         if self.centre_square is None:
-            width = tile_width * 6
+            width = self.tile_width * 6
             x = centre_x - width / 2
             y = centre_y - width / 2
             self.centre_square = pygame.Rect(x, y, width, width)
@@ -311,7 +317,7 @@ class InGameScreen(AbstractScreen):
                 self._draw_calls(canvas, player.calls, n)
             self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8),
                             self.game.players[0].hand_tiles, 22)
-            self._draw_centre_console(canvas, self.game.players)
+            self._draw_centre_console(canvas)
 
             if self.hover_tile is not None:
                 self._draw_highlight(canvas, self.hover_tile, 0)
@@ -327,7 +333,7 @@ class InGameScreen(AbstractScreen):
 
             # Draw call buttons
             x = canvas_width - self._call_button_width_px - 20
-            y = centre_y + tile_width * 6
+            y = centre_y + self.tile_width * 6
             btn_h_spacing = 10  # Horizontal space between buttons
             for btn in reversed(self.call_buttons):
                 if not btn.available:
@@ -365,19 +371,18 @@ class InGameScreen(AbstractScreen):
             time_string = "{0:.2f}".format(discard_time)
             discard_timer_text = self.discard_timer_font.render(time_string, 1, (255, 255, 255))
         centre_x, centre_y = center_pos
-        tile_width = self._get_tile_image(0).get_width()
-        tile_height = self._get_tile_image(0).get_height()
-        total_width = tile_width * len(tiles)
+        total_width = self.hand_tile_width * len(tiles)
         x = centre_x - (total_width / 2)
-        y = canvas.get_height() - tile_height - 30
+        y = canvas.get_height() - self.hand_tile_height - 30
         for tile in tiles:
             self._draw_tile(canvas, tile, (x, y))
-            x += tile_width
+            x += self.hand_tile_width
         if tsumohai is not None:
-            x += 0.5 * tile_width
+            x += 0.5 * self.hand_tile_width
             self._draw_tile(canvas, tsumohai, (x, y))
             if discard_timer_text is not None:
-                canvas.blit(discard_timer_text, (x - discard_timer_text.get_width() / 2 + tile_width / 2, y - 13))
+                canvas.blit(discard_timer_text,
+                            (x - discard_timer_text.get_width() / 2 + self.hand_tile_width / 2, y - 13))
 
     def _draw_tile(self, canvas, tile_id, pos, small=False, rotation=0, highlight_id=None, sideways=False):
         x, y = pos
@@ -400,23 +405,19 @@ class InGameScreen(AbstractScreen):
         :param position: the player position at which to draw the calls
         :return: None
         """
-        a_tile = self._get_tile_image(0, True)
-        tile_width = a_tile.get_width()
-        tile_height = a_tile.get_height()
-        tile_diff = tile_height - tile_width
         centre_x = surface.get_width() / 2
         centre_y = surface.get_height() / 2
 
         rotation = [0, -90, -180, -270][position]
         tile_rotation = rotation
-        x = centre_x + tile_width * 10
-        y = centre_y + tile_height * 7.5
+        x = centre_x + self.tile_width * 10
+        y = centre_y + self.tile_height * 7.5
 
         # Positioning hack
         if position in [Position.KAMICHA, Position.TOIMEN]:
-            y += tile_height
+            y += self.tile_height
         if position in [Position.SHIMOCHA, Position.TOIMEN]:
-            x += tile_width
+            x += self.tile_width
         if position in [Position.SHIMOCHA, Position.KAMICHA]:
             tile_rotation += 180
 
@@ -434,18 +435,18 @@ class InGameScreen(AbstractScreen):
                 if is_call_tile:
                     # More positioning hacks
                     if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        x += tile_diff
+                        x += self.tile_diff
                     if position in [Position.TOIMEN, Position.KAMICHA]:
-                        y -= tile_diff
+                        y -= self.tile_diff
 
                     # Adjust for rotation
-                    x -= tile_diff
-                    y += tile_diff
+                    x -= self.tile_diff
+                    y += self.tile_diff
                     if call.call_type == CallType.SHOUMINKAN:
-                        y -= tile_width
+                        y -= self.tile_width
                         coordinates = rotate((centre_x, centre_y), (x, y), rotation)
                         self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=True)
-                        y += tile_width
+                        y += self.tile_width
                         if n is not num_tiles - 1:
                             n += 1
                 coordinates = rotate((centre_x, centre_y), (x, y), rotation)
@@ -453,35 +454,32 @@ class InGameScreen(AbstractScreen):
                 if call.call_type == CallType.NUKE:
                     txt = "{}x".format(len(call.tile_ids))
                     nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
-                    tx = x + tile_width / 2 - nuke_text.get_width() / 2
+                    tx = x + self.tile_width / 2 - nuke_text.get_width() / 2
                     ty = y - nuke_text.get_height()
 
                     # Even more positioning hacks holy shit I've got to fix these
                     if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        tx -= tile_width / 2 + nuke_text.get_width() / 2
+                        tx -= self.tile_width / 2 + nuke_text.get_width() / 2
                     if position in [Position.TOIMEN, Position.KAMICHA]:
                         ty -= nuke_text.get_height() * 2
 
                     nuke_text = pygame.transform.rotate(nuke_text, tile_rotation)
                     coordinates = rotate((centre_x, centre_y), (tx, ty), rotation)
                     surface.blit(nuke_text, coordinates)
-                x -= tile_width
+                x -= self.tile_width
                 if is_call_tile:
-                    y -= (tile_height - tile_width)
+                    y -= self.tile_diff
                     # Undo positioning hacks
                     if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        x -= tile_diff
+                        x -= self.tile_diff
                     if position in [Position.TOIMEN, Position.KAMICHA]:
-                        y += tile_diff
+                        y += self.tile_diff
 
     def _draw_discards(self, surface: pygame.Surface, tiles, position: int):
-        a_tile = self._get_tile_image(0, True)
-        tile_width = a_tile.get_width()
-        tile_height = a_tile.get_height()
         centre_x = surface.get_width() / 2
         centre_y = surface.get_height() / 2
 
-        discard_offset = tile_height * 3.25
+        discard_offset = self.tile_height * 3.25
         rotation = [0, -90, -180, -270][position]
         tile_rotation = rotation
         if position in [Position.SHIMOCHA, Position.KAMICHA]:
@@ -493,23 +491,23 @@ class InGameScreen(AbstractScreen):
 
         for tile in tiles:
             tile_id, tile_sprite_id, riichi, tsumogiri = tile
-            x = centre_x + (x_count - 3) * tile_width
-            y = centre_y + discard_offset + y_count * tile_height
+            x = centre_x + (x_count - 3) * self.tile_width
+            y = centre_y + discard_offset + y_count * self.tile_height
 
             # Account for riichi tiles
-            x += (tile_height - tile_width) * riichi_count
+            x += self.tile_diff * riichi_count
             if riichi:
                 riichi_count += 1  # Must appear AFTER the positioning adjustment above
 
             # Positioning hacks
             if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                x += tile_width
+                x += self.tile_width
                 if riichi:
-                    x += (tile_height - tile_width)
+                    x += self.tile_diff
             if position in [Position.TOIMEN, Position.KAMICHA]:
-                y += tile_height
+                y += self.tile_height
                 if riichi:
-                    y -= (tile_height - tile_width)
+                    y -= self.tile_diff
 
             # Rotate into place
             pos = rotate((centre_x, centre_y), (x, y), rotation)
@@ -540,28 +538,24 @@ class InGameScreen(AbstractScreen):
             surface.blit(text, (x, y))
             y += y_offset
 
-    def _draw_centre_console(self, surface, players):
+    def _draw_centre_console(self, surface):
         """
         Render the centre console, including player names, seat winds, round information, scores, and riichi sticks.
         :param surface: the surface to render to
-        :param players: the list of players
         :return: None
         """
         centre_x = surface.get_width() / 2
         centre_y = surface.get_height() / 2
-        tile_img = self._get_tile_image(0, True)
-        # tile_width = tile_img.get_width()
-        tile_height = tile_img.get_height()
-        wind_offset = tile_height * 1.20
-        score_offset = tile_height * 2.15
+        wind_offset = self.tile_height * 1.20
+        score_offset = self.tile_height * 2.15
         name_offset = score_offset + 20
-        riichi_offset = tile_height * 3.00
+        riichi_offset = self.tile_height * 3.00
 
         # Calculate score deltas first
-        score_deltas = calculate_score_deltas(players)
+        score_deltas = calculate_score_deltas(self.game.players)
 
         for idx in range(4):
-            player = players[idx]
+            player = self.game.players[idx]
             if player is None:
                 continue  # For two and three player, some players will be `None`
             if self.centre_hover:
@@ -571,6 +565,8 @@ class InGameScreen(AbstractScreen):
             name_text = self.name_font.render("{0}・{1}".format(player.name, player.rank), 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[player.seat]
             riichi_sprite = self.riichi_stick_sprite
+            wind_x = wind_y = score_x = score_y = riichi_x = riichi_y = name_x = name_y = 0
+
             if idx == Position.JIBUN:
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y + wind_offset - wind_sprite.get_height() / 2

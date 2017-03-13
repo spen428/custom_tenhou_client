@@ -9,7 +9,7 @@ import pygame
 import tenhou.gui.main
 from tenhou.gui.screens import AbstractScreen, MenuButton
 from tenhou.gui.screens.esc_menu import EscMenuScreen
-from tenhou.jong.classes import Call, CallType, Position
+from tenhou.jong.classes import Call, CallType, Position, Player
 from tenhou.utils import calculate_score_deltas, seconds_to_time_string
 
 DEBUG = True
@@ -110,9 +110,6 @@ class InGameScreen(AbstractScreen):
         self._call_button_color_normal = (255, 255, 255)  # White
         self._call_button_color_hover = (255, 255, 100)  # Pale yellow
         # Other
-        self.discards = []
-        self.calls = []
-        self.nuke = []
         self.tile_rects = []
         self.step = 0
         self.centre_hover = False
@@ -134,10 +131,7 @@ class InGameScreen(AbstractScreen):
             pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "70perc-black.png"))]
         self.is_esc_menu_open = False
         self.esc_menu = EscMenuScreen(self.client)
-        self.hand_tiles = []
-        self.scores = []
-        self.names = []
-        self.ranks = []
+        self.players = []
 
         self._test()
 
@@ -168,33 +162,41 @@ class InGameScreen(AbstractScreen):
         pass
 
     def _test(self):
-        self.discards.clear()
+        names = ["Dave", "てつやち", "藤田プロ", "Mark"]
+        ranks = ["四段", "初段", "八段", "２級"]
+        scores = [72300, 8200, 11500, 23200]
+        seats = [0, 1, 2, 3]
+
+        self.players = [None for _ in range(4)]
         for n in range(4):
-            self.discards.append([])
+            player = self.players[n] = Player(names[n], ranks[n])
+            # Discards
             for _ in range(21):
                 tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
                 riichi = not bool(randint(0, 10))
                 tsumogiri = not bool(randint(0, 5))
-                self.discards[n].append((tile_id, tile_sprite_id, riichi, tsumogiri))
-        self.calls.clear()
-        for _ in range(4):
+                player.discards.append((tile_id, tile_sprite_id, riichi, tsumogiri))
+            # Calls / Nuku
+            call = Call([len(self.tiles_38px) - 5 for _ in range(3)], 0, CallType.NUKE)
+            player.calls.append(call)
             r = [randint(0, len(self.tiles_38px) - 2) for _ in range(3)]
             r.append(randint(0, len(self.tiles_38px) - 6))
             player_calls = [Call([r[0] for _ in range(4)], randint(0, 3), CallType.SHOUMINKAN),
                             Call([r[1] for _ in range(4)], randint(0, 3), CallType.DAIMINKAN),
                             Call([r[2] for _ in range(3)], randint(0, 2), CallType.PON),
                             Call([r[3] + n for n in range(3)], randint(0, 2), CallType.CHII)]
-            self.calls.append(player_calls)
-        self.nuke.clear()
-        for _ in range(4):
-            call = Call([len(self.tiles_38px) - 5 for _ in range(3)], 0, CallType.NUKE)
-            self.nuke.append(call)
-        self.hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]
-        self.scores = [72300, 8200, 11500, 23200]
-        self.names = ["Dave", "てつやち", "藤田プロ", "Mark"]
-        self.ranks = ["四段", "初段", "八段", "２級"]
+            player.calls.extend(player_calls)
+            # Hand
+            player.hand_tiles = [-1 for _ in range(13)]
+            # Etc
+            player.score = scores[n]
+            player.seat = seats[n]
+            player.is_riichi = bool(randint(0, 1))
+        self.players[0].hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]  # Player 1's hand
+
         self.table_name = "東風戦喰速赤"
         self.round_name = "東四局二本"
+
         for btn in self.call_buttons:
             btn.available = bool(randint(0, 1))
 
@@ -295,12 +297,12 @@ class InGameScreen(AbstractScreen):
         footer_text = footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
         canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
 
-        for n in range(len(self.discards)):
-            self._draw_discards(canvas, self.discards[n], n)
-            self._draw_calls(canvas, [self.nuke[n]] + self.calls[n], n)
-        self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), self.hand_tiles, 22)
-        self._draw_centre_console(canvas, [0, 1, 2, 3], self.scores, calculate_score_deltas(self.scores, 0),
-                                  [True, False, False, True], self.names, self.ranks)
+        for n in range(4):
+            player = self.players[n]
+            self._draw_discards(canvas, player.discards, n)
+            self._draw_calls(canvas, player.calls, n)
+        self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8), self.players[0].hand_tiles, 22)
+        self._draw_centre_console(canvas, self.players)
 
         if self.hover_tile is not None:
             self._draw_highlight(canvas, self.hover_tile, 0)
@@ -527,18 +529,11 @@ class InGameScreen(AbstractScreen):
             surface.blit(text, (x, y))
             y += y_offset
 
-    def _draw_centre_console(self, surface, seats, scores, score_deltas, riichi_states, names, ranks):
+    def _draw_centre_console(self, surface, players):
         """
         Render the centre console, including player names, seat winds, round information, scores, and riichi sticks.
         :param surface: the surface to render to
-        :param seats: player seats relative to self as a list of length 4, e.g. [Seat.SHAA, Seat.PEI, Seat.TON,
-        Seat.NAN]. For two and three player mahjong, unused seats should have a value of None.
-        :param scores: scores as an integer list of length 4
-        :param score_deltas: score deltas as an integer list of length 4. This is the difference in score between
-        oneself and other players
-        :param riichi_states: riichi states as a boolean list of length 4
-        :param names: player names as a string list of length 4
-        :param ranks: player ranks as a string list of length 4
+        :param players: the list of players
         :return: None
         """
         centre_x = surface.get_width() / 2
@@ -551,17 +546,21 @@ class InGameScreen(AbstractScreen):
         name_offset = score_offset + 20
         riichi_offset = tile_height * 3.00
 
-        for idx in range(len(seats)):
-            if seats[idx] is None:
-                continue  # For two and three player, some seat positions will be None
+        # Calculate score deltas first
+        score_deltas = calculate_score_deltas(players)
+
+        for idx in range(4):
+            player = players[idx]
+            if player is None:
+                continue  # For two and three player, some players will be `None`
             if self.centre_hover:
                 score_text = self.score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
             else:
-                score_text = self.score_font.render(str(scores[idx]), 1, (0, 0, 0))
-            name_text = self.name_font.render("{0}・{1}".format(names[idx], ranks[idx]), 1, (0, 0, 0))
-            wind_sprite = self.wind_sprites[seats[idx]]
+                score_text = self.score_font.render(str(player.score), 1, (0, 0, 0))
+            name_text = self.name_font.render("{0}・{1}".format(player.name, player.rank), 1, (0, 0, 0))
+            wind_sprite = self.wind_sprites[player.seat]
             riichi_sprite = self.riichi_stick_sprite
-            if seats[idx] == Position.JIBUN:
+            if idx == Position.JIBUN:
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y + wind_offset - wind_sprite.get_height() / 2
                 score_x = centre_x - score_text.get_width() / 2
@@ -570,7 +569,7 @@ class InGameScreen(AbstractScreen):
                 name_y = centre_y + name_offset - name_text.get_height() / 2
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y + riichi_offset - riichi_sprite.get_height() / 2
-            if seats[idx] == Position.SHIMOCHA:
+            elif idx == Position.SHIMOCHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 90)
                 wind_x = centre_x + wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2
@@ -583,7 +582,7 @@ class InGameScreen(AbstractScreen):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 90)
                 riichi_x = centre_x + riichi_offset - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_sprite.get_height() / 2
-            if seats[idx] == Position.TOIMEN:
+            elif idx == Position.TOIMEN:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 180)
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_offset - wind_sprite.get_height() / 2
@@ -596,7 +595,7 @@ class InGameScreen(AbstractScreen):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 180)
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_offset - riichi_sprite.get_height() / 2
-            if seats[idx] == Position.KAMICHA:
+            elif idx == Position.KAMICHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, -90)
                 wind_x = centre_x - wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2
@@ -613,7 +612,7 @@ class InGameScreen(AbstractScreen):
             surface.blit(wind_sprite, (wind_x, wind_y))
             surface.blit(score_text, (score_x, score_y))
             surface.blit(name_text, (name_x, name_y))
-            if riichi_states[idx]:
+            if player.is_riichi:
                 surface.blit(riichi_sprite, (riichi_x, riichi_y))
             centre_text_line0 = self.centre_font.render("東四局", 1, (0, 0, 0))
             centre_text_line1 = self.centre_font.render("二本場", 1, (0, 0, 0))

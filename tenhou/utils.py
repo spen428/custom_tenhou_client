@@ -12,9 +12,8 @@ def wind_ordinal_to_string(ordinal):
         return u"北"
 
 
-def calculate_score_deltas(scores, position):
-    """Calculate the difference in score for a list of scores, relative to the value at index `position`."""
-    return [scores[idx] - scores[position] for idx in range(len(scores))]
+def calculate_score_deltas(players):
+    return [p.score - players[0].score for p in players]
 
 
 def seconds_to_time_string(seconds):

@@ -103,7 +103,6 @@ class Gui(object):
         pass
 
     def load_replay(self):
-        test_replay_path = os.path.join(get_resource_dir(), "2017010100gm-00a9-0000-2d7e1616.thr")
         pass
 
     def leave_game(self):
@@ -111,3 +110,8 @@ class Gui(object):
 
     def ui_test(self):
         self.current_screen = InGameScreen(self)
+
+    def replay_test(self):
+        test_replay_path = os.path.join(get_resource_dir(), "2017010100gm-00a9-0000-2d7e1616.thr")
+        self.current_screen = InGameScreen(self)
+        pass

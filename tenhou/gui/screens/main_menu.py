@@ -19,7 +19,7 @@ class MainMenuScreen(AbstractScreen):
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
                               MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
-                              MenuButton("InGameScreen Test", self._ui_test)]
+                              MenuButton("InGameScreen Test", self._ui_test), MenuButton("Replay Test", self._replay_test)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
         self.status = _LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
@@ -38,6 +38,9 @@ class MainMenuScreen(AbstractScreen):
 
     def _ui_test(self):
         self.client.ui_test()
+
+    def _replay_test(self):
+        self.client.replay_test()
 
     def _log_in(self):
         pass

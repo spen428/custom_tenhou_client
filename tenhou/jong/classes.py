@@ -23,3 +23,19 @@ class Position(object):
     SHIMOCHA = 1
     TOIMEN = 2
     KAMICHA = 3
+
+
+class Player(object):
+    def __init__(self, name, rank):
+        self.name = name
+        self.rank = rank
+        self.score = 0
+        self.seat = None
+        self.hand_tiles = []
+        self.discards = []
+        self.calls = []
+        self.is_riichi = False
+
+
+class Game(object):
+    pass

@@ -1,7 +1,8 @@
 import time
+from enum import Enum
 
 
-class CallType(object):
+class CallType(Enum):
     NUKE = 0
     CHII = 1
     PON = 2
@@ -21,7 +22,7 @@ class Call(object):
         self.call_tile = call_tile
 
 
-class Position(object):
+class Position(Enum):
     JIBUN = 0
     SHIMOCHA = 1
     TOIMEN = 2

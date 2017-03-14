@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 
 import pygame
 
@@ -6,7 +7,7 @@ import tenhou.gui.gui
 from tenhou.gui.screens import AbstractScreen, MenuButton
 
 
-class _LoginStatus(object):
+class LoginStatus(Enum):
     NOT_LOGGED_IN = 0
     LOGGING_IN = 1
     LOGGED_IN = 2
@@ -19,9 +20,10 @@ class MainMenuScreen(AbstractScreen):
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
                               MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
-                              MenuButton("InGameScreen Test", self._ui_test), MenuButton("Replay Test", self._replay_test)]
+                              MenuButton("InGameScreen Test", self._ui_test),
+                              MenuButton("Replay Test", self._replay_test)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
-        self.status = _LoginStatus.NOT_LOGGED_IN
+        self.status: Enum = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
         self._footer_font = pygame.font.SysFont("Arial", 13)
         self._footer_text = self._footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
@@ -50,22 +52,22 @@ class MainMenuScreen(AbstractScreen):
 
     def _log_out(self):
         if self.client.log_out():
-            self.status = _LoginStatus.NOT_LOGGED_IN
+            self.status = LoginStatus.NOT_LOGGED_IN
 
     def _join_lobby(self):
         self.client.join_lobby()
 
     def _play_anonymously(self):
-        self.status = _LoginStatus.LOGGING_IN
+        self.status = LoginStatus.LOGGING_IN
         if self.client.log_in():
-            self.status = _LoginStatus.LOGGED_IN
+            self.status = LoginStatus.LOGGED_IN
         else:
-            self.status = _LoginStatus.NOT_LOGGED_IN
+            self.status = LoginStatus.NOT_LOGGED_IN
 
     def _get_buttons(self):
-        if self.status in [_LoginStatus.NOT_LOGGED_IN, _LoginStatus.LOGGING_IN]:
+        if self.status in [LoginStatus.NOT_LOGGED_IN, LoginStatus.LOGGING_IN]:
             return self.login_buttons
-        elif self.status is _LoginStatus.LOGGED_IN:
+        elif self.status is LoginStatus.LOGGED_IN:
             return self.lobby_buttons
 
     # Superclass methods #

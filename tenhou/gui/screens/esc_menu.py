@@ -2,14 +2,14 @@ import os
 
 import pygame
 
-import tenhou.gui.main
+import tenhou.gui.gui
 from tenhou.gui.screens import AbstractScreen, MenuButton
 
 
 class EscMenuScreen(AbstractScreen):
     def __init__(self, parent):
         self.parent = parent
-        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))
+        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "tenhou-logo.png"))
         self.menu_buttons = [
             MenuButton("NOP", self._nop),
             MenuButton("NOP", self._nop),

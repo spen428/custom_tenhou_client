@@ -6,7 +6,7 @@ from random import randint
 
 import pygame
 
-import tenhou.gui.main
+import tenhou.gui.gui
 from tenhou.gui.screens import AbstractScreen, MenuButton
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import Call, CallType, Position, Player, Game
@@ -24,7 +24,7 @@ def rotate(origin, point, degrees):
 
 def _load_64px_tile_sprites():
     tiles = []
-    resource_dir = tenhou.gui.main.get_resource_dir()
+    resource_dir = tenhou.gui.gui.get_resource_dir()
     # suited tiles
     for suit in ["bamboo", "man", "pin"]:
         for number in range(1, 10):
@@ -51,7 +51,7 @@ def _load_64px_tile_sprites():
 
 def _load_38px_tile_sprites():
     tiles = []
-    resource_dir = tenhou.gui.main.get_resource_dir()
+    resource_dir = tenhou.gui.gui.get_resource_dir()
     # suited tiles
     for suit in "SMP":
         for number in range(1, 10):
@@ -75,7 +75,7 @@ def _load_38px_tile_sprites():
 
 def _load_wind_sprites():
     winds = []
-    resource_dir = tenhou.gui.main.get_resource_dir()
+    resource_dir = tenhou.gui.gui.get_resource_dir()
     for wind in ["east", "south", "west", "north"]:
         img = pygame.image.load(os.path.join(resource_dir, wind + ".png"))
         winds.append(img)
@@ -94,7 +94,7 @@ class InGameScreen(AbstractScreen):
         # WINDS
         self.wind_sprites = _load_wind_sprites()
         self.riichi_stick_sprite = pygame.image.load(
-            os.path.join(tenhou.gui.main.get_resource_dir(), "riichi_stick.png"))
+            os.path.join(tenhou.gui.gui.get_resource_dir(), "riichi_stick.png"))
 
         # Call buttons
         self.call_buttons = [MenuButton("ロン", self._call_ron), MenuButton("ツモ", self._call_tsumo),
@@ -103,7 +103,7 @@ class InGameScreen(AbstractScreen):
                              MenuButton("カン", self._call_kan), MenuButton("パス", self._call_pasu)]
         for btn in self.call_buttons:
             setattr(btn, "available", False)
-        self._call_button_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 14)
+        self._call_button_font = pygame.font.Font(os.path.join(tenhou.gui.gui.get_resource_dir(), "meiryo.ttc"), 14)
         self._call_button_width_px = 120
         self._call_button_height_px = 40
         self._call_button_color_normal = (255, 255, 255)  # White
@@ -115,17 +115,17 @@ class InGameScreen(AbstractScreen):
         self.hand_tile_width = self._get_tile_image(0, False).get_width()
         self.hand_tile_height = self._get_tile_image(0, False).get_height()
         self.tile_highlights = [
-            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-green.png")),
-            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-red.png")),
-            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-yellow.png")),
-            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "highlight-grey.png")),
-            pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "70perc-black.png"))]
+            pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "highlight-green.png")),
+            pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "highlight-red.png")),
+            pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "highlight-yellow.png")),
+            pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "highlight-grey.png")),
+            pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "70perc-black.png"))]
         self.tile_hover_colour = (255, 0, 0)
-        self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 15)
+        self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.gui.get_resource_dir(), "meiryo.ttc"), 15)
         self.score_font = pygame.font.SysFont("Arial", 16)
         self.discard_timer_font = pygame.font.SysFont("Arial", 10)
-        self.name_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
-        self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.main.get_resource_dir(), "meiryo.ttc"), 12)
+        self.name_font = pygame.font.Font(os.path.join(tenhou.gui.gui.get_resource_dir(), "meiryo.ttc"), 12)
+        self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.gui.get_resource_dir(), "meiryo.ttc"), 12)
 
         # Graphics Vars
         self.tile_rects = []

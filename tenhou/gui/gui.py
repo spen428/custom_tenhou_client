@@ -18,6 +18,7 @@ def get_resource_dir():
 class Gui(object):
     def __init__(self, width=1280, height=720, framerate_limit=2000, resizable=True):
         pygame.init()
+        self.version_str = "v0.81 Alpha"
         self.tenhou = None
         if resizable:
             self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.HWACCEL)
@@ -60,7 +61,7 @@ class Gui(object):
                     self.current_screen.on_window_resized(event)
 
             # Print framerate and playtime in titlebar.
-            text = "Lykat's custom Tenhou client | FPS: {0:.2f}".format(self.clock.get_fps())
+            text = "Lykat's custom Tenhou client {0} | FPS: {1:.2f}".format(self.version_str, self.clock.get_fps())
             pygame.display.set_caption(text)
 
             # Draw game

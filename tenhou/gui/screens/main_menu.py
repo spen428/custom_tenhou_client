@@ -2,7 +2,7 @@ import os
 
 import pygame
 
-import tenhou.gui.main
+import tenhou.gui.gui
 from tenhou.gui.screens import AbstractScreen, MenuButton
 
 
@@ -15,7 +15,7 @@ class _LoginStatus(object):
 class MainMenuScreen(AbstractScreen):
     def __init__(self, client):
         self.client = client
-        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.main.get_resource_dir(), "tenhou-logo.png"))
+        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "tenhou-logo.png"))
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
                               MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),

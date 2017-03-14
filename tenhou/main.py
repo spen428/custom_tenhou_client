@@ -4,7 +4,7 @@ import socket
 
 from tenhou.client import TenhouClient
 from utils.settings_handler import settings
-from tenhou.gui.main import Gui
+from tenhou.gui.gui import Gui
 
 
 logger = logging.getLogger('tenhou')

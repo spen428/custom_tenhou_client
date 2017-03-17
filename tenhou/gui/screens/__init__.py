@@ -32,6 +32,9 @@ class AbstractScreen(metaclass=ABCMeta):
     def draw_to_canvas(self, canvas):
         raise NotImplementedError()
 
+    def on_user_event(self, event):
+        raise  NotImplementedError()
+
 
 class MenuButton(object):
     def __init__(self, text, on_click=None):

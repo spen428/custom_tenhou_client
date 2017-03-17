@@ -1,42 +1,28 @@
 # -*- coding: utf-8 -*-
+import urllib
 from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
+from pygame.event import Event
 
 from mahjong.meld import Meld
 from mahjong.tile import Tile
+from tenhou.events import GameEvents
+
+
+def _bs(message, tag_name):
+    soup = BeautifulSoup(message, 'html.parser')
+    return soup.find(tag_name)
 
 
 class TenhouDecoder(object):
-    RANKS = [
-        u'新人',
-        u'9級',
-        u'8級',
-        u'7級',
-        u'6級',
-        u'5級',
-        u'4級',
-        u'3級',
-        u'2級',
-        u'1級',
-        u'初段',
-        u'二段',
-        u'三段',
-        u'四段',
-        u'五段',
-        u'六段',
-        u'七段',
-        u'八段',
-        u'九段',
-        u'十段',
-        u'天鳳位'
-    ]
+    RANKS = [u'新人', u'9級', u'8級', u'7級', u'6級', u'5級', u'4級', u'3級', u'2級', u'1級', u'初段', u'二段', u'三段', u'四段', u'五段',
+             u'六段', u'七段', u'八段', u'九段', u'十段', u'天鳳位']
 
     def parse_auth_string(self, message):
-        soup = BeautifulSoup(message, 'html.parser')
-        soup = soup.find('helo')
-        if soup and 'auth' in soup.attrs:
-            return soup.attrs['auth']
+        tag = _bs('helo')
+        if tag and 'auth' in tag.attrs:
+            return tag.attrs['auth']
         else:
             return None
 
@@ -51,8 +37,7 @@ class TenhouDecoder(object):
             - Dora indicator.
         """
 
-        soup = BeautifulSoup(message, 'html.parser')
-        tag = soup.find('init')
+        tag = _bs('init')
 
         seed = tag.attrs['seed'].split(',')
         seed = [int(i) for i in seed]
@@ -66,29 +51,43 @@ class TenhouDecoder(object):
         scores = tag.attrs['ten'].split(',')
         scores = [int(i) for i in scores]
 
-        return {
-            'round_number': round_number,
-            'count_of_honba_sticks': count_of_honba_sticks,
-            'count_of_riichi_sticks': count_of_riichi_sticks,
-            'dora_indicator': dora_indicator,
-            'dealer': dealer,
-            'scores': scores
-        }
+        return {'round_number': round_number, 'count_of_honba_sticks': count_of_honba_sticks,
+                'count_of_riichi_sticks': count_of_riichi_sticks, 'dora_indicator': dora_indicator, 'dealer': dealer,
+                'scores': scores}
 
     def parse_initial_hand(self, message):
-        soup = BeautifulSoup(message, 'html.parser')
-        tag = soup.find('init')
+        tag = _bs('init')
 
         tiles = tag.attrs['hai']
         tiles = [int(i) for i in tiles.split(',')]
 
         return tiles
 
+    def parse_init(self, message):
+        tag = _bs('init')
+
+        seed = [int(s) for s in tag.attrs['seed'].split(',')]
+        ten = [int(p) * 100 for p in tag.attrs['ten'].split(',')]  # Points are sent divided by 100; reverse that
+        oya = int(tag.attrs['oya'])
+
+        # In replays there will be 'hai0' through 'hai3', but in live games you can of course only see your own
+        # haipai, whose attr will be 'hai'
+        if 'hai0' in tag.attrs:
+            hais = ['hai{}'.format(n) for n in range(len(ten))]
+        else:
+            hais = ['hai']
+        haipai = []
+        for hai in hais:
+            tiles = tag.attrs[hai]
+            tiles = [int(i) for i in tiles.split(',')]
+            haipai.append(tiles)
+
+        return seed, ten, oya, haipai
+
     def parse_final_scores_and_uma(self, message):
-        soup = BeautifulSoup(message, 'html.parser')
-        tag = soup.find('agari')
+        tag = _bs('agari')
         if not tag:
-            tag = soup.find('ryuukyoku')
+            tag = _bs('ryuukyoku')
 
         data = tag.attrs['owari']
         data = [float(i) for i in data.split(',')]
@@ -101,22 +100,70 @@ class TenhouDecoder(object):
         return {'scores': scores, 'uma': uma}
 
     def parse_names_and_ranks(self, message):
-        soup = BeautifulSoup(message, 'html.parser')
-        tag = soup.find('un')
+        tag = _bs('un')
 
-        ranks = tag.attrs['dan']
-        ranks = [int(i) for i in ranks.split(',')]
+        ranks = [TenhouDecoder.RANKS[int(rank)] for rank in tag.attrs['dan'].split(',')]
+        names = [urllib.parse.unquote(tag.attrs['n{}'.format(n)]) for n in range(len(ranks))]
+        rates = [float(rate) for rate in tag.attrs['rate'].split(',')]
+        sexes = tag.attrs['sx'].split(',')
 
-        return [
-            {'name': unquote(tag.attrs['n0']), 'rank': TenhouDecoder.RANKS[ranks[0]]},
-            {'name': unquote(tag.attrs['n1']), 'rank': TenhouDecoder.RANKS[ranks[1]]},
-            {'name': unquote(tag.attrs['n2']), 'rank': TenhouDecoder.RANKS[ranks[2]]},
-            {'name': unquote(tag.attrs['n3']), 'rank': TenhouDecoder.RANKS[ranks[3]]},
-        ]
+        return [{'name': names[n], 'rank': ranks[n], 'rate': rates[n], 'sex': sexes[n]} for n in range(len(ranks))]
+
+    def parse_agari(self, message):
+        tag = _bs('agari')
+
+        ba = [int(b) for b in tag.attrs['ba'].split(',')]
+        hai = [int(t) for t in tag.attrs['hai'].split(',')]
+        machi = int(tag.attrs['machi'])
+        ten = [int(t) for t in tag.attrs['ten'].split(',')]
+        yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
+        dora_hai = [int(t) for t in tag.attrs['doraHai'].split(',')]
+        dora_hai_ura = [int(t) for t in tag.attrs['doraHaiUra'].split(',')]
+        # TODO : Multiple ron?
+        who = int(tag.attrs['who'])
+        from_who = int(tag.attrs['fromWho'])
+        sc = [int(t) for t in tag.attrs['sc'].split(',')]
+        # start at the beginning at take every second item (even)
+        points = sc[::2]
+        # start at the beginning at take every second item (even)
+        point_exchange = sc[1::2]
+        # owari tag is present if it is the end of the game
+        owari = None
+        if 'owari' in tag.attrs:
+            data = [float(i) for i in tag.attrs['owari'].split(',')]
+            # start at the beginning at take every second item (even)
+            scores = data[::2]
+            # start at second item and take every second item (odd)
+            uma = data[1::2]
+            owari = {'final_scores': scores, 'uma': uma}
+
+        return {'ba': ba, 'hai': hai, 'machi': machi, 'ten': ten, 'yaku': yaku, 'dora_hai': dora_hai,
+                'dora_hai_ura': dora_hai_ura, 'who': who, 'from_who': from_who, 'points': points,
+                'point_exchange': point_exchange, 'owari': owari}
+
+    def parse_ryuukyoku(self, message):
+        tag = _bs(message, 'ryuukyoku')
+        raise NotImplementedError()
+
+    def parse_shuffle(self, message):
+        tag = _bs(message, 'shuffle')
+        seed = tag.attrs['seed']
+        ref = tag.attrs['ref']
+        return {'seed': seed, 'ref': ref}
+
+    def parse_taikyoku(self, message):
+        tag = _bs(message, 'taikyoku')
+        oya = int(tag.attrs['oya'])
+        return {'oya': oya}
+
+    def parse_go(self, message):
+        tag = _bs(message, 'go')
+        game_type = int(tag.attrs['type'])
+        lobby_id = int(tag.attrs['lobby'])
+        return {'type': game_type, 'lobby': lobby_id}
 
     def parse_log_link(self, message):
-        soup = BeautifulSoup(message, 'html.parser')
-        tag = soup.find('taikyoku')
+        tag = _bs(message, 'taikyoku')
 
         seat = int(tag.attrs['oya'])
         seat = (4 - seat) % 4
@@ -182,13 +229,11 @@ class TenhouDecoder(object):
         meld.tiles = [Tile(data >> 8)]
 
     def parse_dora_indicator(self, message):
-        soup = BeautifulSoup(message, 'html.parser')
-        tag = soup.find('dora')
+        tag = _bs('dora')
         return int(tag.attrs['hai'])
 
     def parse_who_called_riichi(self, message):
-        soup = BeautifulSoup(message, 'html.parser')
-        tag = soup.find('reach')
+        tag = _bs('reach')
         return int(tag.attrs['who'])
 
     def generate_auth_token(self, auth_string):
@@ -214,3 +259,38 @@ class TenhouDecoder(object):
         result = first_part + '-' + postfix
 
         return result
+
+    def message_to_event(self, message: str) -> Event:
+        """Convert a Tenhou.net server (or replay) message into an event."""
+        lower_msg = message.lower()
+        if lower_msg.startswith('<shuffle'):
+            data = self.parse_shuffle(message)
+            return Event(GameEvents.RECV_SHUFFLE_SEED, data)
+        elif lower_msg.startswith('<go'):
+            data = self.parse_go(message)
+            return Event(GameEvents.RECV_JOIN_TABLE, data)
+        elif lower_msg.startswith('<un'):
+            data = self.parse_names_and_ranks(message)
+            return Event(GameEvents.RECV_PLAYER_DETAILS, data)
+        elif lower_msg.startswith('<taikyoku'):
+            data = self.parse_taikyoku(message)
+            return Event(GameEvents.RECV_BEGIN_GAME, data)
+        elif lower_msg.startswith('<init'):
+            seed, ten, oya, haipai = self.parse_init(message)
+            return Event(GameEvents.RECV_BEGIN_HAND, {'seed': seed, 'ten': ten, 'oya': oya, 'haipai': haipai})
+        elif lower_msg.startswith('<reach'):
+            who_called_riichi = self.parse_who_called_riichi(message)
+            return Event(GameEvents.RECV_RIICHI_DECLARED, {'player': who_called_riichi})
+        elif lower_msg.startswith('<dora'):
+            tile = self.parse_dora_indicator(message)
+            return Event(GameEvents.RECV_DORA_FLIPPED, {'tile': tile})
+        elif lower_msg.startswith('<agari'):
+            data = self.parse_agari(message)
+            return Event(GameEvents.RECV_AGARI, data)
+        elif lower_msg.startswith('<ryuukyoku'):  # TODO: What about abortive draws?
+            data = self.parse_ryuukyoku(message)
+            return Event(GameEvents.RECV_RYUUKYOKU, data)
+        elif lower_msg.startswith('<n'):
+            raise NotImplementedError()
+        elif lower_msg.startswith('<'):
+            return None

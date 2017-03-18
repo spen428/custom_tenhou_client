@@ -113,7 +113,3 @@ class Table(object):
     @property
     def table_name(self):
         return ''  # TODO
-
-    @property
-    def round_name(self):
-        return ''  # TODO

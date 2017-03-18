@@ -8,7 +8,7 @@ from utils.settings_handler import settings
 logger = logging.getLogger('tenhou')
 
 
-class Player(object):
+class Player(object):  # TODO: Why are some of these fields declared twice?
     # the place where is player is sitting
     # always = 0 for our player
     seat = 0
@@ -30,8 +30,8 @@ class Player(object):
     tiles = []
     melds = []
     table = None
-    in_tempai = False
-    in_riichi = False
+    is_tempai = False
+    is_riichi = False
     in_defence_mode = False
 
     def __init__(self, seat, dealer_seat, table, use_previous_ai_version=False):
@@ -43,6 +43,8 @@ class Player(object):
         self.table = table
         self.dealer_seat = dealer_seat
         self.tsumohai = None
+        self.riichi_tiles = set()
+        self.score = 0
 
         if use_previous_ai_version:
             try:
@@ -94,19 +96,30 @@ class Player(object):
         self.tiles.remove(tile)
         return tile
 
+    def riichi_tile(self, tile_id):
+        self.riichi_tiles.add(Tile(tile_id))
+        self.discard_tile(tile_id)
+
+    def call_discard(self):
+        tile = self.discards[-1]
+        self.discards.remove(tile)
+        return tile
+
     def erase_state(self):
-        self.tsumohai = None
         self.discards = []
         self.melds = []
         self.tiles = []
         self.safe_tiles = []
-        self.in_tempai = False
-        self.in_riichi = False
+        self.is_tempai = False
+        self.is_riichi = False
         self.in_defence_mode = False
         self.dealer_seat = 0
+        self.tsumohai = None
+        self.riichi_tiles = set()
+        self.score = 0
 
     def can_call_riichi(self):
-        return all([self.in_tempai, not self.in_riichi, self.scores >= 1000, self.table.count_of_remaining_tiles > 4])
+        return all([self.is_tempai, not self.is_riichi, self.scores >= 1000, self.table.count_of_remaining_tiles > 4])
 
     @property
     def player_wind(self):

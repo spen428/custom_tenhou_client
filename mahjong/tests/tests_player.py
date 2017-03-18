@@ -12,14 +12,14 @@ class PlayerTestCase(unittest.TestCase):
         table = Table()
         player = Player(0, 0, table)
 
-        player.in_tempai = False
-        player.in_riichi = False
+        player.is_tempai = False
+        player.is_riichi = False
         player.scores = 2000
         player.table.count_of_remaining_tiles = 40
 
         self.assertEqual(player.can_call_riichi(), False)
 
-        player.in_tempai = True
+        player.is_tempai = True
 
         self.assertEqual(player.can_call_riichi(), True)
 
@@ -27,14 +27,14 @@ class PlayerTestCase(unittest.TestCase):
         table = Table()
         player = Player(0, 0, table)
 
-        player.in_tempai = True
-        player.in_riichi = True
+        player.is_tempai = True
+        player.is_riichi = True
         player.scores = 2000
         player.table.count_of_remaining_tiles = 40
 
         self.assertEqual(player.can_call_riichi(), False)
 
-        player.in_riichi = False
+        player.is_riichi = False
 
         self.assertEqual(player.can_call_riichi(), True)
 
@@ -42,8 +42,8 @@ class PlayerTestCase(unittest.TestCase):
         table = Table()
         player = Player(0, 0, table)
 
-        player.in_tempai = True
-        player.in_riichi = False
+        player.is_tempai = True
+        player.is_riichi = False
         player.scores = 0
         player.table.count_of_remaining_tiles = 40
 
@@ -57,8 +57,8 @@ class PlayerTestCase(unittest.TestCase):
         table = Table()
         player = Player(0, 0, table)
 
-        player.in_tempai = True
-        player.in_riichi = False
+        player.is_tempai = True
+        player.is_riichi = False
         player.scores = 2000
         player.table.count_of_remaining_tiles = 3
 

@@ -22,7 +22,7 @@ class Call(object):
         self.call_tile = call_tile
 
 
-class Position(Enum):
+class Position(object):
     JIBUN = 0
     SHIMOCHA = 1
     TOIMEN = 2

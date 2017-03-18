@@ -324,7 +324,7 @@ class TenhouDecoder(object):
             return GameEvent(GameEvents.RECV_BEGIN_HAND, {'seed': seed, 'ten': ten, 'oya': oya, 'haipai': haipai})
         elif lower_msg.startswith('reach'):
             who_called_riichi = self.parse_who_called_riichi(message)
-            return GameEvent(GameEvents.RECV_RIICHI_DECLARED, {'player': who_called_riichi})
+            return GameEvent(GameEvents.RECV_RIICHI_DECLARED, {'who': who_called_riichi})
         elif lower_msg.startswith('dora'):
             tile = self.parse_dora_indicator(message)
             return GameEvent(GameEvents.RECV_DORA_FLIPPED, {'tile': tile})
@@ -335,7 +335,9 @@ class TenhouDecoder(object):
             data = self.parse_ryuukyoku(message)
             return GameEvent(GameEvents.RECV_RYUUKYOKU, data)
         elif lower_msg[0] in 'n':  # MAKE SURE THESE BRANCHES ARE PROCESSED LAST
-            pass  # TODO
+            meld = self.parse_meld(message)
+            data = {'meld': meld}
+            return GameEvent(GameEvents.RECV_CALL, data)
         elif lower_msg[0] in 'defgtuvw':  # MAKE SURE THESE BRANCHES ARE PROCESSED LAST
             data = self.parse_tile_new(message)
             if data['action'] == 'draw':

@@ -36,14 +36,14 @@ class TableTestCase(unittest.TestCase, TestMixin):
         self.assertEqual(table.get_player(dealer).scores, 25000)
 
         dealer = 2
-        table.get_main_player().in_tempai = True
-        table.get_main_player().in_riichi = True
+        table.get_main_player().is_tempai = True
+        table.get_main_player().is_riichi = True
         table.init_round(round_number, count_of_honba_sticks, count_of_riichi_sticks, dora_indicator, dealer, scores)
 
         # test that we reinit round properly
         self.assertEqual(table.get_player(3).is_dealer, False)
-        self.assertEqual(table.get_main_player().in_tempai, False)
-        self.assertEqual(table.get_main_player().in_riichi, False)
+        self.assertEqual(table.get_main_player().is_tempai, False)
+        self.assertEqual(table.get_main_player().is_riichi, False)
         self.assertEqual(table.get_player(dealer).is_dealer, True)
 
     def test_set_scores(self):

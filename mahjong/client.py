@@ -51,4 +51,4 @@ class Client(object):
                 player.safe_tiles.append(tile)
 
     def enemy_riichi(self, player_seat):
-        self.table.get_player(player_seat).in_riichi = True
+        self.table.get_player(player_seat).is_riichi = True

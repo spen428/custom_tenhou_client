@@ -8,13 +8,15 @@ from random import randint
 import pygame
 
 import tenhou.gui.gui
+from mahjong.constants import WINDS_TO_STR
+from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
 from tenhou.events import GameEvents, GameEvent
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import Call, CallType, Position, Player
-from tenhou.utils import calculate_score_deltas, seconds_to_time_string
+from tenhou.utils import seconds_to_time_string
 
 logger = logging.getLogger('tenhou')
 
@@ -139,6 +141,7 @@ class InGameScreen(AbstractScreen, EventListener):
         self.hover_tile = None
         self.is_esc_menu_open = False
         self.start_time_secs = time.time()
+        self.riichi_declared = False
 
         # Test vars
         self.discard_start_secs = time.time()
@@ -320,11 +323,25 @@ class InGameScreen(AbstractScreen, EventListener):
                 self.table.players[n].rate = event.data[n]['rate']
                 self.table.players[n].sex = event.data[n]['sex']
         elif event.game_event == GameEvents.RECV_DISCARD:
-            self.table.get_player(event.who).discard_tile(event.tile)
+            if self.riichi_declared:
+                self.table.get_player(event.who).riichi_tile(event.tile)
+                self.riichi_declared = False
+            else:
+                self.table.get_player(event.who).discard_tile(event.tile)
         elif event.game_event == GameEvents.RECV_DRAW:
             self.table.get_player(event.who).draw_tile(event.tile)
+        elif event.game_event == GameEvents.RECV_CALL:
+            if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN] and event.meld.who != event.meld.from_who:
+                self.table.get_player(event.meld.from_who).call_discard()
+            self.table.get_player(event.meld.who).add_meld(event.meld)
+        elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
+            self.table.get_player(event.who).is_riichi = True
+            self.riichi_declared = True
         else:
             logger.error('Unhandled user event: {}'.format(event))
+
+    def _get_round_name(self):
+        return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], self.table.round_number % 4)
 
     def draw_to_canvas(self, canvas):
         canvas_width = canvas.get_width()
@@ -353,7 +370,7 @@ class InGameScreen(AbstractScreen, EventListener):
         self._draw_discards(canvas)
         # self._draw_calls(canvas)
         self._draw_hand(canvas)
-        # self._draw_centre_console(canvas)
+        self._draw_centre_console(canvas)
 
         if self.hover_tile is not None:
             self._draw_highlight(canvas, self.hover_tile, 0)
@@ -364,7 +381,7 @@ class InGameScreen(AbstractScreen, EventListener):
         time_string = seconds_to_time_string(time_delta_secs)
 
         oorasu_string = "オーラス" if self.table.is_oorasu else ""
-        lines = [time_string, self.table.table_name, self.table.round_name, oorasu_string]
+        lines = [time_string, self.table.table_name, self._get_round_name(), oorasu_string]
         self._draw_corner_text(canvas, lines)
 
         # Draw call buttons
@@ -388,14 +405,12 @@ class InGameScreen(AbstractScreen, EventListener):
         if self.is_esc_menu_open:
             self._draw_esc_menu(canvas)
 
-    # Game information methods #
+    # Drawing methods #
 
     def _get_discard_time(self):
         now = time.time()
         discard_time_secs = 4.0  # TODO
         return self.discard_start_secs + discard_time_secs - now
-
-    # Drawing methods #
 
     def _draw_hand(self, canvas):  # TODO: This is an unreadable mess
         center_pos = (canvas.get_width() / 2, 7 * canvas.get_height() / 8)
@@ -558,7 +573,7 @@ class InGameScreen(AbstractScreen, EventListener):
             riichi_count = 0
 
             for tile in tiles:
-                riichi = False  # TODO
+                riichi = tile in player.riichi_tiles
                 tsumogiri = False  # TODO
                 x = centre_x + (x_count - 3) * self.tile_width
                 y = centre_y + discard_offset + y_count * self.tile_height
@@ -621,11 +636,12 @@ class InGameScreen(AbstractScreen, EventListener):
         riichi_offset = self.tile_height * 3.00
 
         # Calculate score deltas first
-        score_deltas = calculate_score_deltas(players)
+        score_deltas = [0, 0, 0, 0]  # TODO: calculate_score_deltas(players)
 
         for player in self.table.players:
+            position = player.seat
             if self.centre_hover:
-                score_text = self.score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
+                score_text = self.score_font.render(str(score_deltas[position]), 1, (0, 0, 0))
             else:
                 score_text = self.score_font.render(str(player.score), 1, (0, 0, 0))
             name_text = self.name_font.render("{0}・{1}".format(player.name, player.rank), 1, (0, 0, 0))
@@ -633,7 +649,7 @@ class InGameScreen(AbstractScreen, EventListener):
             riichi_sprite = self.riichi_stick_sprite
             wind_x = wind_y = score_x = score_y = riichi_x = riichi_y = name_x = name_y = 0
 
-            if idx == Position.JIBUN:
+            if position == Position.JIBUN:
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y + wind_offset - wind_sprite.get_height() / 2
                 score_x = centre_x - score_text.get_width() / 2
@@ -642,7 +658,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 name_y = centre_y + name_offset - name_text.get_height() / 2
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y + riichi_offset - riichi_sprite.get_height() / 2
-            elif idx == Position.SHIMOCHA:
+            elif position == Position.SHIMOCHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 90)
                 wind_x = centre_x + wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2
@@ -655,7 +671,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 90)
                 riichi_x = centre_x + riichi_offset - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_sprite.get_height() / 2
-            elif idx == Position.TOIMEN:
+            elif position == Position.TOIMEN:
                 wind_sprite = pygame.transform.rotate(wind_sprite, 180)
                 wind_x = centre_x - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_offset - wind_sprite.get_height() / 2
@@ -668,7 +684,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 riichi_sprite = pygame.transform.rotate(riichi_sprite, 180)
                 riichi_x = centre_x - riichi_sprite.get_width() / 2
                 riichi_y = centre_y - riichi_offset - riichi_sprite.get_height() / 2
-            elif idx == Position.KAMICHA:
+            elif position == Position.KAMICHA:
                 wind_sprite = pygame.transform.rotate(wind_sprite, -90)
                 wind_x = centre_x - wind_offset - wind_sprite.get_width() / 2
                 wind_y = centre_y - wind_sprite.get_height() / 2
@@ -688,13 +704,13 @@ class InGameScreen(AbstractScreen, EventListener):
             if player.is_riichi:
                 surface.blit(riichi_sprite, (riichi_x, riichi_y))
 
-            centre_text_line0 = self.centre_font.render(round_name, 1, (0, 0, 0))
+            centre_text_line0 = self.centre_font.render(self._get_round_name(), 1, (0, 0, 0))
             surface.blit(centre_text_line0,
                          (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
-            bonus = bonus_counters
+            bonus = self.table.count_of_honba_sticks
             if bonus > 0:
                 centre_text_line1 = self.centre_font.render("{}本場".format(bonus), 1, (0, 0, 0))
-            surface.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
+                surface.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
 
     def _draw_highlight(self, surface: pygame.Surface, rect: pygame.Rect, highlight_id: int):
         """

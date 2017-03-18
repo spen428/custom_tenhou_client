@@ -16,9 +16,9 @@ FIVE_RED_MAN = 16
 FIVE_RED_PIN = 52
 FIVE_RED_SOU = 88
 
-DISPLAY_WINDS = {
-    EAST: 'East',
-    SOUTH: 'South',
-    WEST: 'West',
-    NORTH: 'North'
+WINDS_TO_STR = {
+    EAST: '東',
+    SOUTH: '南',
+    WEST: '西',
+    NORTH: '北'
 }

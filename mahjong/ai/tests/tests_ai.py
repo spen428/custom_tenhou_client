@@ -115,7 +115,7 @@ class AITestCase(unittest.TestCase, TestMixin):
         player.draw_tile(tile)
 
         player.discard_tile()
-        self.assertEqual(player.in_tempai, False)
+        self.assertEqual(player.is_tempai, False)
 
         tiles = self._string_to_136_array(sou='11145677', pin='345', man='56')
         tile = self._string_to_136_array(man='9')[0]
@@ -123,4 +123,4 @@ class AITestCase(unittest.TestCase, TestMixin):
         player.draw_tile(tile)
 
         player.discard_tile()
-        self.assertEqual(player.in_tempai, True)
+        self.assertEqual(player.is_tempai, True)

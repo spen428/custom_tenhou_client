@@ -3,23 +3,29 @@ import logging
 
 import pygame
 
+from mahjong.table import Table
 from tenhou.decoder import TenhouDecoder
+from tenhou.events import GameEvents
+from tenhou.gui.screens import EventListener
 
-logger = logging.getLogger('replay')
+logger = logging.getLogger('tenhou')
 
 
-class ReplayClient(object):
+class ReplayClient(EventListener):
     def __init__(self, replay_file_path):
+        self.table = Table()
         self.decoder = TenhouDecoder()
         self.current_line_idx = 0
         self.lines = []
+        logger.debug('Began reading replay file')
         with open(replay_file_path, 'r') as f:
             tmp_lines = [line.strip() for line in f.readlines()]
             for line in tmp_lines:
                 # Ensure there is only one tag per line
-                sep_line = line.replace('><', '>\n<')
+                sep_lines = line.replace('><', '>\n<').split('\n')
                 # Add lines to list
-                self.lines.extend(sep_line.split('\n'))
+                logger.debug(sep_lines)
+                self.lines.extend(sep_lines)
 
     def step(self):
         """
@@ -39,3 +45,13 @@ class ReplayClient(object):
 
     def end_of_replay(self):
         return self.current_line_idx >= len(self.lines) - 1
+
+    # Event methods #
+
+    def on_event(self, event):
+        if event.type == pygame.USEREVENT:
+            self.on_user_event(event)
+
+    def on_user_event(self, event):
+        if event.game_event == GameEvents.CALL_STEP:
+            self.step()

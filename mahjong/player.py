@@ -2,9 +2,8 @@
 import logging
 
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
-from utils.settings_handler import settings
-from mahjong.ai.shanten import Shanten
 from mahjong.tile import Tile
+from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
 
@@ -22,6 +21,8 @@ class Player(object):
 
     name = ''
     rank = ''
+    rate = -1
+    sex = ''
 
     discards = []
     # tiles that were discarded after player's riichi
@@ -41,6 +42,7 @@ class Player(object):
         self.seat = seat
         self.table = table
         self.dealer_seat = dealer_seat
+        self.tsumohai = None
 
         if use_previous_ai_version:
             try:
@@ -75,25 +77,25 @@ class Player(object):
     def add_meld(self, meld):
         self.melds.append(meld)
 
-    def add_discarded_tile(self, tile):
-        self.discards.append(Tile(tile))
-
     def init_hand(self, tiles):
         self.tiles = [Tile(i) for i in tiles]
 
-    def draw_tile(self, tile):
-        self.tiles.append(Tile(tile))
+    def draw_tile(self, tile_id):
+        tile = Tile(tile_id)
+        self.tiles.append(tile)
+        self.tsumohai = tile
         # we need sort it to have a better string presentation
         self.tiles = sorted(self.tiles)
 
-    def discard_tile(self):
-        tile_to_discard = self.ai.discard_tile()
-        if tile_to_discard != Shanten.AGARI_STATE:
-            self.add_discarded_tile(tile_to_discard)
-            self.tiles.remove(tile_to_discard)
-        return tile_to_discard
+    def discard_tile(self, tile_id):
+        tile = Tile(tile_id)
+        self.tsumohai = None
+        self.discards.append(tile)
+        self.tiles.remove(tile)
+        return tile
 
     def erase_state(self):
+        self.tsumohai = None
         self.discards = []
         self.melds = []
         self.tiles = []
@@ -104,12 +106,7 @@ class Player(object):
         self.dealer_seat = 0
 
     def can_call_riichi(self):
-        return all([
-            self.in_tempai,
-            not self.in_riichi,
-            self.scores >= 1000,
-            self.table.count_of_remaining_tiles > 4
-        ])
+        return all([self.in_tempai, not self.in_riichi, self.scores >= 1000, self.table.count_of_remaining_tiles > 4])
 
     @property
     def player_wind(self):

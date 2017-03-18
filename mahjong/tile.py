@@ -13,6 +13,9 @@ class Tile(int):
     def as_data(self):
         return self.TILES[self // 4]
 
+    def normalised(self):
+        return self // 4
+
 
 class TilesConverter(object):
 

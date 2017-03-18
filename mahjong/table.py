@@ -22,12 +22,11 @@ class Table(object):
         self._init_players(use_previous_ai_version)
 
     def __str__(self):
-        return 'Round: {0}, Honba: {1}, Dora Indicators: {2}'.format(self.round_number,
-                                                                     self.count_of_honba_sticks,
+        return 'Round: {0}, Honba: {1}, Dora Indicators: {2}'.format(self.round_number, self.count_of_honba_sticks,
                                                                      self.dora_indicators)
 
-    def init_round(self, round_number, count_of_honba_sticks, count_of_riichi_sticks,
-                   dora_indicator, dealer_seat, scores):
+    def init_round(self, round_number, count_of_honba_sticks, count_of_riichi_sticks, dora_indicator, dealer_seat,
+                   scores):
 
         self.round_number = round_number
         self.count_of_honba_sticks = count_of_honba_sticks
@@ -93,10 +92,7 @@ class Table(object):
         self.players = []
 
         for seat in range(0, self.count_of_players):
-            player = Player(seat=seat,
-                            dealer_seat=0,
-                            table=self,
-                            use_previous_ai_version=use_previous_ai_version)
+            player = Player(seat=seat, dealer_seat=0, table=self, use_previous_ai_version=use_previous_ai_version)
             self.players.append(player)
 
     @property
@@ -109,3 +105,15 @@ class Table(object):
             return WEST
         else:
             return NORTH
+
+    @property
+    def is_oorasu(self):
+        return False  # TODO
+
+    @property
+    def table_name(self):
+        return ''  # TODO
+
+    @property
+    def round_name(self):
+        return ''  # TODO

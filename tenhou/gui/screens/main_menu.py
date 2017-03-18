@@ -4,7 +4,7 @@ from enum import Enum
 import pygame
 
 import tenhou.gui.gui
-from tenhou.gui.screens import AbstractScreen, MenuButton
+from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 
 
 class LoginStatus(Enum):
@@ -13,7 +13,8 @@ class LoginStatus(Enum):
     LOGGED_IN = 2
 
 
-class MainMenuScreen(AbstractScreen):
+class MainMenuScreen(AbstractScreen, EventListener):
+
     def __init__(self, client):
         self.client = client
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "tenhou-logo.png"))
@@ -70,7 +71,23 @@ class MainMenuScreen(AbstractScreen):
         elif self.status is LoginStatus.LOGGED_IN:
             return self.lobby_buttons
 
-    # Superclass methods #
+    # Event methods #
+
+    def on_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            self.on_key_down(event)
+        elif event.type == pygame.KEYUP:
+            self.on_key_up(event)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.on_mouse_down(event)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.on_mouse_up(event)
+        elif event.type == pygame.MOUSEMOTION:
+            self.on_mouse_motion(event)
+        elif event.type == pygame.VIDEORESIZE:
+            self.on_window_resized(event)
+        elif event.type > pygame.USEREVENT:
+            self.on_user_event(event)
 
     def on_key_down(self, event):
         pass
@@ -96,6 +113,9 @@ class MainMenuScreen(AbstractScreen):
                 btn.hover = True
 
     def on_window_resized(self, event):
+        pass
+
+    def on_user_event(self, event):
         pass
 
     def draw_to_canvas(self, canvas):

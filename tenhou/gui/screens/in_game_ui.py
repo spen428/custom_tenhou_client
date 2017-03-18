@@ -1,4 +1,5 @@
 # coding: utf-8
+import logging
 import math
 import os
 import time
@@ -7,10 +8,15 @@ from random import randint
 import pygame
 
 import tenhou.gui.gui
-from tenhou.gui.screens import AbstractScreen, MenuButton
+from mahjong.table import Table
+from mahjong.tile import Tile
+from tenhou.events import GameEvents, GameEvent
+from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
-from tenhou.jong.classes import Call, CallType, Position, Player, Game
+from tenhou.jong.classes import Call, CallType, Position, Player
 from tenhou.utils import calculate_score_deltas, seconds_to_time_string
+
+logger = logging.getLogger('tenhou')
 
 
 def rotate(origin, point, degrees):
@@ -82,11 +88,10 @@ def _load_wind_sprites():
     return winds
 
 
-class InGameScreen(AbstractScreen):
-    def __init__(self, client, game: Game = None):
+class InGameScreen(AbstractScreen, EventListener):
+    def __init__(self, client):
         self.table_name = None
         self.round_name = None
-        self.client = client
         # TILES
         self.tiles_64px = _load_64px_tile_sprites()
         self.tiles_38px = _load_38px_tile_sprites()
@@ -133,18 +138,16 @@ class InGameScreen(AbstractScreen):
         self.centre_square = None
         self.hover_tile = None
         self.is_esc_menu_open = False
+        self.start_time_secs = time.time()
 
         # Test vars
         self.discard_start_secs = time.time()
 
         # Other
-        self.esc_menu = EscMenuScreen(self.client)
-        self.game = game
+        self.esc_menu = EscMenuScreen(client)
+        self.table: Table = Table()
 
-        self._test()
-
-    def set_game(self, game: Game):
-        self.game = game
+        # self._test()
 
     # Private methods #
 
@@ -178,10 +181,9 @@ class InGameScreen(AbstractScreen):
         scores = [72300, 8200, 11500, 23200]
         seats = [0, 1, 2, 3]
 
-        self.game = Game()
-        self.game.players = [None for _ in range(4)]
+        players = [None for _ in range(4)]
         for n in range(4):
-            player = self.game.players[n] = Player(names[n], ranks[n])
+            player = players[n] = Player(names[n], ranks[n])
             # Discards
             for _ in range(21):
                 tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
@@ -204,12 +206,11 @@ class InGameScreen(AbstractScreen):
             player.score = scores[n]
             player.seat = seats[n]
             player.is_riichi = bool(randint(0, 1))
-        self.game.players[0].hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]  # Player 1's hand
+        players[0].hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]  # Player 1's hand
 
-        self.game.table_name = "東風戦喰速赤"
-        self.game.round_name = "東四局"
-        self.game.bonus_counters = 2
-        self.game.start()
+        table_name = "東風戦喰速赤"
+        round_name = "東四局"
+        bonus_counters = 2
 
         for btn in self.call_buttons:
             btn.available = bool(randint(0, 1))
@@ -224,7 +225,23 @@ class InGameScreen(AbstractScreen):
         self.centre_hover = False
         self.is_esc_menu_open = not self.is_esc_menu_open
 
-    # Superclass methods #
+    # Event methods #
+
+    def on_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            self.on_key_down(event)
+        elif event.type == pygame.KEYUP:
+            self.on_key_up(event)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.on_mouse_down(event)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.on_mouse_up(event)
+        elif event.type == pygame.MOUSEMOTION:
+            self.on_mouse_motion(event)
+        elif event.type == pygame.VIDEORESIZE:
+            self.on_window_resized(event)
+        elif event.type == pygame.USEREVENT:
+            self.on_user_event(event)
 
     def on_key_down(self, event):
         pass
@@ -232,8 +249,12 @@ class InGameScreen(AbstractScreen):
     def on_key_up(self, event):
         if event.key == pygame.K_ESCAPE:
             self._toggle_esc_menu()
-        if event.key == pygame.K_F5:  # TODO : Remove in deployment
+        elif event.key == pygame.K_F5:  # TODO : Remove in deployment
             self._test()
+        elif event.key == pygame.K_s:
+            pygame.event.post(GameEvent(GameEvents.CALL_STEP))
+        else:
+            print('key')
 
     def on_mouse_down(self, event):
         if self.is_esc_menu_open:
@@ -284,6 +305,27 @@ class InGameScreen(AbstractScreen):
         self.centre_square = None
         self.esc_menu.on_window_resized(event)
 
+    def on_user_event(self, event):
+        if event.game_event == GameEvents.RECV_BEGIN_HAND:
+            for n in range(len(event.ten)):
+                self.table.players[n].score = event.ten[n]
+                self.table.players[n].dealer_seat = event.oya
+            # If this is a live game, len(haipai) will be 1, in a replay it will be 4
+            for n in range(len(event.haipai)):
+                self.table.players[n].init_hand(event.haipai[n])
+        elif event.game_event == GameEvents.RECV_PLAYER_DETAILS:
+            for n in range(len(event.data)):
+                self.table.players[n].name = event.data[n]['name']
+                self.table.players[n].rank = event.data[n]['rank']
+                self.table.players[n].rate = event.data[n]['rate']
+                self.table.players[n].sex = event.data[n]['sex']
+        elif event.game_event == GameEvents.RECV_DISCARD:
+            self.table.get_player(event.who).discard_tile(event.tile)
+        elif event.game_event == GameEvents.RECV_DRAW:
+            self.table.get_player(event.who).draw_tile(event.tile)
+        else:
+            logger.error('Unhandled user event: {}'.format(event))
+
     def draw_to_canvas(self, canvas):
         canvas_width = canvas.get_width()
         canvas_height = canvas.get_height()
@@ -308,43 +350,39 @@ class InGameScreen(AbstractScreen):
         canvas.blit(footer_text, (canvas.get_width() / 2 - footer_text.get_width() / 2, canvas.get_height() - 25))
 
         # Render game
-        if self.game is not None:
-            for n in range(4):
-                player = self.game.players[n]
-                self._draw_discards(canvas, player.discards, n)
-                self._draw_calls(canvas, player.calls, n)
-            self._draw_hand(canvas, (canvas.get_width() / 2, 7 * canvas.get_height() / 8),
-                            self.game.players[0].hand_tiles, 22)
-            self._draw_centre_console(canvas)
+        self._draw_discards(canvas)
+        # self._draw_calls(canvas)
+        self._draw_hand(canvas)
+        # self._draw_centre_console(canvas)
 
-            if self.hover_tile is not None:
-                self._draw_highlight(canvas, self.hover_tile, 0)
+        if self.hover_tile is not None:
+            self._draw_highlight(canvas, self.hover_tile, 0)
 
-            time_delta_secs = 0
-            if self.game.start_time_secs >= 0:
-                time_delta_secs = int(time.time() - self.game.start_time_secs)  # Truncate milliseconds
-            time_string = seconds_to_time_string(time_delta_secs)
+        time_delta_secs = 0
+        if self.start_time_secs >= 0:
+            time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
+        time_string = seconds_to_time_string(time_delta_secs)
 
-            oorasu_string = "オーラス" if self.game.is_oorasu() else ""
-            lines = [time_string, self.game.table_name, self.game.round_name, oorasu_string]
-            self._draw_corner_text(canvas, lines)
+        oorasu_string = "オーラス" if self.table.is_oorasu else ""
+        lines = [time_string, self.table.table_name, self.table.round_name, oorasu_string]
+        self._draw_corner_text(canvas, lines)
 
-            # Draw call buttons
-            x = canvas_width - self._call_button_width_px - 20
-            y = centre_y + self.tile_width * 6
-            btn_h_spacing = 10  # Horizontal space between buttons
-            for btn in reversed(self.call_buttons):
-                if not btn.available:
-                    continue
+        # Draw call buttons
+        x = canvas_width - self._call_button_width_px - 20
+        y = centre_y + self.tile_width * 6
+        btn_h_spacing = 10  # Horizontal space between buttons
+        for btn in reversed(self.call_buttons):
+            if not btn.available:
+                continue
 
-                btn_color = self._call_button_color_hover if btn.hover else self._call_button_color_normal
-                btn.rect = pygame.draw.rect(canvas, btn_color,
-                                            (x, y, self._call_button_width_px, self._call_button_height_px), 0)
-                btn_label = self._call_button_font.render(btn.text, 1, (0, 0, 0))
-                label_x = x + (self._call_button_width_px / 2 - btn_label.get_width() / 2)
-                label_y = y + (self._call_button_height_px / 2 - btn_label.get_height() / 2)
-                canvas.blit(btn_label, (label_x, label_y))
-                x -= btn_h_spacing + self._call_button_width_px
+            btn_color = self._call_button_color_hover if btn.hover else self._call_button_color_normal
+            btn.rect = pygame.draw.rect(canvas, btn_color,
+                                        (x, y, self._call_button_width_px, self._call_button_height_px), 0)
+            btn_label = self._call_button_font.render(btn.text, 1, (0, 0, 0))
+            label_x = x + (self._call_button_width_px / 2 - btn_label.get_width() / 2)
+            label_y = y + (self._call_button_height_px / 2 - btn_label.get_height() / 2)
+            canvas.blit(btn_label, (label_x, label_y))
+            x -= btn_h_spacing + self._call_button_width_px
 
         # Draw 'Esc' menu -- MUST BE CALLED LAST
         if self.is_esc_menu_open:
@@ -359,32 +397,46 @@ class InGameScreen(AbstractScreen):
 
     # Drawing methods #
 
-    def _draw_hand(self, canvas, center_pos, tiles, tsumohai=None):
+    def _draw_hand(self, canvas):  # TODO: This is an unreadable mess
+        center_pos = (canvas.get_width() / 2, 7 * canvas.get_height() / 8)
+        player = self.table.get_main_player()
+
+        tiles = player.tiles
+        has_tsumohai = player.tsumohai is None
+
         discard_time = self._get_discard_time()
         discard_timer_text = None
         if discard_time is not None:
             time_string = "{0:.2f}".format(discard_time)
             discard_timer_text = self.discard_timer_font.render(time_string, 1, (255, 255, 255))
         centre_x, centre_y = center_pos
-        total_width = self.hand_tile_width * len(tiles)
+
+        num_tiles = len(tiles)
+        if player.tsumohai is not None:
+            num_tiles -= 1
+        total_width = self.hand_tile_width * num_tiles
         x = centre_x - (total_width / 2)
         y = canvas.get_height() - self.hand_tile_height - 30
         for tile in tiles:
+            if not has_tsumohai:
+                if player.tsumohai == tile:  # Don't draw the tsumohai here
+                    has_tsumohai = True
+                    continue
             self._draw_tile(canvas, tile, (x, y))
             x += self.hand_tile_width
-        if tsumohai is not None:
+        if player.tsumohai is not None:
             x += 0.5 * self.hand_tile_width
-            self._draw_tile(canvas, tsumohai, (x, y))
+            self._draw_tile(canvas, player.tsumohai, (x, y))
             if discard_timer_text is not None:
                 canvas.blit(discard_timer_text,
                             (x - discard_timer_text.get_width() / 2 + self.hand_tile_width / 2, y - 13))
 
-    def _draw_tile(self, surface: pygame.Surface, tile_id: int, coordinates: (int, int), small: bool = False,
+    def _draw_tile(self, surface: pygame.Surface, tile: int, coordinates: (int, int), small: bool = False,
                    rotation: int = 0, highlight_id=None, sideways: bool = False):
         """
         Blit a tile to a surface.
         :param surface: the surface
-        :param tile_id: the tile id
+        :param tile: the Tile or tile_sprite_id
         :param coordinates: where to blit the tile, as a tuple (x, y)
         :param small: whether the tile is small
         :param rotation: the rotation of the tile, in degrees
@@ -392,8 +444,14 @@ class InGameScreen(AbstractScreen):
         :param sideways: whether the tile is to be rendered on its side (i.e. rotated 90 degrees)
         :return: None
         """
+        if type(tile) == Tile:
+            tile_id = tile.normalised()
+        else:
+            tile_id = tile
+
         x, y = coordinates
         tile_image = self._get_tile_image(tile_id, small)
+
         if sideways:
             rotation += 90
         if rotation is not 0:
@@ -404,130 +462,134 @@ class InGameScreen(AbstractScreen):
         if highlight_id is not None:
             self._draw_highlight(surface, rect, highlight_id)
 
-    def _draw_calls(self, surface: pygame.Surface, calls: [Call], position: int) -> None:
+    def _draw_calls(self, surface: pygame.Surface) -> None:
         """
         Draw player meld calls to a Surface.
         :param surface: the surface to draw to
-        :param calls: the list of calls
-        :param position: the player position at which to draw the calls
         :return: None
         """
         centre_x = surface.get_width() / 2
         centre_y = surface.get_height() / 2
 
-        rotation = [0, -90, -180, -270][position]
-        tile_rotation = rotation
-        x = centre_x + self.tile_width * 10
-        y = centre_y + self.tile_height * 7.5
+        for player in self.table.players:
+            position = player.seat
+            rotation = [0, -90, -180, -270][position]
+            tile_rotation = rotation
+            x = centre_x + self.tile_width * 10
+            y = centre_y + self.tile_height * 7.5
 
-        # Positioning hack
-        if position in [Position.KAMICHA, Position.TOIMEN]:
-            y += self.tile_height
-        if position in [Position.SHIMOCHA, Position.TOIMEN]:
-            x += self.tile_width
-        if position in [Position.SHIMOCHA, Position.KAMICHA]:
-            tile_rotation += 180
-
-        for call in calls:
-            # Determine how many tiles to display
-            num_tiles = 3
-            if CallType.is_kantsu(call.call_type):
-                num_tiles = 4
-            elif call.call_type == CallType.NUKE:
-                num_tiles = 1
-
-            # Draw tiles
-            for n in range(num_tiles):
-                is_call_tile = (call.call_type is not CallType.NUKE and n is call.call_tile)
-                if is_call_tile:
-                    # More positioning hacks
-                    if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        x += self.tile_height - self.tile_width
-                    if position in [Position.TOIMEN, Position.KAMICHA]:
-                        y -= self.tile_height - self.tile_width
-
-                    # Adjust for rotation
-                    x -= self.tile_height - self.tile_width
-                    y += self.tile_height - self.tile_width
-                    if call.call_type == CallType.SHOUMINKAN:
-                        y -= self.tile_width
-                        coordinates = rotate((centre_x, centre_y), (x, y), rotation)
-                        self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=True)
-                        y += self.tile_width
-                        if n is not num_tiles - 1:
-                            n += 1
-                coordinates = rotate((centre_x, centre_y), (x, y), rotation)
-                self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=is_call_tile)
-                if call.call_type == CallType.NUKE:
-                    txt = "{}x".format(len(call.tile_ids))
-                    nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
-                    tx = x + self.tile_width / 2 - nuke_text.get_width() / 2
-                    ty = y - nuke_text.get_height()
-
-                    # Even more positioning hacks holy shit I've got to fix these
-                    if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        tx -= self.tile_width / 2 + nuke_text.get_width() / 2
-                    if position in [Position.TOIMEN, Position.KAMICHA]:
-                        ty -= nuke_text.get_height() * 2
-
-                    nuke_text = pygame.transform.rotate(nuke_text, tile_rotation)
-                    coordinates = rotate((centre_x, centre_y), (tx, ty), rotation)
-                    surface.blit(nuke_text, coordinates)
-                x -= self.tile_width
-                if is_call_tile:
-                    y -= self.tile_height - self.tile_width
-                    # Undo positioning hacks
-                    if position in [Position.SHIMOCHA, Position.TOIMEN]:
-                        x -= self.tile_height - self.tile_width
-                    if position in [Position.TOIMEN, Position.KAMICHA]:
-                        y += self.tile_height - self.tile_width
-
-    def _draw_discards(self, surface: pygame.Surface, tiles, position: int):
-        centre_x = surface.get_width() / 2
-        centre_y = surface.get_height() / 2
-
-        discard_offset = self.tile_height * 3.25
-        rotation = [0, -90, -180, -270][position]
-        tile_rotation = rotation
-        if position in [Position.SHIMOCHA, Position.KAMICHA]:
-            tile_rotation += 180
-
-        x_count = 0
-        y_count = 0
-        riichi_count = 0
-
-        for tile in tiles:
-            tile_id, tile_sprite_id, riichi, tsumogiri = tile
-            x = centre_x + (x_count - 3) * self.tile_width
-            y = centre_y + discard_offset + y_count * self.tile_height
-
-            # Account for riichi tiles
-            x += self.tile_height - self.tile_width * riichi_count
-            if riichi:
-                riichi_count += 1  # Must appear AFTER the positioning adjustment above
-
-            # Positioning hacks
+            # Positioning hack
+            if position in [Position.KAMICHA, Position.TOIMEN]:
+                y += self.tile_height
             if position in [Position.SHIMOCHA, Position.TOIMEN]:
                 x += self.tile_width
+            if position in [Position.SHIMOCHA, Position.KAMICHA]:
+                tile_rotation += 180
+
+            for call in calls:
+                # Determine how many tiles to display
+                num_tiles = 3
+                if CallType.is_kantsu(call.call_type):
+                    num_tiles = 4
+                elif call.call_type == CallType.NUKE:
+                    num_tiles = 1
+
+                # Draw tiles
+                for n in range(num_tiles):
+                    is_call_tile = (call.call_type is not CallType.NUKE and n is call.call_tile)
+                    if is_call_tile:
+                        # More positioning hacks
+                        if position in [Position.SHIMOCHA, Position.TOIMEN]:
+                            x += self.tile_height - self.tile_width
+                        if position in [Position.TOIMEN, Position.KAMICHA]:
+                            y -= self.tile_height - self.tile_width
+
+                        # Adjust for rotation
+                        x -= self.tile_height - self.tile_width
+                        y += self.tile_height - self.tile_width
+                        if call.call_type == CallType.SHOUMINKAN:
+                            y -= self.tile_width
+                            coordinates = rotate((centre_x, centre_y), (x, y), rotation)
+                            self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=True)
+                            y += self.tile_width
+                            if n is not num_tiles - 1:
+                                n += 1
+                    coordinates = rotate((centre_x, centre_y), (x, y), rotation)
+                    self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=is_call_tile)
+                    if call.call_type == CallType.NUKE:
+                        txt = "{}x".format(len(call.tile_ids))
+                        nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
+                        tx = x + self.tile_width / 2 - nuke_text.get_width() / 2
+                        ty = y - nuke_text.get_height()
+
+                        # Even more positioning hacks holy shit I've got to fix these
+                        if position in [Position.SHIMOCHA, Position.TOIMEN]:
+                            tx -= self.tile_width / 2 + nuke_text.get_width() / 2
+                        if position in [Position.TOIMEN, Position.KAMICHA]:
+                            ty -= nuke_text.get_height() * 2
+
+                        nuke_text = pygame.transform.rotate(nuke_text, tile_rotation)
+                        coordinates = rotate((centre_x, centre_y), (tx, ty), rotation)
+                        surface.blit(nuke_text, coordinates)
+                    x -= self.tile_width
+                    if is_call_tile:
+                        y -= self.tile_height - self.tile_width
+                        # Undo positioning hacks
+                        if position in [Position.SHIMOCHA, Position.TOIMEN]:
+                            x -= self.tile_height - self.tile_width
+                        if position in [Position.TOIMEN, Position.KAMICHA]:
+                            y += self.tile_height - self.tile_width
+
+    def _draw_discards(self, surface: pygame.Surface):
+        centre_x = surface.get_width() / 2
+        centre_y = surface.get_height() / 2
+        discard_offset = self.tile_height * 3.25
+
+        for player in self.table.players:
+            position = player.seat
+            tiles = player.discards
+            rotation = [0, -90, -180, -270][position]
+            tile_rotation = rotation
+            if position in [Position.SHIMOCHA, Position.KAMICHA]:
+                tile_rotation += 180
+
+            x_count = 0
+            y_count = 0
+            riichi_count = 0
+
+            for tile in tiles:
+                riichi = False  # TODO
+                tsumogiri = False  # TODO
+                x = centre_x + (x_count - 3) * self.tile_width
+                y = centre_y + discard_offset + y_count * self.tile_height
+
+                # Account for riichi tiles
+                x += self.tile_height - self.tile_width * riichi_count
                 if riichi:
-                    x += self.tile_height - self.tile_width
-            if position in [Position.TOIMEN, Position.KAMICHA]:
-                y += self.tile_height
-                if riichi:
-                    y -= self.tile_height - self.tile_width
+                    riichi_count += 1  # Must appear AFTER the positioning adjustment above
 
-            # Rotate into place
-            pos = rotate((centre_x, centre_y), (x, y), rotation)
+                # Positioning hacks
+                if position in [Position.SHIMOCHA, Position.TOIMEN]:
+                    x += self.tile_width
+                    if riichi:
+                        x += self.tile_height - self.tile_width
+                if position in [Position.TOIMEN, Position.KAMICHA]:
+                    y += self.tile_height
+                    if riichi:
+                        y -= self.tile_height - self.tile_width
 
-            # Highlight tsumogiri
-            hl = 3 if tsumogiri else None
+                # Rotate into place
+                pos = rotate((centre_x, centre_y), (x, y), rotation)
 
-            self._draw_tile(surface, tile_sprite_id, pos, True, tile_rotation, highlight_id=hl, sideways=riichi)
-            x_count += 1
-            if x_count == 6 and y_count < 2:
-                x_count = 0
-                y_count += 1
-                riichi_count = 0
+                # Highlight tsumogiri
+                hl = 3 if tsumogiri else None
+
+                self._draw_tile(surface, tile, pos, True, tile_rotation, highlight_id=hl, sideways=riichi)
+                x_count += 1
+                if x_count == 6 and y_count < 2:
+                    x_count = 0
+                    y_count += 1
+                    riichi_count = 0
 
     def _draw_corner_text(self, surface, lines):
         """
@@ -559,12 +621,9 @@ class InGameScreen(AbstractScreen):
         riichi_offset = self.tile_height * 3.00
 
         # Calculate score deltas first
-        score_deltas = calculate_score_deltas(self.game.players)
+        score_deltas = calculate_score_deltas(players)
 
-        for idx in range(4):
-            player = self.game.players[idx]
-            if player is None:
-                continue  # For two and three player, some players will be `None`
+        for player in self.table.players:
             if self.centre_hover:
                 score_text = self.score_font.render(str(score_deltas[idx]), 1, (0, 0, 0))
             else:
@@ -629,10 +688,10 @@ class InGameScreen(AbstractScreen):
             if player.is_riichi:
                 surface.blit(riichi_sprite, (riichi_x, riichi_y))
 
-            centre_text_line0 = self.centre_font.render(self.game.round_name, 1, (0, 0, 0))
+            centre_text_line0 = self.centre_font.render(round_name, 1, (0, 0, 0))
             surface.blit(centre_text_line0,
                          (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
-            bonus = self.game.bonus_counters
+            bonus = bonus_counters
             if bonus > 0:
                 centre_text_line1 = self.centre_font.render("{}本場".format(bonus), 1, (0, 0, 0))
             surface.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))

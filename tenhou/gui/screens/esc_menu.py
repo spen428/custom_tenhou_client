@@ -3,20 +3,15 @@ import os
 import pygame
 
 import tenhou.gui.gui
-from tenhou.gui.screens import AbstractScreen, MenuButton
+from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 
 
-class EscMenuScreen(AbstractScreen):
+class EscMenuScreen(AbstractScreen, EventListener):
     def __init__(self, parent):
         self.parent = parent
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "tenhou-logo.png"))
-        self.menu_buttons = [
-            MenuButton("NOP", self._nop),
-            MenuButton("NOP", self._nop),
-            MenuButton("NOP", self._nop),
-            MenuButton("NOP", self._nop),
-            MenuButton("Leave game", self._leave_game)
-        ]
+        self.menu_buttons = [MenuButton("NOP", self._nop), MenuButton("NOP", self._nop), MenuButton("NOP", self._nop),
+            MenuButton("NOP", self._nop), MenuButton("Leave game", self._leave_game)]
         # Constant render stuff
         self._button_font = pygame.font.SysFont("Arial", 16)
         self._button_width_px = 200
@@ -32,7 +27,23 @@ class EscMenuScreen(AbstractScreen):
     def _leave_game(self):
         self.parent.leave_game()
 
-    # Superclass methods #
+    # Event methods #
+
+    def on_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            self.on_key_down(event)
+        elif event.type == pygame.KEYUP:
+            self.on_key_up(event)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.on_mouse_down(event)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.on_mouse_up(event)
+        elif event.type == pygame.MOUSEMOTION:
+            self.on_mouse_motion(event)
+        elif event.type == pygame.VIDEORESIZE:
+            self.on_window_resized(event)
+        elif event.type > pygame.USEREVENT:
+            self.on_user_event(event)
 
     def on_key_down(self, event):
         pass
@@ -58,6 +69,9 @@ class EscMenuScreen(AbstractScreen):
                 btn.hover = True
 
     def on_window_resized(self, event):
+        pass
+
+    def on_user_event(self, event):
         pass
 
     def draw_to_canvas(self, canvas):

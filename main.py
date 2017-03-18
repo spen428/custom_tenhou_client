@@ -4,7 +4,7 @@ Endpoint to run bot. It will play a game on tenhou.net
 """
 from optparse import OptionParser
 
-from tenhou.main import connect_and_play
+from tenhou.main import connect_and_play, start_client
 from utils.logger import set_up_logging
 from utils.settings_handler import settings
 
@@ -46,8 +46,8 @@ def parse_args_and_set_up_settings():
 def main():
     parse_args_and_set_up_settings()
     set_up_logging()
-    connect_and_play()
-    # start_client()
+    # connect_and_play()
+    start_client()
 
 
 if __name__ == '__main__':

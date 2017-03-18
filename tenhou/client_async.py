@@ -14,14 +14,14 @@ from mahjong.constants import DISPLAY_WINDS
 from mahjong.meld import Meld
 from mahjong.tile import TilesConverter
 from tenhou.decoder import TenhouDecoder
-from tenhou.events import GameEvents
+from tenhou.events import GameEvents, GameEvent
 from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
 
 
-def post_event(game_event: GameEvents, dict):
-    pygame.event.post(pygame.event.Event(game_event, dict))
+def post_event(game_event: GameEvents, data: dict = None):
+    pygame.event.post(GameEvent(game_event, data))
 
 
 class TenhouClient(Client):

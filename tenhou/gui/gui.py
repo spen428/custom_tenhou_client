@@ -3,14 +3,16 @@
 import os
 import socket
 
+import logging
 import pygame
 
 from tenhou.client import TenhouClient
-from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.in_game_ui import InGameScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
-from tenhou.jong.classes import Game
+from tenhou.replayer import ReplayClient
 from utils.settings_handler import settings
+
+logger = logging.getLogger('tenhou')
 
 
 def get_resource_dir():
@@ -26,8 +28,8 @@ class Gui(object):
         self.canvas: pygame.Surface = self._create_canvas()
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.framerate_limit: int = framerate_limit
-        self.current_screen: AbstractScreen = MainMenuScreen(self)
-        self.tenhou_client: TenhouClient = None
+        self.current_screen = MainMenuScreen(self)
+        self.game_manager = None
         self.running: bool = False
 
     def _create_canvas(self):
@@ -45,22 +47,14 @@ class Gui(object):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                elif event.type == pygame.KEYDOWN:
-                    self.current_screen.on_key_down(event)
-                elif event.type == pygame.KEYUP:
-                    self.current_screen.on_key_up(event)
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    self.current_screen.on_mouse_down(event)
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    self.current_screen.on_mouse_up(event)
-                elif event.type == pygame.MOUSEMOTION:
-                    self.current_screen.on_mouse_motion(event)
+                    continue
                 elif event.type == pygame.VIDEORESIZE:
                     self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                     self.canvas = self._create_canvas()
-                    self.current_screen.on_window_resized(event)
-                elif event.type > pygame.USEREVENT:
-                    self.current_screen.on_user_event(event)
+                # Pass events to other listeners
+                self.current_screen.on_event(event)
+                if self.game_manager is not None:
+                    self.game_manager.on_event(event)
 
             # Print framerate and playtime in titlebar.
             text = "Lykat's custom Tenhou client {0} | FPS: {1:.2f}".format(self.version_str, self.clock.get_fps())
@@ -76,18 +70,18 @@ class Gui(object):
             pygame.display.flip()
 
         # Finish Pygame.
-        if self.tenhou_client is not None:
-            self.tenhou_client.end_game()
+        if self.game_manager is not None:
+            self.game_manager.end_game()
         pygame.quit()
 
     def log_in(self):
-        if self.tenhou_client is not None:
+        if self.game_manager is not None:
             return False
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((settings.TENHOU_HOST, settings.TENHOU_PORT))
-        self.tenhou_client = TenhouClient(s)
-        success = self.tenhou_client.authenticate()
+        self.game_manager = TenhouClient(s)
+        success = self.game_manager.authenticate()
         if success:
             print("Successfully logged in as {0}".format(settings.USER_ID))
         else:
@@ -95,8 +89,8 @@ class Gui(object):
         return success
 
     def log_out(self):
-        self.tenhou_client.end_game()
-        self.tenhou_client = None
+        self.game_manager.end_game()
+        self.game_manager = None
         return True
 
     def join_lobby(self):
@@ -116,4 +110,5 @@ class Gui(object):
 
     def replay_test(self):
         test_replay_path = os.path.join(get_resource_dir(), "2017010100gm-00a9-0000-2d7e1616.thr")
+        self.game_manager = ReplayClient(test_replay_path)
         self.current_screen = InGameScreen(self)

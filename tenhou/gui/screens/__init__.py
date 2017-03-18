@@ -1,39 +1,16 @@
 from abc import ABCMeta, abstractmethod
 
 
+class EventListener(metaclass=ABCMeta):
+    @abstractmethod
+    def on_event(self, event):
+        raise NotImplementedError()
+
+
 class AbstractScreen(metaclass=ABCMeta):
-    """Abstract Base Class for all Screen subclasses."""
-
-    @abstractmethod
-    def on_mouse_down(self, event):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def on_mouse_up(self, event):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def on_mouse_motion(self, event):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def on_key_down(self, event):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def on_key_up(self, event):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def on_window_resized(self, event):
-        raise NotImplementedError()
-
     @abstractmethod
     def draw_to_canvas(self, canvas):
         raise NotImplementedError()
-
-    def on_user_event(self, event):
-        raise  NotImplementedError()
 
 
 class MenuButton(object):

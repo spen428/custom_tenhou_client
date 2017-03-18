@@ -3,28 +3,37 @@ from enum import Enum
 import pygame
 
 
-class GameEvents(Enum):
-    SENT_LOGIN_REQUEST = pygame.USEREVENT + 1
-    RECV_LOGIN_REQUEST_ACK = pygame.USEREVENT + 2
-    SENT_AUTH_TOKEN = pygame.USEREVENT + 3
-    RECV_AUTH_SUCCESSFUL = pygame.USEREVENT + 4
-    SENT_KEEP_ALIVE = pygame.USEREVENT + 5
-    SENT_UNKNOWN = pygame.USEREVENT + 6
-    RECV_UNKNOWN = pygame.USEREVENT + 7
-    SENT_END_GAME = pygame.USEREVENT + 8
-    DISCONNECTED = pygame.USEREVENT + 9
-    LOGIN_REQUEST_FAILED = pygame.USEREVENT + 10
-    AUTH_FAILED = pygame.USEREVENT + 11
-    RECV_SHUFFLE_SEED = pygame.USEREVENT + 12
-    RECV_JOIN_TABLE = pygame.USEREVENT + 13
-    RECV_PLAYER_DETAILS = pygame.USEREVENT + 14
-    RECV_BEGIN_HAND = pygame.USEREVENT + 15
-    RECV_RIICHI_DECLARED = pygame.USEREVENT + 16
-    RECV_DORA_FLIPPED = pygame.USEREVENT + 17
-    RECV_AGARI = pygame.USEREVENT + 18
-    RECV_RYUUKYOKU = pygame.USEREVENT + 19
-    RECV_CALL = pygame.USEREVENT + 20
-    RECV_BEGIN_GAME = pygame.USEREVENT + 21
-    RECV_DISCARD = pygame.USEREVENT + 22
-    END_OF_GAME = pygame.USEREVENT + 23
-    RECV_CALL_AVAILABLE = pygame.USEREVENT + 24
+class GameEvents(Enum):  # TODO: Sort these nicely
+    RECV_DRAW = 0
+    SENT_LOGIN_REQUEST = 1
+    RECV_LOGIN_REQUEST_ACK = 2
+    SENT_AUTH_TOKEN = 3
+    RECV_AUTH_SUCCESSFUL = 4
+    SENT_KEEP_ALIVE = 5
+    SENT_UNKNOWN = 6
+    RECV_UNKNOWN = 7
+    SENT_END_GAME = 8
+    DISCONNECTED = 9
+    LOGIN_REQUEST_FAILED = 10
+    AUTH_FAILED = 11
+    RECV_SHUFFLE_SEED = 12
+    RECV_JOIN_TABLE = 13
+    RECV_PLAYER_DETAILS = 14
+    RECV_BEGIN_HAND = 15
+    RECV_RIICHI_DECLARED = 16
+    RECV_DORA_FLIPPED = 17
+    RECV_AGARI = 18
+    RECV_RYUUKYOKU = 19
+    RECV_CALL = 20
+    RECV_BEGIN_GAME = 21
+    RECV_DISCARD = 22
+    END_OF_GAME = 23
+    RECV_CALL_AVAILABLE = 24
+    CALL_STEP = 25
+
+
+def GameEvent(game_event: GameEvents, data: dict = None):
+    if data is None:
+        data = {}
+    data['game_event'] = game_event
+    return pygame.event.Event(pygame.USEREVENT, data)

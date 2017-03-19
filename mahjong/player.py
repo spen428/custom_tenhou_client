@@ -45,6 +45,7 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.tsumohai = None
         self.riichi_tiles = set()
         self.score = 0
+        self.declaring_riichi = False
 
         if use_previous_ai_version:
             try:
@@ -94,15 +95,20 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.tsumohai = None
         self.discards.append(tile)
         self.tiles.remove(tile)
+        if self.declaring_riichi:
+            self.riichi_tiles.add(tile)
+            self.declaring_riichi = False
         return tile
 
-    def riichi_tile(self, tile_id):
-        self.riichi_tiles.add(Tile(tile_id))
-        self.discard_tile(tile_id)
+    def declare_riichi(self):
+        self.is_riichi = True
+        self.declaring_riichi = True  # Set to true will ensure next discard is rotated
 
     def call_discard(self):
         tile = self.discards[-1]
         self.discards.remove(tile)
+        if tile in self.riichi_tiles:  # The rotated tile was called, ensure next discard is rotated
+            self.declaring_riichi = True
         return tile
 
     def erase_state(self):
@@ -117,6 +123,7 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.tsumohai = None
         self.riichi_tiles = set()
         self.score = 0
+        self.declaring_riichi = False
 
     def can_call_riichi(self):
         return all([self.is_tempai, not self.is_riichi, self.scores >= 1000, self.table.count_of_remaining_tiles > 4])

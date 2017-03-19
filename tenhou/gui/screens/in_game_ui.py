@@ -141,7 +141,6 @@ class InGameScreen(AbstractScreen, EventListener):
         self.hover_tile = None
         self.is_esc_menu_open = False
         self.start_time_secs = time.time()
-        self.riichi_declared = False
 
         # Test vars
         self.discard_start_secs = time.time()
@@ -323,11 +322,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 self.table.players[n].rate = event.data[n]['rate']
                 self.table.players[n].sex = event.data[n]['sex']
         elif event.game_event == GameEvents.RECV_DISCARD:
-            if self.riichi_declared:
-                self.table.get_player(event.who).riichi_tile(event.tile)
-                self.riichi_declared = False
-            else:
-                self.table.get_player(event.who).discard_tile(event.tile)
+            self.table.get_player(event.who).discard_tile(event.tile)
         elif event.game_event == GameEvents.RECV_DRAW:
             self.table.get_player(event.who).draw_tile(event.tile)
         elif event.game_event == GameEvents.RECV_CALL:
@@ -335,8 +330,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 self.table.get_player(event.meld.from_who).call_discard()
             self.table.get_player(event.meld.who).add_meld(event.meld)
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
-            self.table.get_player(event.who).is_riichi = True
-            self.riichi_declared = True
+            self.table.get_player(event.who).declare_riichi()
         else:
             logger.error('Unhandled user event: {}'.format(event))
 

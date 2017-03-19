@@ -62,4 +62,4 @@ class ReplayClient(EventListener):
         if event.game_event == GameEvents.CALL_STEP_FORWARD:
             self.step(1)
         elif event.game_event == GameEvents.CALL_STEP_BACKWARD:
-            pass # TODO: Not currently supported, as it messes up the Table state
+            pass  # TODO: Not currently supported, as it messes up the Table state

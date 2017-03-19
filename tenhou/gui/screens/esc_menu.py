@@ -11,7 +11,7 @@ class EscMenuScreen(AbstractScreen, EventListener):
         self.parent = parent
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "tenhou-logo.png"))
         self.menu_buttons = [MenuButton("NOP", self._nop), MenuButton("NOP", self._nop), MenuButton("NOP", self._nop),
-            MenuButton("NOP", self._nop), MenuButton("Leave game", self._leave_game)]
+                             MenuButton("NOP", self._nop), MenuButton("Leave game", self._leave_game)]
         # Constant render stuff
         self._button_font = pygame.font.SysFont("Arial", 16)
         self._button_width_px = 200

@@ -1,82 +1,32 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Set
 
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
 from mahjong.tile import Tile
-from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
 
 
-class Player(object):  # TODO: Why are some of these fields declared twice?
-    # the place where is player is sitting
-    # always = 0 for our player
-    seat = 0
-    # where is sitting dealer, based on this information we can calculate player wind
-    dealer_seat = 0
-    # position based on scores
-    position = 0
-    scores = 0
-    uma = 0
-
-    name = ''
-    rank = ''
-    rate = -1
-    sex = ''
-
-    discards = []
-    # tiles that were discarded after player's riichi
-    safe_tiles = []
-    tiles = []
-    melds = []
-    table = None
-    is_tempai = False
-    is_riichi = False
-    in_defence_mode = False
-
-    def __init__(self, seat, dealer_seat, table, use_previous_ai_version=False):
-        self.discards = []
-        self.melds = []
-        self.tiles = []
-        self.safe_tiles = []
+class Player(object):
+    def __init__(self, seat, dealer_seat, table):
+        self.discards: [Tile] = []
+        self.melds: [Tile] = []
+        self.tiles: [Tile] = []
         self.seat = seat
-        self.table = table
+        self.table: 'Table' = table  # Use string literal for type as we have a cyclic dependency
         self.dealer_seat = dealer_seat
-        self.tsumohai = None
-        self.riichi_discards = set()
-        self.called_discards = set()
+        self.tsumohai: Tile = None
+        self.riichi_discards: Set[Tile] = set()
+        self.called_discards: Set[Tile] = set()
         self.score = 0
         self.declaring_riichi = False
-
-        if use_previous_ai_version:
-            try:
-                from mahjong.ai.old_version import MainAI
-            # project wasn't set up properly
-            # we don't have old version
-            except ImportError:
-                logger.error('Wasn\'t able to load old api version')
-                from mahjong.ai.main import MainAI
-        else:
-            if settings.ENABLE_AI:
-                from mahjong.ai.main import MainAI
-            else:
-                from mahjong.ai.random import MainAI
-
-        self.ai = MainAI(table, self)
-
-    def __str__(self):
-        result = u'{0}'.format(self.name)
-        if self.scores:
-            result += u' ({:,d})'.format(int(self.scores))
-            if self.uma:
-                result += u' {0}'.format(self.uma)
-        else:
-            result += u' ({0})'.format(self.rank)
-        return result
-
-    # for calls in array
-    def __repr__(self):
-        return self.__str__()
+        self.name = ''
+        self.rank = ''
+        self.rate = -1
+        self.sex = ''
+        self.is_tempai = False
+        self.is_riichi = False
 
     def add_meld(self, meld):
         self.melds.append(meld)
@@ -117,10 +67,8 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.discards = []
         self.melds = []
         self.tiles = []
-        self.safe_tiles = []
         self.is_tempai = False
         self.is_riichi = False
-        self.in_defence_mode = False
         self.dealer_seat = 0
         self.tsumohai = None
         self.riichi_discards = set()
@@ -129,7 +77,7 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.called_discards = set()
 
     def can_call_riichi(self):
-        return all([self.is_tempai, not self.is_riichi, self.scores >= 1000, self.table.count_of_remaining_tiles > 4])
+        return all([self.is_tempai, not self.is_riichi, self.score >= 1000, self.table.count_of_remaining_tiles > 4])
 
     @property
     def player_wind(self):

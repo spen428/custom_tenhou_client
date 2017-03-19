@@ -24,7 +24,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
                               MenuButton("InGameScreen Test", self._ui_test),
                               MenuButton("Replay Test", self._replay_test)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
-        self.status: Enum = LoginStatus.NOT_LOGGED_IN
+        self.status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
         self._footer_font = pygame.font.SysFont("Arial", 13)
         self._footer_text = self._footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))

@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
+
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
 from mahjong.player import Player
+from mahjong.tile import Tile
 from mahjong.utils import plus_dora, is_aka_dora
 
 
 class Table(object):
-    players = []
+    def __init__(self):
+        self.dora_indicators: [Tile] = []
+        self.players: [Player] = []
+        self.dealer_seat = 0
+        self.round_number = 0
+        self.count_of_riichi_sticks = 0
+        self.count_of_honba_sticks = 0
+        self.count_of_remaining_tiles = 0
+        self.count_of_players = 4
 
-    dora_indicators = []
-
-    dealer_seat = 0
-    round_number = 0
-    count_of_riichi_sticks = 0
-    count_of_honba_sticks = 0
-
-    count_of_remaining_tiles = 0
-    count_of_players = 4
-
-    def __init__(self, use_previous_ai_version=False):
-        self.dora_indicators = []
-        self._init_players(use_previous_ai_version)
+        self._init_players()
 
     def __str__(self):
         return 'Round: {0}, Honba: {1}, Dora Indicators: {2}'.format(self.round_number, self.count_of_honba_sticks,
@@ -88,11 +86,11 @@ class Table(object):
     def get_players_sorted_by_scores(self):
         return sorted(self.players, key=lambda x: x.scores, reverse=True)
 
-    def _init_players(self, use_previous_ai_version=False):
+    def _init_players(self):
         self.players = []
 
         for seat in range(0, self.count_of_players):
-            player = Player(seat=seat, dealer_seat=0, table=self, use_previous_ai_version=use_previous_ai_version)
+            player = Player(seat=seat, dealer_seat=0, table=self)
             self.players.append(player)
 
     @property

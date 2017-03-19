@@ -7,6 +7,7 @@ import logging
 import pygame
 
 from tenhou.client import TenhouClient
+from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.in_game_ui import InGameScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
 from tenhou.replayer import ReplayClient
@@ -28,7 +29,7 @@ class Gui(object):
         self.canvas: pygame.Surface = self._create_canvas()
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.framerate_limit: int = framerate_limit
-        self.current_screen = MainMenuScreen(self)
+        self.current_screen: AbstractScreen = MainMenuScreen(self)
         self.game_manager = None
         self.running: bool = False
 

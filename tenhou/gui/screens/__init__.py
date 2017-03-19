@@ -7,7 +7,7 @@ class EventListener(metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class AbstractScreen(metaclass=ABCMeta):
+class AbstractScreen(EventListener, metaclass=ABCMeta):
     @abstractmethod
     def draw_to_canvas(self, canvas):
         raise NotImplementedError()

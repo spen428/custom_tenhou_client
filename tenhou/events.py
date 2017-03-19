@@ -29,7 +29,8 @@ class GameEvents(Enum):  # TODO: Sort these nicely
     RECV_DISCARD = 22
     END_OF_GAME = 23
     RECV_CALL_AVAILABLE = 24
-    CALL_STEP = 25
+    CALL_STEP_FORWARD = 25
+    CALL_STEP_BACKWARD = 26
 
 
 def GameEvent(game_event: GameEvents, data: dict = None):

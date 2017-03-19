@@ -27,16 +27,22 @@ class ReplayClient(EventListener):
                 logger.debug(sep_lines)
                 self.lines.extend(sep_lines)
 
-    def step(self):
+    def step(self, steps=1):
         """
         Step the replay forward, causing an event to be posted.
+        :arg steps: number of steps to advance, can be negative.
         :return: True if the next game event was successfully posted, else False if the current line of the replay
         could not be parsed into an event.
         """
         if self.end_of_replay():
             return False
+        elif self.current_line_idx + steps >= len(self.lines) - 1:
+            self.current_line_idx = len(self.lines) - 1
+        elif self.current_line_idx + steps < 0:
+            self.current_line_idx = 0
+        else:
+            self.current_line_idx += steps
 
-        self.current_line_idx += 1
         message = self.lines[self.current_line_idx]
         event = self.decoder.message_to_event(message)
         if event is not None:
@@ -53,5 +59,7 @@ class ReplayClient(EventListener):
             self.on_user_event(event)
 
     def on_user_event(self, event):
-        if event.game_event == GameEvents.CALL_STEP:
-            self.step()
+        if event.game_event == GameEvents.CALL_STEP_FORWARD:
+            self.step(1)
+        elif event.game_event == GameEvents.CALL_STEP_BACKWARD:
+            pass # TODO: Not currently supported, as it messes up the Table state

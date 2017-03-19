@@ -43,7 +43,8 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.table = table
         self.dealer_seat = dealer_seat
         self.tsumohai = None
-        self.riichi_tiles = set()
+        self.riichi_discards = set()
+        self.called_discards = set()
         self.score = 0
         self.declaring_riichi = False
 
@@ -96,7 +97,7 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.discards.append(tile)
         self.tiles.remove(tile)
         if self.declaring_riichi:
-            self.riichi_tiles.add(tile)
+            self.riichi_discards.add(tile)
             self.declaring_riichi = False
         return tile
 
@@ -106,8 +107,9 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
 
     def call_discard(self):
         tile = self.discards[-1]
-        self.discards.remove(tile)
-        if tile in self.riichi_tiles:  # The rotated tile was called, ensure next discard is rotated
+        # self.discards.remove(tile)
+        self.called_discards.add(tile)
+        if tile in self.riichi_discards:  # The rotated tile was called, ensure next discard is rotated
             self.declaring_riichi = True
         return tile
 
@@ -121,9 +123,10 @@ class Player(object):  # TODO: Why are some of these fields declared twice?
         self.in_defence_mode = False
         self.dealer_seat = 0
         self.tsumohai = None
-        self.riichi_tiles = set()
+        self.riichi_discards = set()
         self.score = 0
         self.declaring_riichi = False
+        self.called_discards = set()
 
     def can_call_riichi(self):
         return all([self.is_tempai, not self.is_riichi, self.scores >= 1000, self.table.count_of_remaining_tiles > 4])

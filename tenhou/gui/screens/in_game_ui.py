@@ -254,7 +254,9 @@ class InGameScreen(AbstractScreen, EventListener):
         elif event.key == pygame.K_F5:  # TODO : Remove in deployment
             self._test()
         elif event.key == pygame.K_s:
-            pygame.event.post(GameEvent(GameEvents.CALL_STEP))
+            pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
+        elif event.key == pygame.K_a:
+            pygame.event.post(GameEvent(GameEvents.CALL_STEP_BACKWARD))
         else:
             print('key')
 
@@ -337,6 +339,13 @@ class InGameScreen(AbstractScreen, EventListener):
     def _get_round_name(self):
         return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], self.table.round_number % 4)
 
+    def _get_discard_time(self):
+        now = time.time()
+        discard_time_secs = 4.0  # TODO
+        return self.discard_start_secs + discard_time_secs - now
+
+    # Drawing methods #
+
     def draw_to_canvas(self, canvas):
         canvas_width = canvas.get_width()
         canvas_height = canvas.get_height()
@@ -362,8 +371,9 @@ class InGameScreen(AbstractScreen, EventListener):
 
         # Render game
         self._draw_discards(canvas)
-        # self._draw_calls(canvas)
+        self._draw_calls(canvas)
         self._draw_hand(canvas)
+        self._draw_enemy_hands(canvas)
         self._draw_centre_console(canvas)
 
         if self.hover_tile is not None:
@@ -399,12 +409,8 @@ class InGameScreen(AbstractScreen, EventListener):
         if self.is_esc_menu_open:
             self._draw_esc_menu(canvas)
 
-    # Drawing methods #
-
-    def _get_discard_time(self):
-        now = time.time()
-        discard_time_secs = 4.0  # TODO
-        return self.discard_start_secs + discard_time_secs - now
+    def _draw_enemy_hands(self, canvas):
+        pass  # TODO: This is an unreadable mess
 
     def _draw_hand(self, canvas):  # TODO: This is an unreadable mess
         center_pos = (canvas.get_width() / 2, 7 * canvas.get_height() / 8)
@@ -495,17 +501,15 @@ class InGameScreen(AbstractScreen, EventListener):
             if position in [Position.SHIMOCHA, Position.KAMICHA]:
                 tile_rotation += 180
 
-            for call in calls:
+            for meld in player.melds:
                 # Determine how many tiles to display
-                num_tiles = 3
-                if CallType.is_kantsu(call.call_type):
-                    num_tiles = 4
-                elif call.call_type == CallType.NUKE:
+                num_tiles = len(meld.tiles)
+                if meld.type == Meld.NUKI:
                     num_tiles = 1
 
                 # Draw tiles
                 for n in range(num_tiles):
-                    is_call_tile = (call.call_type is not CallType.NUKE and n is call.call_tile)
+                    is_call_tile = (meld.type is not Meld.NUKI and False)  # TODO
                     if is_call_tile:
                         # More positioning hacks
                         if position in [Position.SHIMOCHA, Position.TOIMEN]:
@@ -516,17 +520,17 @@ class InGameScreen(AbstractScreen, EventListener):
                         # Adjust for rotation
                         x -= self.tile_height - self.tile_width
                         y += self.tile_height - self.tile_width
-                        if call.call_type == CallType.SHOUMINKAN:
+                        if meld.kan_type == CallType.SHOUMINKAN:
                             y -= self.tile_width
                             coordinates = rotate((centre_x, centre_y), (x, y), rotation)
-                            self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=True)
+                            self._draw_tile(surface, meld.tiles[n], coordinates, True, tile_rotation, sideways=True)
                             y += self.tile_width
                             if n is not num_tiles - 1:
                                 n += 1
                     coordinates = rotate((centre_x, centre_y), (x, y), rotation)
-                    self._draw_tile(surface, call.tile_ids[n], coordinates, True, tile_rotation, sideways=is_call_tile)
-                    if call.call_type == CallType.NUKE:
-                        txt = "{}x".format(len(call.tile_ids))
+                    self._draw_tile(surface, meld.tiles[n], coordinates, True, tile_rotation, sideways=is_call_tile)
+                    if meld.kan_type == Meld.NUKI:
+                        txt = "{}x".format(len(meld.tiles))
                         nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
                         tx = x + self.tile_width / 2 - nuke_text.get_width() / 2
                         ty = y - nuke_text.get_height()
@@ -567,8 +571,12 @@ class InGameScreen(AbstractScreen, EventListener):
             riichi_count = 0
 
             for tile in tiles:
-                riichi = tile in player.riichi_tiles
-                tsumogiri = False  # TODO
+                called = tile in player.called_discards
+                if called:
+                    continue  # Don't render called tiles
+                riichi = tile in player.riichi_discards
+                tsumogiri = False  # TODO: Determine which discards were tsumogiri
+
                 x = centre_x + (x_count - 3) * self.tile_width
                 y = centre_y + discard_offset + y_count * self.tile_height
 

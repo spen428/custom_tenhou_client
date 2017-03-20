@@ -8,6 +8,7 @@ import pygame
 from tenhou.client import TenhouClient
 from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
+from tenhou.gui.screens.replay_ui import ReplayScreen
 from tenhou.gui.tests.test_in_game_ui import TestInGameScreen
 from tenhou.gui.tests.test_replay_ui import TestReplayScreen
 from tenhou.replayer import ReplayClient
@@ -96,8 +97,10 @@ class Gui(object):
     def start_game(self):
         pass
 
-    def load_replay(self):
-        pass
+    def load_replay(self, replay_file_path):
+        self.game_manager = ReplayClient()
+        self.current_screen = ReplayScreen(self)
+        self.game_manager.load_replay(replay_file_path)
 
     def leave_game(self):
         self.current_screen = MainMenuScreen(self)

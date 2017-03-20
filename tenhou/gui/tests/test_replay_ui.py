@@ -1,17 +1,16 @@
-import os
-import time
-
 import logging
+import os
+
 import pygame
 
-from tenhou.events import GameEvents, GameEvent
+from tenhou.events import GameEvents
 from tenhou.gui import get_resource_dir
-from tenhou.gui.screens.in_game_ui import InGameScreen
+from tenhou.gui.screens.replay_ui import ReplayScreen
 
 logger = logging.getLogger('tenhou')
 
 
-class TestReplayScreen(InGameScreen):
+class TestReplayScreen(ReplayScreen):
     def __init__(self, client):
         super().__init__(client)
         logger.setLevel(logging.INFO)
@@ -41,9 +40,9 @@ class TestReplayScreen(InGameScreen):
     def draw_to_canvas(self, canvas):
         """Overrides InGameScreen.draw_to_canvas()"""
         super().draw_to_canvas(canvas)
-        if self.autoplay and self.last_autoplay + self.autoplay_delay_secs < time.time():
-            self.last_autoplay = time.time()
-            pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
+        font = pygame.font.SysFont("Arial", 13)
+        text = font.render("Replay Viewer Test", 1, (0, 0, 0))
+        canvas.blit(text, (0, 0))
 
     def _load_next_replay(self):
         path = os.path.join(get_resource_dir(), "replays", self.replays[self.replayidx])

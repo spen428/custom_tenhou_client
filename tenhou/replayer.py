@@ -15,15 +15,22 @@ class ReplayClient(EventListener):
         self.decoder = TenhouDecoder()
         self.current_line_idx = 0
         self.lines = []
+        self.current_replay = None
         if replay_file_path is not None:
             self.load_replay(replay_file_path)
 
     def _erase_state(self):
         self.current_line_idx = 0
         self.lines.clear()
+        self.current_replay = None
+
+    def reload_replay(self):
+        if self.current_replay is not None:
+            self.load_replay(self.current_replay)
 
     def load_replay(self, replay_file_path):
         self._erase_state()
+        self.current_replay = replay_file_path
         logger.info('Loading replay file: ' + replay_file_path)
         with open(replay_file_path, 'r') as f:  # TODO: Verify replay
             tmp_lines = [line.strip() for line in f.readlines()]
@@ -32,29 +39,32 @@ class ReplayClient(EventListener):
                 sep_lines = line.replace('><', '>\n<').split('\n')
                 # Add lines to list
                 self.lines.extend(sep_lines)
+        self.step(5)  # Step past all the initialisation automatically
 
     def step(self, steps=1):
         """
         Step the replay forward, causing an event to be posted.
 
-        :param steps: number of steps to advance, can be negative.
+        :param steps: number of steps to advance
         :return: True if the next game event was successfully posted, else False if the current line of the replay
         could not be parsed into an event.
         """
+        if steps < 0:
+            return False
         if self.end_of_replay():
-            return pygame.event.post(GameEvent(GameEvents.END_OF_REPLAY))
+            pygame.event.post(GameEvent(GameEvents.END_OF_REPLAY))
+            return False
         elif self.current_line_idx + steps >= len(self.lines) - 1:
-            self.current_line_idx = len(self.lines) - 1
-        elif self.current_line_idx + steps < 0:
-            self.current_line_idx = 0
-        else:
-            self.current_line_idx += steps
+            steps = len(self.lines) - 1 - self.current_line_idx
 
-        message = self.lines[self.current_line_idx]
-        event = self.decoder.message_to_event(message)
-        if event is not None:
-            pygame.event.post(event)
-            return True
+        while steps > 0:
+            self.current_line_idx += 1
+            message = self.lines[self.current_line_idx]
+            event = self.decoder.message_to_event(message)
+            if event is not None:
+                pygame.event.post(event)
+            steps -= 1
+        return True
 
     def end_of_replay(self) -> bool:
         return self.current_line_idx >= len(self.lines) - 1

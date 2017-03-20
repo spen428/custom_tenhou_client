@@ -23,6 +23,8 @@ class ReplayScreen(InGameScreen):
             pygame.event.post(GameEvent(GameEvents.CALL_STEP_BACKWARD))
         elif event.key == pygame.K_d:
             self.autoplay = not self.autoplay
+        elif event.key == pygame.K_r:
+            self.client.game_manager.reload_replay()
         return False
 
     def on_game_event(self, event):
@@ -42,6 +44,11 @@ class ReplayScreen(InGameScreen):
     def draw_to_canvas(self, canvas):
         """Overrides InGameScreen.draw_to_canvas()"""
         super().draw_to_canvas(canvas)
-        if self.autoplay and self.last_autoplay + self.autoplay_delay_secs < time.time():
+        font = pygame.font.SysFont("Arial", 13)
+        text = font.render("Replay Viewer: Press S to step forward, D to toggle autostep, R to restart replay", 1,
+                           (0, 0, 0))
+        canvas.blit(text, (canvas.get_width() / 2 - text.get_width() / 2, 10))
+
+        if not self.is_esc_menu_open and self.autoplay and self.last_autoplay + self.autoplay_delay_secs < time.time():
             self.last_autoplay = time.time()
             pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))

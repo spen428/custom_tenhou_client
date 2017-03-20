@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+from tkinter.filedialog import askopenfilename, Tk
 
 import pygame
 
@@ -16,7 +17,6 @@ class LoginStatus(Enum):
 
 
 class MainMenuScreen(AbstractScreen, EventListener):
-
     def __init__(self, client):
         self.client = client
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "tenhou-logo.png"))
@@ -24,8 +24,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
                               MenuButton("Play anonymously", self._play_anonymously),
                               MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
                               MenuButton("Test In-Game UI", self._test_in_game_ui),
-                              MenuButton("Test Replay Viewer", self._test_replay_viewer)
-                              ]
+                              MenuButton("Test Replay Viewer", self._test_replay_viewer)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
         self.status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
@@ -52,7 +51,14 @@ class MainMenuScreen(AbstractScreen, EventListener):
         pass
 
     def _open_replay(self):
-        pass
+        root = Tk()
+        root.withdraw()  # Make the root window invisible
+        filename = askopenfilename()
+        root.destroy()
+        if filename == '':
+            return False
+        else:
+            self.client.load_replay(filename)
 
     def _log_out(self):
         if self.client.log_out():

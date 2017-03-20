@@ -23,6 +23,12 @@ class TestInGameScreen(InGameScreen):
             return True
         return False
 
+    def draw_to_canvas(self, canvas):
+        super().draw_to_canvas(canvas)
+        font = pygame.font.SysFont("Arial", 13)
+        text = font.render("InGameScreen Test", 1, (0, 0, 0))
+        canvas.blit(text, (0, 0))
+
     def _test(self):
         names = ["Dave", "Adam", "Rob", "Mark"]
         ranks = ["四段", "初段", "六段", "８級"]

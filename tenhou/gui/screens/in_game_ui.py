@@ -644,7 +644,7 @@ class InGameScreen(AbstractScreen, EventListener):
             if self.centre_hover:
                 score_text = self.score_font.render(str(score_deltas[position]), 1, (0, 0, 0))
             else:
-                score_text = self.score_font.render(str(player.score), 1, (0, 0, 0))
+                score_text = self.score_font.render(str(scores[position]), 1, (0, 0, 0))
             name_text = self.name_font.render("{0}・{1}".format(player.name, player.rank), 1, (0, 0, 0))
             wind_sprite = self.wind_sprites[player.seat]
             riichi_sprite = self.riichi_stick_sprite

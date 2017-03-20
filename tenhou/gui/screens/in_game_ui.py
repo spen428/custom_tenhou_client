@@ -577,7 +577,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 y = centre_y + discard_offset + y_count * self.tile_height
 
                 # Account for riichi tiles
-                x += self.tile_height - self.tile_width * riichi_count
+                x += (self.tile_height - self.tile_width) * riichi_count
                 if riichi:
                     riichi_count += 1  # Must appear AFTER the positioning adjustment above
 

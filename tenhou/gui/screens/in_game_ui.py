@@ -282,6 +282,8 @@ class InGameScreen(AbstractScreen, EventListener):
             pass  # TODO
         elif event.game_event == GameEvents.RECV_RYUUKYOKU:
             pass  # TODO
+        elif event.game_event == GameEvents.END_OF_REPLAY:
+            self.autoplay = False
 
     def _get_round_name(self):
         round_num = (self.table.round_number % 4) + 1  # it starts from 0, so +1

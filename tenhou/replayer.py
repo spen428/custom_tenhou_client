@@ -5,7 +5,7 @@ import pygame
 
 from mahjong.table import Table
 from tenhou.decoder import TenhouDecoder
-from tenhou.events import GameEvents
+from tenhou.events import GameEvents, GameEvent
 from tenhou.gui.screens import EventListener
 
 logger = logging.getLogger('tenhou')
@@ -36,7 +36,7 @@ class ReplayClient(EventListener):
         could not be parsed into an event.
         """
         if self.end_of_replay():
-            return False
+            return pygame.event.post(GameEvent(GameEvents.END_OF_REPLAY))
         elif self.current_line_idx + steps >= len(self.lines) - 1:
             self.current_line_idx = len(self.lines) - 1
         elif self.current_line_idx + steps < 0:

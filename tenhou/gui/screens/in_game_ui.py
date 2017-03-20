@@ -122,6 +122,7 @@ class InGameScreen(AbstractScreen, EventListener):
         self.autoplay = False
         self.last_autoplay = 0
         self.last_discarder = -1
+        self.autoplay_delay_secs = 0.1
 
         # Other
         self.esc_menu = EscMenuScreen(client)
@@ -272,10 +273,19 @@ class InGameScreen(AbstractScreen, EventListener):
                 self.table.get_player(self.last_discarder).call_discard()
             self.table.get_player(event.meld.who).add_meld(event.meld)
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
-            self.table.get_player(event.who).declare_riichi()
+            player = self.table.get_player(event.who)
+            player.is_riichi = True
+            player.not_rotated_discard = True
+        elif event.game_event == GameEvents.RECV_RIICHI_STICK_PLACED:
+            self.table.get_player(event.who).score -= 1000
+        elif event.game_event == GameEvents.RECV_AGARI:
+            pass  # TODO
+        elif event.game_event == GameEvents.RECV_RYUUKYOKU:
+            pass  # TODO
 
     def _get_round_name(self):
-        return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], self.table.round_number % 4)
+        round_num = (self.table.round_number % 4) + 1  # it starts from 0, so +1
+        return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], round_num)
 
     # Drawing methods #
 
@@ -348,7 +358,7 @@ class InGameScreen(AbstractScreen, EventListener):
             self._draw_esc_menu(canvas)
 
         # Autoplay replay
-        if self.autoplay and self.last_autoplay + 0.25 < time.time():
+        if self.autoplay and self.last_autoplay + self.autoplay_delay_secs < time.time():
             self.last_autoplay = time.time()
             pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
 
@@ -610,9 +620,7 @@ class InGameScreen(AbstractScreen, EventListener):
         riichi_offset = self.tile_height * 3.00
 
         # Calculate score deltas first
-        scores = []
-        for p in self.table.players:
-            scores.append(p.score if not p.is_riichi else p.score - 1000)
+        scores = [p.score for p in self.table.players]
         score_deltas = calculate_score_deltas(scores)
 
         for player in self.table.players:

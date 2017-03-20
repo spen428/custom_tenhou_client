@@ -34,6 +34,7 @@ class GameEvents(Enum):  # TODO: Sort these nicely
     RECV_CALL_AVAILABLE = 24
     CALL_STEP_FORWARD = 25
     CALL_STEP_BACKWARD = 26
+    RECV_RIICHI_STICK_PLACED = 27
 
 
 class UiEvents(Enum):

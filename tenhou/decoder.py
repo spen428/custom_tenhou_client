@@ -87,22 +87,39 @@ class TenhouDecoder(object):
         return [{'name': names[n], 'rank': ranks[n], 'rate': rates[n], 'sex': sexes[n]} for n in range(len(ranks))]
 
     def parse_agari(self, message):
-        tag = self._bs(message, 'agari')
+        return self._parse_end_of_hand(message, False)
+
+    def parse_ryuukyoku(self, message):
+        return self._parse_end_of_hand(message, True)
+
+    def _parse_end_of_hand(self, message, ryuukyoku):
+        tag = self._bs(message, 'ryuukyoku' if ryuukyoku else 'agari')
+
+        if not ryuukyoku:
+            hai = [[int(t) for t in tag.attrs['hai'].split(',')]]
+            machi = int(tag.attrs['machi'])
+            ten = [int(t) for t in tag.attrs['ten'].split(',')]
+            yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
+            dora_hai = [int(t) for t in tag.attrs['dorahai'].split(',')]
+            try:
+                dora_hai_ura = [int(t) for t in tag.attrs['dorahaiura'].split(',')]
+            except KeyError:
+                # No ura dora, probably because no riichi
+                dora_hai_ura = []
+            # TODO : Multiple ron?
+            who = int(tag.attrs['who'])
+            from_who = int(tag.attrs['fromwho'])
+        else:
+            # Present 'hai' tags are tenpai players showing their hands
+            hai = [None for _ in range(4)]
+            for n in range(4):
+                hai_n = 'hai{}'.format(n)
+                if hai_n in tag.attrs:
+                    hai[n] = [int(t) for t in tag.attrs[hai_n].split(',')]
+            # Initialise unused vars
+            machi = yaku = dora_hai = dora_hai_ura = who = from_who = ten = None
 
         ba = [int(b) for b in tag.attrs['ba'].split(',')]
-        hai = [int(t) for t in tag.attrs['hai'].split(',')]
-        machi = int(tag.attrs['machi'])
-        ten = [int(t) for t in tag.attrs['ten'].split(',')]
-        yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
-        dora_hai = [int(t) for t in tag.attrs['dorahai'].split(',')]
-        try:
-            dora_hai_ura = [int(t) for t in tag.attrs['dorahaiura'].split(',')]
-        except KeyError:
-            # No ura dora, probably because no riichi
-            dora_hai_ura = []
-        # TODO : Multiple ron?
-        who = int(tag.attrs['who'])
-        from_who = int(tag.attrs['fromwho'])
         sc = [int(t) for t in tag.attrs['sc'].split(',')]
         # start at the beginning at take every second item (even)
         points = sc[::2]
@@ -121,10 +138,6 @@ class TenhouDecoder(object):
         return {'ba': ba, 'hai': hai, 'machi': machi, 'ten': ten, 'yaku': yaku, 'dora_hai': dora_hai,
                 'dora_hai_ura': dora_hai_ura, 'who': who, 'from_who': from_who, 'points': points,
                 'point_exchange': point_exchange, 'owari': owari}
-
-    def parse_ryuukyoku(self, message):
-        tag = self._bs(message, 'ryuukyoku')
-        raise NotImplementedError()
 
     def parse_shuffle(self, message):
         tag = self._bs(message, 'shuffle')
@@ -258,6 +271,16 @@ class TenhouDecoder(object):
         tag = self._bs(message, 'reach')
         return int(tag.attrs['who'])
 
+    def parse_riichi(self, message):
+        tag = self._bs(message, 'reach')
+        who = int(tag.attrs['who'])
+        step = int(tag.attrs['step'])
+        if step == 2:
+            ten = [int(x) for x in tag.attrs['ten'].split(',')]
+        else:
+            ten = None
+        return {'who': who, 'step': step, 'ten': ten}
+
     def generate_auth_token(self, auth_string):
         translation_table = [63006, 9570, 49216, 45888, 9822, 23121, 59830, 51114, 54831, 4189, 580, 5203, 42174, 59972,
                              55457, 59009, 59347, 64456, 8673, 52710, 49975, 2006, 62677, 3463, 17754, 5357]
@@ -305,8 +328,11 @@ class TenhouDecoder(object):
             data = self.parse_init(message)
             return GameEvent(GameEvents.RECV_BEGIN_HAND, data)
         elif lower_msg.startswith('reach'):
-            who_called_riichi = self.parse_who_called_riichi(message)
-            return GameEvent(GameEvents.RECV_RIICHI_DECLARED, {'who': who_called_riichi})
+            data = self.parse_riichi(message)
+            if data['step'] == 1:
+                return GameEvent(GameEvents.RECV_RIICHI_DECLARED, data)
+            elif data['step'] == 2:
+                return GameEvent(GameEvents.RECV_RIICHI_STICK_PLACED, data)
         elif lower_msg.startswith('dora'):
             tile = self.parse_dora_indicator(message)
             return GameEvent(GameEvents.RECV_DORA_FLIPPED, {'tile': tile})

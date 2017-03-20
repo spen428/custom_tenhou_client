@@ -18,10 +18,10 @@ class Player(object):
         self.table: 'Table' = table  # Use string literal for type as we have a cyclic dependency
         self.dealer_seat = dealer_seat
         self.tsumohai: Tile = None
-        self.riichi_discards: Set[Tile] = set()
+        self.riichi_discards: [Tile] = []
         self.called_discards: Set[Tile] = set()
         self.score = 0
-        self.declaring_riichi = False
+        self.not_rotated_discard = False
         self.name = ''
         self.rank = ''
         self.rate = -1
@@ -47,21 +47,17 @@ class Player(object):
         self.tsumohai = None
         self.discards.append(tile)
         self.tiles.remove(tile)
-        if self.declaring_riichi:
-            self.riichi_discards.add(tile)
-            self.declaring_riichi = False
+        if self.is_riichi and self.not_rotated_discard:
+            self.riichi_discards.append(tile)
+            self.not_rotated_discard = False
         return tile
-
-    def declare_riichi(self):
-        self.is_riichi = True
-        self.declaring_riichi = True  # Set to true will ensure next discard is rotated
 
     def call_discard(self):
         tile = self.discards[-1]
-        # self.discards.remove(tile)
         self.called_discards.add(tile)
-        if tile in self.riichi_discards:  # The rotated tile was called, ensure next discard is rotated
-            self.declaring_riichi = True
+        if self.is_riichi and tile == self.riichi_discards[-1]:
+            # The rotated tile was called, ensure next discard is rotated
+            self.not_rotated_discard = True
         return tile
 
     def erase_state(self):
@@ -72,9 +68,9 @@ class Player(object):
         self.is_riichi = False
         self.dealer_seat = 0
         self.tsumohai = None
-        self.riichi_discards = set()
+        self.riichi_discards = []
         self.score = 0
-        self.declaring_riichi = False
+        self.not_rotated_discard = False
         self.called_discards = set()
 
     def can_call_riichi(self):

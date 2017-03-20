@@ -119,10 +119,7 @@ class InGameScreen(AbstractScreen, EventListener):
 
         # Test vars
         self.discard_start_secs = time.time()
-        self.autoplay = False
-        self.last_autoplay = 0
         self.last_discarder = -1
-        self.autoplay_delay_secs = 0.1
 
         # Other
         self.esc_menu = EscMenuScreen(client)
@@ -250,6 +247,10 @@ class InGameScreen(AbstractScreen, EventListener):
         self.esc_menu.on_window_resized(event)
 
     def on_game_event(self, event):
+        """Handle GameEvent events.
+
+        :return: True if the event was handled, else False
+        """
         logger.info(event)
         if event.game_event == GameEvents.RECV_BEGIN_HAND:
             self.table.init_round(event.round_number, event.count_of_honba_sticks, event.count_of_riichi_sticks,
@@ -257,33 +258,41 @@ class InGameScreen(AbstractScreen, EventListener):
             # If this is a live game, len(haipai) will be 1, in a replay it will be 4
             for n in range(len(event.haipai)):
                 self.table.players[n].init_hand(event.haipai[n])
+            return True
         elif event.game_event == GameEvents.RECV_PLAYER_DETAILS:
             for n in range(len(event.data)):
                 self.table.players[n].name = event.data[n]['name']
                 self.table.players[n].rank = event.data[n]['rank']
                 self.table.players[n].rate = event.data[n]['rate']
                 self.table.players[n].sex = event.data[n]['sex']
+            return True
         elif event.game_event == GameEvents.RECV_DISCARD:
             self.table.get_player(event.who).discard_tile(event.tile)
             self.last_discarder = event.who
+            return True
         elif event.game_event == GameEvents.RECV_DRAW:
             self.table.get_player(event.who).draw_tile(event.tile)
+            return True
         elif event.game_event == GameEvents.RECV_CALL:
             if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN]:
                 self.table.get_player(self.last_discarder).call_discard()
             self.table.get_player(event.meld.who).add_meld(event.meld)
+            return True
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
             player = self.table.get_player(event.who)
             player.is_riichi = True
             player.not_rotated_discard = True
+            return True
         elif event.game_event == GameEvents.RECV_RIICHI_STICK_PLACED:
             self.table.get_player(event.who).score -= 1000
+            return True
         elif event.game_event == GameEvents.RECV_AGARI:
             pass  # TODO
+            return True
         elif event.game_event == GameEvents.RECV_RYUUKYOKU:
             pass  # TODO
-        elif event.game_event == GameEvents.END_OF_REPLAY:
-            self.autoplay = False
+            return True
+        return False
 
     def _get_round_name(self):
         round_num = (self.table.round_number % 4) + 1  # it starts from 0, so +1
@@ -367,11 +376,6 @@ class InGameScreen(AbstractScreen, EventListener):
         # Draw 'Esc' menu -- MUST BE CALLED LAST
         if self.is_esc_menu_open:
             self._draw_esc_menu(canvas)
-
-        # Autoplay replay
-        if self.autoplay and self.last_autoplay + self.autoplay_delay_secs < time.time():
-            self.last_autoplay = time.time()
-            pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
 
     def _draw_enemy_hands(self, surface):
         centre_x = surface.get_width() / 2

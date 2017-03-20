@@ -10,6 +10,7 @@ from tenhou.client import TenhouClient
 from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.in_game_ui import InGameScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
+from tenhou.gui.screens.replay_ui import ReplayScreen
 from tenhou.replayer import ReplayClient
 from utils.settings_handler import settings
 
@@ -32,6 +33,11 @@ class Gui(object):
         self.current_screen: AbstractScreen = MainMenuScreen(self)
         self.game_manager = None
         self.running: bool = False
+        # TEST
+        self.replays = []
+        self.replayidx = 0
+        with open(os.path.join(get_resource_dir(), "replays", "replaylist.txt"), 'r') as f:
+            self.replays = [line.strip() for line in f.readlines()]
 
     def _create_canvas(self):
         canvas = pygame.Surface(self.screen.get_size(), flags=pygame.HWACCEL)
@@ -106,10 +112,14 @@ class Gui(object):
     def leave_game(self):
         self.current_screen = MainMenuScreen(self)
 
-    def ui_test(self):
-        self.current_screen = InGameScreen(self)
-
     def replay_test(self):
-        test_replay_path = os.path.join(get_resource_dir(), "2017010100gm-00a9-0000-2d7e1616.thr")
-        self.game_manager = ReplayClient(test_replay_path)
-        self.current_screen = InGameScreen(self)
+        self.game_manager = ReplayClient()
+        self.current_screen = ReplayScreen(self)
+        self._load_next_replay()
+
+    def _load_next_replay(self):
+        path = os.path.join(get_resource_dir(), "replays", self.replays[self.replayidx])
+        self.replayidx += 1
+        self.game_manager.load_replay(path)
+
+

@@ -53,6 +53,9 @@ class ReplayClient(EventListener):
     def end_of_replay(self) -> bool:
         return self.current_line_idx >= len(self.lines) - 1
 
+    def end_game(self):
+        pass  # Required for gui -> self.game_manager.end_game() call
+
     # Event methods #
 
     def on_event(self, event):

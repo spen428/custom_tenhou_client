@@ -3,6 +3,7 @@ from enum import Enum
 
 import pygame
 
+import tenhou.gui
 import tenhou.gui.gui
 from tenhou.events import GAME_EVENT
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
@@ -18,11 +19,11 @@ class MainMenuScreen(AbstractScreen, EventListener):
 
     def __init__(self, client):
         self.client = client
-        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "tenhou-logo.png"))
+        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "tenhou-logo.png"))
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
                               MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
-                              MenuButton("Test", self._test)]
+                              MenuButton("Test Replay Viewer", self._test_replay_viewer)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
         self.status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
@@ -39,7 +40,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
     def _exit_game(self):
         self.client.running = False
 
-    def _test(self):
+    def _test_replay_viewer(self):
         self.client.replay_test()
 
     def _log_in(self):

@@ -2,6 +2,7 @@ import os
 
 import pygame
 
+import tenhou.gui
 import tenhou.gui.gui
 from tenhou.events import GAME_EVENT
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
@@ -10,7 +11,7 @@ from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 class EscMenuScreen(AbstractScreen, EventListener):
     def __init__(self, parent):
         self.parent = parent
-        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.gui.get_resource_dir(), "tenhou-logo.png"))
+        self.logo_image = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "tenhou-logo.png"))
         self.menu_buttons = [MenuButton("NOP", self._nop), MenuButton("NOP", self._nop), MenuButton("NOP", self._nop),
                              MenuButton("NOP", self._nop), MenuButton("Leave game", self._leave_game)]
         # Constant render stuff

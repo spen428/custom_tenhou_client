@@ -1,24 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import os
+import logging
 import socket
 
-import logging
 import pygame
 
 from tenhou.client import TenhouClient
 from tenhou.gui.screens import AbstractScreen
-from tenhou.gui.screens.in_game_ui import InGameScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
-from tenhou.gui.screens.replay_ui import ReplayScreen
+from tenhou.gui.tests.test_replay_ui import TestReplayScreen
 from tenhou.replayer import ReplayClient
 from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
-
-
-def get_resource_dir():
-    return os.path.join("tenhou", "gui", "resources")
 
 
 class Gui(object):
@@ -33,11 +27,6 @@ class Gui(object):
         self.current_screen: AbstractScreen = MainMenuScreen(self)
         self.game_manager = None
         self.running: bool = False
-        # TEST
-        self.replays = []
-        self.replayidx = 0
-        with open(os.path.join(get_resource_dir(), "replays", "replaylist.txt"), 'r') as f:
-            self.replays = [line.strip() for line in f.readlines()]
 
     def _create_canvas(self):
         canvas = pygame.Surface(self.screen.get_size(), flags=pygame.HWACCEL)
@@ -114,12 +103,5 @@ class Gui(object):
 
     def replay_test(self):
         self.game_manager = ReplayClient()
-        self.current_screen = ReplayScreen(self)
-        self._load_next_replay()
-
-    def _load_next_replay(self):
-        path = os.path.join(get_resource_dir(), "replays", self.replays[self.replayidx])
-        self.replayidx += 1
-        self.game_manager.load_replay(path)
-
-
+        self.current_screen = TestReplayScreen(self)
+        self.current_screen._load_next_replay()

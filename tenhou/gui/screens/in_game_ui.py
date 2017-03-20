@@ -273,6 +273,7 @@ class InGameScreen(AbstractScreen, EventListener):
 
     def on_game_event(self, event):
         if event.game_event == GameEvents.RECV_BEGIN_HAND:
+            # TODO: Replace with self.table.init_round()
             for n in range(len(event.ten)):
                 self.table.players[n].score = event.ten[n]
                 self.table.players[n].dealer_seat = event.oya
@@ -295,8 +296,6 @@ class InGameScreen(AbstractScreen, EventListener):
             self.table.get_player(event.meld.who).add_meld(event.meld)
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
             self.table.get_player(event.who).declare_riichi()
-        else:
-            logger.error('Unhandled user event: {}'.format(event))
 
     def _get_round_name(self):
         return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], self.table.round_number % 4)

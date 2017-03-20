@@ -116,11 +116,15 @@ class TenhouDecoder(object):
         machi = int(tag.attrs['machi'])
         ten = [int(t) for t in tag.attrs['ten'].split(',')]
         yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
-        dora_hai = [int(t) for t in tag.attrs['doraHai'].split(',')]
-        dora_hai_ura = [int(t) for t in tag.attrs['doraHaiUra'].split(',')]
+        dora_hai = [int(t) for t in tag.attrs['dorahai'].split(',')]
+        try:
+            dora_hai_ura = [int(t) for t in tag.attrs['dorahaiura'].split(',')]
+        except KeyError:
+            # No ura dora, probably because no riichi
+            dora_hai_ura = []
         # TODO : Multiple ron?
         who = int(tag.attrs['who'])
-        from_who = int(tag.attrs['fromWho'])
+        from_who = int(tag.attrs['fromwho'])
         sc = [int(t) for t in tag.attrs['sc'].split(',')]
         # start at the beginning at take every second item (even)
         points = sc[::2]

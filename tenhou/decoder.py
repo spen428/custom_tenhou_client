@@ -342,6 +342,8 @@ class TenhouDecoder(object):
         elif lower_msg.startswith('ryuukyoku'):  # TODO: What about abortive draws?
             data = self.parse_ryuukyoku(message)
             return GameEvent(GameEvents.RECV_RYUUKYOKU, data)
+        elif lower_msg.startswith('/mjloggm'):
+            return GameEvent(GameEvents.END_OF_REPLAY)
         elif lower_msg[0] in 'n':  # MAKE SURE THESE BRANCHES ARE PROCESSED LAST
             meld = self.parse_meld(message)
             data = {'meld': meld}

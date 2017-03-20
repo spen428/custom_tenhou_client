@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import urllib
 from urllib.parse import unquote
 
@@ -8,6 +9,8 @@ from pygame.event import Event
 from mahjong.meld import Meld
 from mahjong.tile import Tile
 from tenhou.events import GameEvents, GameEvent
+
+logger = logging.getLogger('tenhou')
 
 
 class TenhouDecoder(object):
@@ -76,15 +79,34 @@ class TenhouDecoder(object):
 
         return {'scores': scores, 'uma': uma}
 
-    def parse_names_and_ranks(self, message):
+    def parse_un(self, message):
         tag = self._bs(message, 'un')
 
-        ranks = [TenhouDecoder.RANKS[int(rank)] for rank in tag.attrs['dan'].split(',')]
-        names = [urllib.parse.unquote(tag.attrs['n{}'.format(n)]) for n in range(len(ranks))]
-        rates = [float(rate) for rate in tag.attrs['rate'].split(',')]
-        sexes = tag.attrs['sx'].split(',')
+        is_reconnect = False
+        ranks = []
+        rates = []
+        sexes = []
+        try:
+            ranks = [TenhouDecoder.RANKS[int(rank)] for rank in tag.attrs['dan'].split(',')]
+            rates = [float(rate) for rate in tag.attrs['rate'].split(',')]
+            sexes = tag.attrs['sx'].split(',')
+        except KeyError:
+            is_reconnect = True
 
-        return [{'name': names[n], 'rank': ranks[n], 'rate': rates[n], 'sex': sexes[n]} for n in range(len(ranks))]
+        if not is_reconnect:
+            names = [urllib.parse.unquote(tag.attrs['n{}'.format(n)]) for n in range(len(ranks))]
+            return {'data': [{'name': names[n], 'rank': ranks[n], 'rate': rates[n], 'sex': sexes[n]} for n in
+                             range(len(ranks))], 'is_reconnect': is_reconnect}
+        else:
+            names = [None for _ in range(4)]
+            who = []
+            for n in range(4):
+                try:
+                    urllib.parse.unquote(tag.attrs['n{}'.format(n)])
+                    who.append(n)
+                except KeyError:
+                    pass
+            return {'names': names, 'who': who, 'is_reconnect': is_reconnect}
 
     def parse_agari(self, message):
         return self._parse_end_of_hand(message, False)
@@ -99,7 +121,15 @@ class TenhouDecoder(object):
             hai = [[int(t) for t in tag.attrs['hai'].split(',')]]
             machi = int(tag.attrs['machi'])
             ten = [int(t) for t in tag.attrs['ten'].split(',')]
-            yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
+            try:
+                yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
+            except KeyError:
+                # In the case of a yakuman, yaku is not present
+                yaku = []
+            try:
+                yakuman = [int(t) for t in tag.attrs['yakuman'].split(',')]
+            except KeyError:
+                yakuman = []
             dora_hai = [int(t) for t in tag.attrs['dorahai'].split(',')]
             try:
                 dora_hai_ura = [int(t) for t in tag.attrs['dorahaiura'].split(',')]
@@ -117,7 +147,7 @@ class TenhouDecoder(object):
                 if hai_n in tag.attrs:
                     hai[n] = [int(t) for t in tag.attrs[hai_n].split(',')]
             # Initialise unused vars
-            machi = yaku = dora_hai = dora_hai_ura = who = from_who = ten = None
+            machi = yaku = yakuman = dora_hai = dora_hai_ura = who = from_who = ten = None
 
         ba = [int(b) for b in tag.attrs['ba'].split(',')]
         sc = [int(t) for t in tag.attrs['sc'].split(',')]
@@ -135,8 +165,8 @@ class TenhouDecoder(object):
             uma = data[1::2]
             owari = {'final_scores': scores, 'uma': uma}
 
-        return {'ba': ba, 'hai': hai, 'machi': machi, 'ten': ten, 'yaku': yaku, 'dora_hai': dora_hai,
-                'dora_hai_ura': dora_hai_ura, 'who': who, 'from_who': from_who, 'points': points,
+        return {'ba': ba, 'hai': hai, 'machi': machi, 'ten': ten, 'yaku': yaku, 'yakuman': yakuman,
+                'dora_hai': dora_hai, 'dora_hai_ura': dora_hai_ura, 'who': who, 'from_who': from_who, 'points': points,
                 'point_exchange': point_exchange, 'owari': owari}
 
     def parse_shuffle(self, message):
@@ -281,6 +311,11 @@ class TenhouDecoder(object):
             ten = None
         return {'who': who, 'step': step, 'ten': ten}
 
+    def parse_bye(self, message):
+        tag = self._bs(message, 'bye')
+        who = int(tag.attrs['who'])
+        return {'who': who}
+
     def generate_auth_token(self, auth_string):
         translation_table = [63006, 9570, 49216, 45888, 9822, 23121, 59830, 51114, 54831, 4189, 580, 5203, 42174, 59972,
                              55457, 59009, 59347, 64456, 8673, 52710, 49975, 2006, 62677, 3463, 17754, 5357]
@@ -307,6 +342,13 @@ class TenhouDecoder(object):
 
     def message_to_event(self, message: str) -> Event:
         """Convert a Tenhou.net server (or replay) message into an event."""
+        try:
+            return self._message_to_event(message)
+        except:
+            logger.error('Error processing message: ' + message)
+            raise
+
+    def _message_to_event(self, message: str) -> Event:
         lower_msg = message.lower()
         if not lower_msg[0] == '<':  # They should all start with a <, ignore the ones that don't
             return None
@@ -319,7 +361,9 @@ class TenhouDecoder(object):
             data = self.parse_go(message)
             return GameEvent(GameEvents.RECV_JOIN_TABLE, data)
         elif lower_msg.startswith('un'):
-            data = {'data': self.parse_names_and_ranks(message)}
+            data = self.parse_un(message)
+            if data['is_reconnect']:
+                return GameEvent(GameEvents.RECV_RECONNECTED, data)
             return GameEvent(GameEvents.RECV_PLAYER_DETAILS, data)
         elif lower_msg.startswith('taikyoku'):
             data = self.parse_taikyoku(message)
@@ -344,6 +388,9 @@ class TenhouDecoder(object):
             return GameEvent(GameEvents.RECV_RYUUKYOKU, data)
         elif lower_msg.startswith('/mjloggm'):
             return GameEvent(GameEvents.END_OF_REPLAY)
+        elif lower_msg.startswith('bye'):
+            data = self.parse_bye(message)
+            return GameEvent(GameEvents.RECV_DISCONNECTED, data)
         elif lower_msg[0] in 'n':  # MAKE SURE THESE BRANCHES ARE PROCESSED LAST
             meld = self.parse_meld(message)
             data = {'meld': meld}

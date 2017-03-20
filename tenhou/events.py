@@ -36,6 +36,8 @@ class GameEvents(Enum):  # TODO: Sort these nicely
     CALL_STEP_BACKWARD = 26
     RECV_RIICHI_STICK_PLACED = 27
     END_OF_REPLAY = 28
+    RECV_DISCONNECTED = 29
+    RECV_RECONNECTED = 30
 
 
 class UiEvents(Enum):

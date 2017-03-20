@@ -55,6 +55,7 @@ class Player(object):
     def declare_riichi(self):
         self.is_riichi = True
         self.declaring_riichi = True  # Set to true will ensure next discard is rotated
+        self.score -= 1000
 
     def call_discard(self):
         tile = self.discards[-1]

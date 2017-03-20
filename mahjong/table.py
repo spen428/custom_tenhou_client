@@ -57,23 +57,19 @@ class Table(object):
     def is_dora(self, tile):
         return plus_dora(tile, self.dora_indicators) or is_aka_dora(tile)
 
-    def set_players_scores(self, scores, uma=None):
-        for i in range(0, len(scores)):
-            self.get_player(i).scores = scores[i] * 100
-
-            if uma:
-                self.get_player(i).uma = uma[i]
-
+    def set_players_scores(self, scores):
+        for i in range(len(scores)):
+            self.get_player(i).score = scores[i] * 100
         self.recalculate_players_position()
 
     def recalculate_players_position(self):
         temp_players = self.get_players_sorted_by_scores()
-        for i in range(0, len(temp_players)):
+        for i in range(len(temp_players)):
             temp_player = temp_players[i]
             self.get_player(temp_player.seat).position = i + 1
 
     def set_players_names_and_ranks(self, values):
-        for x in range(0, len(values)):
+        for x in range(len(values)):
             self.get_player(x).name = values[x]['name']
             self.get_player(x).rank = values[x]['rank']
 
@@ -84,7 +80,7 @@ class Table(object):
         return self.players[0]
 
     def get_players_sorted_by_scores(self):
-        return sorted(self.players, key=lambda x: x.scores, reverse=True)
+        return sorted(self.players, key=lambda x: x.score, reverse=True)
 
     def _init_players(self):
         self.players = []

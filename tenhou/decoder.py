@@ -25,35 +25,6 @@ class TenhouDecoder(object):
         else:
             return None
 
-    def parse_initial_values(self, message):
-        """
-        Six element list:
-            - Round number,
-            - Number of honba sticks,
-            - Number of riichi sticks,
-            - First dice minus one,
-            - Second dice minus one,
-            - Dora indicator.
-        """
-
-        tag = self._bs(message, 'init')
-
-        seed = tag.attrs['seed'].split(',')
-        seed = [int(i) for i in seed]
-
-        round_number = seed[0]
-        count_of_honba_sticks = seed[1]
-        count_of_riichi_sticks = seed[2]
-        dora_indicator = seed[5]
-        dealer = int(tag.attrs['oya'])
-
-        scores = tag.attrs['ten'].split(',')
-        scores = [int(i) for i in scores]
-
-        return {'round_number': round_number, 'count_of_honba_sticks': count_of_honba_sticks,
-                'count_of_riichi_sticks': count_of_riichi_sticks, 'dora_indicator': dora_indicator, 'dealer': dealer,
-                'scores': scores}
-
     def parse_initial_hand(self, message):
         tag = self._bs(message, 'init')
 
@@ -66,7 +37,12 @@ class TenhouDecoder(object):
         tag = self._bs(message, 'init')
 
         seed = [int(s) for s in tag.attrs['seed'].split(',')]
-        ten = [int(p) * 100 for p in tag.attrs['ten'].split(',')]  # Points are sent divided by 100; reverse that
+        round_number = seed[0]
+        count_of_honba_sticks = seed[1]
+        count_of_riichi_sticks = seed[2]
+        dora_indicator = seed[5]
+
+        ten = [int(p) for p in tag.attrs['ten'].split(',')]
         oya = int(tag.attrs['oya'])
 
         # In replays there will be 'hai0' through 'hai3', but in live games you can of course only see your own
@@ -81,7 +57,9 @@ class TenhouDecoder(object):
             tiles = [int(i) for i in tiles.split(',')]
             haipai.append(tiles)
 
-        return seed, ten, oya, haipai
+        return {'seed': seed, 'ten': ten, 'oya': oya, 'haipai': haipai, 'round_number': round_number,
+                'count_of_honba_sticks': count_of_honba_sticks, 'count_of_riichi_sticks': count_of_riichi_sticks,
+                'dora_indicator': dora_indicator}
 
     def parse_final_scores_and_uma(self, message):
         tag = self._bs(message, 'agari')
@@ -324,8 +302,8 @@ class TenhouDecoder(object):
             data = self.parse_taikyoku(message)
             return GameEvent(GameEvents.RECV_BEGIN_GAME, data)
         elif lower_msg.startswith('init'):
-            seed, ten, oya, haipai = self.parse_init(message)
-            return GameEvent(GameEvents.RECV_BEGIN_HAND, {'seed': seed, 'ten': ten, 'oya': oya, 'haipai': haipai})
+            data = self.parse_init(message)
+            return GameEvent(GameEvents.RECV_BEGIN_HAND, data)
         elif lower_msg.startswith('reach'):
             who_called_riichi = self.parse_who_called_riichi(message)
             return GameEvent(GameEvents.RECV_RIICHI_DECLARED, {'who': who_called_riichi})

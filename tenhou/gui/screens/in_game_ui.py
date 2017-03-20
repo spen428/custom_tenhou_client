@@ -15,7 +15,7 @@ from tenhou.events import GameEvents, GameEvent, GAME_EVENT
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import CallType, Position
-from tenhou.utils import seconds_to_time_string
+from tenhou.utils import seconds_to_time_string, calculate_score_deltas
 
 logger = logging.getLogger('tenhou')
 
@@ -145,6 +145,7 @@ class InGameScreen(AbstractScreen, EventListener):
         self.discard_start_secs = time.time()
         self.autoplay = False
         self.last_autoplay = 0
+        self.last_discarder = -1
 
         # Other
         self.esc_menu = EscMenuScreen(client)
@@ -272,11 +273,10 @@ class InGameScreen(AbstractScreen, EventListener):
         self.esc_menu.on_window_resized(event)
 
     def on_game_event(self, event):
+        logger.info(event)
         if event.game_event == GameEvents.RECV_BEGIN_HAND:
-            # TODO: Replace with self.table.init_round()
-            for n in range(len(event.ten)):
-                self.table.players[n].score = event.ten[n]
-                self.table.players[n].dealer_seat = event.oya
+            self.table.init_round(event.round_number, event.count_of_honba_sticks, event.count_of_riichi_sticks,
+                                  event.dora_indicator, event.oya, event.ten)
             # If this is a live game, len(haipai) will be 1, in a replay it will be 4
             for n in range(len(event.haipai)):
                 self.table.players[n].init_hand(event.haipai[n])
@@ -288,11 +288,12 @@ class InGameScreen(AbstractScreen, EventListener):
                 self.table.players[n].sex = event.data[n]['sex']
         elif event.game_event == GameEvents.RECV_DISCARD:
             self.table.get_player(event.who).discard_tile(event.tile)
+            self.last_discarder = event.who
         elif event.game_event == GameEvents.RECV_DRAW:
             self.table.get_player(event.who).draw_tile(event.tile)
         elif event.game_event == GameEvents.RECV_CALL:
-            if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN] and event.meld.who != event.meld.from_who:
-                self.table.get_player(event.meld.from_who).call_discard()
+            if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN]:
+                self.table.get_player(self.last_discarder).call_discard()
             self.table.get_player(event.meld.who).add_meld(event.meld)
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
             self.table.get_player(event.who).declare_riichi()
@@ -633,7 +634,7 @@ class InGameScreen(AbstractScreen, EventListener):
         riichi_offset = self.tile_height * 3.00
 
         # Calculate score deltas first
-        score_deltas = [0, 0, 0, 0]  # TODO: calculate_score_deltas(players)
+        score_deltas = calculate_score_deltas(self.table.players)
 
         for player in self.table.players:
             position = player.seat

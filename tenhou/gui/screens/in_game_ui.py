@@ -12,7 +12,7 @@ from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
 from tenhou.events import GameEvents, GameEvent, GAME_EVENT
-from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
+from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import CallType, Position
 from tenhou.utils import seconds_to_time_string, calculate_score_deltas
@@ -30,53 +30,29 @@ def rotate(origin, point, degrees):
 
 
 def _load_64px_tile_sprites():
-    tiles = []
-    resource_dir = tenhou.gui.gui.get_resource_dir()
-    # suited tiles
-    for suit in ["bamboo", "man", "pin"]:
-        for number in range(1, 10):
-            name = "{}{}.png".format(suit, number)
-            img = pygame.image.load(os.path.join(resource_dir, "tiles_64", name))
-            tiles.append(img)
-        # dora fives
-        img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "red-dora-" + suit + "5.png"))
-        tiles.append(img)
-
-    # honour tiles
-    for wind in ["east", "south", "west", "north"]:
-        img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "wind-" + wind + ".png"))
-        tiles.append(img)
-    for dragon in ["chun", "haku", "hatsu"]:
-        img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "dragon-" + dragon + ".png"))
-        tiles.append(img)
-
-    # back of tile
-    img = pygame.image.load(os.path.join(resource_dir, "tiles_64", "face-down.png"))
-    tiles.append(img)
-    return tiles
+    return __load_tile_sprites(False)
 
 
 def _load_38px_tile_sprites():
+    return __load_tile_sprites(True)
+
+
+def __load_tile_sprites(small):
+    """Load tile sprites from the resource directory. The tiles should be loaded in the following order: 1s 2s 3s 4s
+    5s 6s 7s 8s 9s 1p 2p 3p 4p 5p 6p 7p 8p 9p 1m 2m 3m 4m 5m 6m 7m 8m 9m ton nan shaa pei haku hatsu chun 5sd 5pd 5md
+    back
+
+    :param small: whether to load the small tiles or the large tiles
+    :return: a list of pygame images
+    """
     tiles = []
-    resource_dir = tenhou.gui.gui.get_resource_dir()
-    # suited tiles
-    for suit in "SMP":
-        for number in range(1, 10):
-            name = "{}{}.gif".format(suit, number)
-            img = pygame.image.load(os.path.join(resource_dir, "tiles_38", name))
-            tiles.append(img)
-        # dora fives
-        img = pygame.image.load(os.path.join(resource_dir, "tiles_38", suit + "5d.gif"))
+    tile_dir = os.path.join(tenhou.gui.gui.get_resource_dir(), "tiles_38" if small else "tiles_64")
+    ext = "gif" if small else "png"
+    for name in ('1s 2s 3s 4s 5s 6s 7s 8s 9s 1p 2p 3p 4p 5p 6p 7p 8p 9p 1m 2m 3m 4m 5m 6m 7m 8m '
+                 '9m ton nan shaa pei haku hatsu chun 5sd 5pd 5md back').split():
+        filename = "{}.{}".format(name, ext)
+        img = pygame.image.load(os.path.join(tile_dir, filename))
         tiles.append(img)
-
-    # honour tiles
-    for tile in ["E", "S", "W", "N", "D1", "D2", "D3"]:
-        img = pygame.image.load(os.path.join(resource_dir, "tiles_38", tile + ".gif"))
-        tiles.append(img)
-
-    # back of tile
-    img = pygame.image.load(os.path.join(resource_dir, "tiles_38", "back.gif"))
-    tiles.append(img)
     return tiles
 
 

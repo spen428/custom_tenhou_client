@@ -287,6 +287,11 @@ class InGameScreen(AbstractScreen, EventListener):
         round_num = (self.table.round_number % 4) + 1  # it starts from 0, so +1
         return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], round_num)
 
+    def _get_bonus_name(self):
+        if self.table.count_of_honba_sticks <= 0:
+            return ""
+        return "{}本場".format(self.table.count_of_honba_sticks)
+
     # Drawing methods #
 
     def _get_discard_time(self):
@@ -332,8 +337,12 @@ class InGameScreen(AbstractScreen, EventListener):
             time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
         time_string = seconds_to_time_string(time_delta_secs)
 
-        oorasu_string = "オーラス" if self.table.is_oorasu else ""
-        lines = [time_string, self.table.table_name, self._get_round_name(), oorasu_string]
+        round_string = (self._get_round_name() + " " + self._get_bonus_name()).strip()
+        lines = [time_string, self.table.table_name, round_string]
+        if self.table.count_of_riichi_sticks > 0:
+            lines.append("立直棒{}本".format(self.table.count_of_riichi_sticks))
+        if self.table.is_oorasu:
+            lines.append("オーラス")
         self._draw_corner_text(canvas, lines)
 
         # Draw call buttons
@@ -692,10 +701,8 @@ class InGameScreen(AbstractScreen, EventListener):
             centre_text_line0 = self.centre_font.render(self._get_round_name(), 1, (0, 0, 0))
             surface.blit(centre_text_line0,
                          (centre_x - centre_text_line0.get_width() / 2, centre_y - centre_text_line0.get_height()))
-            bonus = self.table.count_of_honba_sticks
-            if bonus > 0:
-                centre_text_line1 = self.centre_font.render("{}本場".format(bonus), 1, (0, 0, 0))
-                surface.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
+            centre_text_line1 = self.centre_font.render(self._get_bonus_name(), 1, (0, 0, 0))
+            surface.blit(centre_text_line1, (centre_x - centre_text_line1.get_width() / 2, centre_y))
 
     def _draw_highlight(self, surface: pygame.Surface, rect: pygame.Rect, highlight_id: int):
         """

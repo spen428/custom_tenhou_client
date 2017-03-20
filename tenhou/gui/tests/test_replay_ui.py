@@ -1,16 +1,20 @@
 import os
 import time
 
+import logging
 import pygame
 
 from tenhou.events import GameEvents, GameEvent
 from tenhou.gui import get_resource_dir
 from tenhou.gui.screens.in_game_ui import InGameScreen
 
+logger = logging.getLogger('tenhou')
+
 
 class TestReplayScreen(InGameScreen):
     def __init__(self, client):
         super().__init__(client)
+        logger.setLevel(logging.INFO)
         self.autoplay = False
         self.last_autoplay = 0
         self.autoplay_delay_secs = 0.01

@@ -24,7 +24,7 @@ class ReplayClient(EventListener):
 
     def load_replay(self, replay_file_path):
         self._erase_state()
-        logger.debug('Loading replay file: ' + replay_file_path)
+        logger.info('Loading replay file: ' + replay_file_path)
         with open(replay_file_path, 'r') as f:  # TODO: Verify replay
             tmp_lines = [line.strip() for line in f.readlines()]
             for line in tmp_lines:

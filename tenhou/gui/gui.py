@@ -8,6 +8,7 @@ import pygame
 from tenhou.client import TenhouClient
 from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
+from tenhou.gui.tests.test_in_game_ui import TestInGameScreen
 from tenhou.gui.tests.test_replay_ui import TestReplayScreen
 from tenhou.replayer import ReplayClient
 from utils.settings_handler import settings
@@ -100,6 +101,9 @@ class Gui(object):
 
     def leave_game(self):
         self.current_screen = MainMenuScreen(self)
+
+    def ingameui_test(self):
+        self.current_screen = TestInGameScreen(self)
 
     def replay_test(self):
         self.game_manager = ReplayClient()

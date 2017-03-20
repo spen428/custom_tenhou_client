@@ -127,8 +127,6 @@ class InGameScreen(AbstractScreen, EventListener):
         self.esc_menu = EscMenuScreen(client)
         self.table: Table = Table()
 
-        # self._test()
-
     # Private methods #
 
     def _call_ron(self):
@@ -192,12 +190,8 @@ class InGameScreen(AbstractScreen, EventListener):
     def on_key_up(self, event):
         if event.key == pygame.K_ESCAPE:
             self._toggle_esc_menu()
-        elif event.key == pygame.K_s:
-            pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
-        elif event.key == pygame.K_a:
-            pygame.event.post(GameEvent(GameEvents.CALL_STEP_BACKWARD))
-        elif event.key == pygame.K_d:
-            self.autoplay = not self.autoplay
+            return True
+        return False
 
     def on_mouse_down(self, event):
         if self.is_esc_menu_open:
@@ -253,7 +247,7 @@ class InGameScreen(AbstractScreen, EventListener):
 
         :return: True if the event was handled, else False
         """
-        logger.info(event)
+        logger.debug(event)
         if event.game_event == GameEvents.RECV_BEGIN_HAND:
             self.table.init_round(event.round_number, event.count_of_honba_sticks, event.count_of_riichi_sticks,
                                   event.dora_indicator, event.oya, event.ten)

@@ -13,6 +13,18 @@ class ReplayScreen(InGameScreen):
         self.last_autoplay = 0
         self.autoplay_delay_secs = 0.01
 
+    def on_key_up(self, event):
+        handled = super().on_key_up(event)
+        if handled:
+            return True
+        if event.key == pygame.K_s:
+            pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
+        elif event.key == pygame.K_a:
+            pygame.event.post(GameEvent(GameEvents.CALL_STEP_BACKWARD))
+        elif event.key == pygame.K_d:
+            self.autoplay = not self.autoplay
+        return False
+
     def on_game_event(self, event):
         """Overrides InGameScreen.on_game_event() to add replay-specific functionality.
 

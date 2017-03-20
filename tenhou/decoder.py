@@ -57,7 +57,10 @@ class TenhouDecoder(object):
         haipai = []
         for hai in hais:
             tiles = tag.attrs[hai]
-            tiles = [int(i) for i in tiles.split(',')]
+            if tiles == "":  # Is the case for the 4th player in 3-player mahjong
+                tiles = []
+            else:
+                tiles = [int(i) for i in tiles.split(',')]
             haipai.append(tiles)
 
         return {'seed': seed, 'ten': ten, 'oya': oya, 'haipai': haipai, 'round_number': round_number,

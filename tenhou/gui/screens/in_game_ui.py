@@ -337,7 +337,7 @@ class InGameScreen(AbstractScreen, EventListener):
             time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
         time_string = seconds_to_time_string(time_delta_secs)
 
-        round_string = (self._get_round_name() + " " + self._get_bonus_name()).strip()
+        round_string = self._get_round_name() + self._get_bonus_name()
         lines = [time_string, self.table.table_name, round_string]
         if self.table.count_of_riichi_sticks > 0:
             lines.append("立直棒{}本".format(self.table.count_of_riichi_sticks))

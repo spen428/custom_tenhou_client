@@ -30,7 +30,7 @@ class TenhouClient(Client):
         super(TenhouClient, self).__init__()
         self.socket = socket_object
 
-    def authenticate(self):
+    def _authenticate(self):
         self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(settings.USER_ID)))
         auth_message = self._read_message()
 

@@ -3,7 +3,6 @@ import logging
 import math
 import os
 import time
-from random import randint
 
 import pygame
 
@@ -12,10 +11,10 @@ from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
-from tenhou.events import GameEvents, GameEvent
+from tenhou.events import GameEvents, GameEvent, GAME_EVENT
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
-from tenhou.jong.classes import Call, CallType, Position, Player
+from tenhou.jong.classes import CallType, Position
 from tenhou.utils import seconds_to_time_string
 
 logger = logging.getLogger('tenhou')
@@ -144,6 +143,8 @@ class InGameScreen(AbstractScreen, EventListener):
 
         # Test vars
         self.discard_start_secs = time.time()
+        self.autoplay = False
+        self.last_autoplay = 0
 
         # Other
         self.esc_menu = EscMenuScreen(client)
@@ -177,57 +178,20 @@ class InGameScreen(AbstractScreen, EventListener):
     def _call_pasu(self):
         pass
 
-    def _test(self):
-        names = ["Dave", "てつやち", "藤田プロ", "Mark"]
-        ranks = ["四段", "初段", "八段", "２級"]
-        scores = [72300, 8200, 11500, 23200]
-        seats = [0, 1, 2, 3]
-
-        players = [None for _ in range(4)]
-        for n in range(4):
-            player = players[n] = Player(names[n], ranks[n])
-            # Discards
-            for _ in range(21):
-                tile_id = tile_sprite_id = randint(0, len(self.tiles_38px) - 2)
-                riichi = not bool(randint(0, 10))
-                tsumogiri = not bool(randint(0, 5))
-                player.discards.append((tile_id, tile_sprite_id, riichi, tsumogiri))
-            # Calls / Nuku
-            call = Call([len(self.tiles_38px) - 5 for _ in range(3)], 0, CallType.NUKE)
-            player.calls.append(call)
-            r = [randint(0, len(self.tiles_38px) - 2) for _ in range(3)]
-            r.append(randint(0, len(self.tiles_38px) - 6))
-            player_calls = [Call([r[0] for _ in range(4)], randint(0, 3), CallType.SHOUMINKAN),
-                            Call([r[1] for _ in range(4)], randint(0, 3), CallType.DAIMINKAN),
-                            Call([r[2] for _ in range(3)], randint(0, 2), CallType.PON),
-                            Call([r[3] + n for n in range(3)], randint(0, 2), CallType.CHII)]
-            player.calls.extend(player_calls)
-            # Hand
-            player.hand_tiles = [-1 for _ in range(13)]
-            # Etc
-            player.score = scores[n]
-            player.seat = seats[n]
-            player.is_riichi = bool(randint(0, 1))
-        players[0].hand_tiles = [2, 2, 2, 3, 3, 3, 4, 4, 4, 6, 6, 8, 8]  # Player 1's hand
-
-        table_name = "東風戦喰速赤"
-        round_name = "東四局"
-        bonus_counters = 2
-
-        for btn in self.call_buttons:
-            btn.available = bool(randint(0, 1))
-
     def _get_tile_image(self, tile_id, small=False):
         if small:
             return self.tiles_38px[tile_id]
         return self.tiles_64px[tile_id]
 
+    def _get_tile_back(self, small=False):
+        return self._get_tile_image(-1, small)
+
+    # Event methods #
+
     def _toggle_esc_menu(self):
         self.hover_tile = None
         self.centre_hover = False
         self.is_esc_menu_open = not self.is_esc_menu_open
-
-    # Event methods #
 
     def on_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -242,8 +206,8 @@ class InGameScreen(AbstractScreen, EventListener):
             self.on_mouse_motion(event)
         elif event.type == pygame.VIDEORESIZE:
             self.on_window_resized(event)
-        elif event.type == pygame.USEREVENT:
-            self.on_user_event(event)
+        elif event.type == GAME_EVENT:
+            self.on_game_event(event)
 
     def on_key_down(self, event):
         pass
@@ -251,14 +215,12 @@ class InGameScreen(AbstractScreen, EventListener):
     def on_key_up(self, event):
         if event.key == pygame.K_ESCAPE:
             self._toggle_esc_menu()
-        elif event.key == pygame.K_F5:  # TODO : Remove in deployment
-            self._test()
         elif event.key == pygame.K_s:
             pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
         elif event.key == pygame.K_a:
             pygame.event.post(GameEvent(GameEvents.CALL_STEP_BACKWARD))
-        else:
-            print('key')
+        elif event.key == pygame.K_d:
+            self.autoplay = not self.autoplay
 
     def on_mouse_down(self, event):
         if self.is_esc_menu_open:
@@ -309,7 +271,7 @@ class InGameScreen(AbstractScreen, EventListener):
         self.centre_square = None
         self.esc_menu.on_window_resized(event)
 
-    def on_user_event(self, event):
+    def on_game_event(self, event):
         if event.game_event == GameEvents.RECV_BEGIN_HAND:
             for n in range(len(event.ten)):
                 self.table.players[n].score = event.ten[n]
@@ -339,12 +301,12 @@ class InGameScreen(AbstractScreen, EventListener):
     def _get_round_name(self):
         return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], self.table.round_number % 4)
 
+    # Drawing methods #
+
     def _get_discard_time(self):
         now = time.time()
         discard_time_secs = 4.0  # TODO
         return self.discard_start_secs + discard_time_secs - now
-
-    # Drawing methods #
 
     def draw_to_canvas(self, canvas):
         canvas_width = canvas.get_width()
@@ -409,15 +371,47 @@ class InGameScreen(AbstractScreen, EventListener):
         if self.is_esc_menu_open:
             self._draw_esc_menu(canvas)
 
-    def _draw_enemy_hands(self, canvas):
-        pass  # TODO: This is an unreadable mess
+        # Autoplay replay
+        if self.autoplay and self.last_autoplay + 0.25 < time.time():
+            self.last_autoplay = time.time()
+            pygame.event.post(GameEvent(GameEvents.CALL_STEP_FORWARD))
+
+    def _draw_enemy_hands(self, surface):
+        centre_x = surface.get_width() / 2
+        centre_y = surface.get_height() / 2
+        y = centre_y + self.tile_height * 8
+
+        for player in self.table.players:
+            if player.seat == 0:
+                continue  # Don't draw self
+
+            rotation = [0, -90, -180, 90][player.seat]
+            tile_rotation = rotation
+            if player.seat in [Position.SHIMOCHA, Position.KAMICHA]:
+                tile_rotation += 180
+
+            tiles = player.get_only_hand_tiles()
+            total_width = self.tile_width * len(tiles)
+
+            # Determine position and rotate into place
+            x = centre_x - total_width / 2
+            for tile in tiles:
+                coordinates = rotate((centre_x, centre_y), (x, y), rotation)
+                self._draw_tile(surface, tile, coordinates, small=True, rotation=tile_rotation)
+                x += self.tile_width
+
+            # Draw tsumohai
+            if player.tsumohai is not None:
+                x += self.tile_width / 2
+                coordinates = rotate((centre_x, centre_y), (x, y), rotation)
+                self._draw_tile(surface, player.tsumohai, coordinates, small=True, rotation=tile_rotation)
 
     def _draw_hand(self, canvas):  # TODO: This is an unreadable mess
         center_pos = (canvas.get_width() / 2, 7 * canvas.get_height() / 8)
         player = self.table.get_main_player()
 
         tiles = player.tiles
-        has_tsumohai = player.tsumohai is None
+        skipped_tsumohai = not (player.tsumohai is not None)
 
         discard_time = self._get_discard_time()
         discard_timer_text = None
@@ -433,10 +427,10 @@ class InGameScreen(AbstractScreen, EventListener):
         x = centre_x - (total_width / 2)
         y = canvas.get_height() - self.hand_tile_height - 30
         for tile in tiles:
-            if not has_tsumohai:
-                if player.tsumohai == tile:  # Don't draw the tsumohai here
-                    has_tsumohai = True
-                    continue
+            if not skipped_tsumohai and player.tsumohai == tile:
+                # Don't draw the tsumohai here
+                skipped_tsumohai = True
+                continue
             self._draw_tile(canvas, tile, (x, y))
             x += self.hand_tile_width
         if player.tsumohai is not None:
@@ -461,6 +455,8 @@ class InGameScreen(AbstractScreen, EventListener):
         """
         if type(tile) == Tile:
             tile_id = tile.normalised()
+        elif tile is None or tile < 0:
+            tile_id = self._get_tile_back(small)
         else:
             tile_id = tile
 

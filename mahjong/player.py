@@ -3,6 +3,7 @@ import logging
 from typing import Set
 
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
+from mahjong.meld import Meld
 from mahjong.tile import Tile
 
 logger = logging.getLogger('tenhou')
@@ -11,7 +12,7 @@ logger = logging.getLogger('tenhou')
 class Player(object):
     def __init__(self, seat, dealer_seat, table):
         self.discards: [Tile] = []
-        self.melds: [Tile] = []
+        self.melds: [Meld] = []
         self.tiles: [Tile] = []
         self.seat = seat
         self.table: 'Table' = table  # Use string literal for type as we have a cyclic dependency
@@ -78,6 +79,19 @@ class Player(object):
 
     def can_call_riichi(self):
         return all([self.is_tempai, not self.is_riichi, self.score >= 1000, self.table.count_of_remaining_tiles > 4])
+
+    def get_only_hand_tiles(self):
+        """Return a list of tiles in the player's hand, filtering out the tsumohai and called melds."""
+        filtered_tiles = self.tiles[:]
+        if self.tsumohai is not None:
+            filtered_tiles.remove(self.tsumohai)
+        for meld in self.melds:
+            for tile in meld.tiles:
+                try:
+                    filtered_tiles.remove(tile)
+                except ValueError:
+                    pass  # Thrown when trying to remove the called tile, which was never in the player's hand
+        return filtered_tiles
 
     @property
     def player_wind(self):

@@ -4,6 +4,7 @@ from enum import Enum
 import pygame
 
 import tenhou.gui.gui
+from tenhou.events import GAME_EVENT
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 
 
@@ -21,8 +22,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
                               MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
-                              MenuButton("InGameScreen Test", self._ui_test),
-                              MenuButton("Replay Test", self._replay_test)]
+                              MenuButton("Test", self._test)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
         self.status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
@@ -39,10 +39,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
     def _exit_game(self):
         self.client.running = False
 
-    def _ui_test(self):
-        self.client.ui_test()
-
-    def _replay_test(self):
+    def _test(self):
         self.client.replay_test()
 
     def _log_in(self):
@@ -86,8 +83,8 @@ class MainMenuScreen(AbstractScreen, EventListener):
             self.on_mouse_motion(event)
         elif event.type == pygame.VIDEORESIZE:
             self.on_window_resized(event)
-        elif event.type > pygame.USEREVENT:
-            self.on_user_event(event)
+        elif event.type == GAME_EVENT:
+            self.on_game_event(event)
 
     def on_key_down(self, event):
         pass
@@ -115,7 +112,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
     def on_window_resized(self, event):
         pass
 
-    def on_user_event(self, event):
+    def on_game_event(self, event):
         pass
 
     def draw_to_canvas(self, canvas):

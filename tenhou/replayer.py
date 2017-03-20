@@ -18,7 +18,7 @@ class ReplayClient(EventListener):
         self.current_line_idx = 0
         self.lines = []
         logger.debug('Began reading replay file')
-        with open(replay_file_path, 'r') as f:
+        with open(replay_file_path, 'r') as f:  # TODO: Verify replay
             tmp_lines = [line.strip() for line in f.readlines()]
             for line in tmp_lines:
                 # Ensure there is only one tag per line
@@ -30,7 +30,8 @@ class ReplayClient(EventListener):
     def step(self, steps=1):
         """
         Step the replay forward, causing an event to be posted.
-        :arg steps: number of steps to advance, can be negative.
+
+        :param steps: number of steps to advance, can be negative.
         :return: True if the next game event was successfully posted, else False if the current line of the replay
         could not be parsed into an event.
         """
@@ -49,7 +50,7 @@ class ReplayClient(EventListener):
             pygame.event.post(event)
             return True
 
-    def end_of_replay(self):
+    def end_of_replay(self) -> bool:
         return self.current_line_idx >= len(self.lines) - 1
 
     # Event methods #

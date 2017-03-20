@@ -10,6 +10,7 @@ class Meld(object):
 
     who = None
     tiles = []
+    call_tile = None
     type = None
     from_who = None
     kan_type = None

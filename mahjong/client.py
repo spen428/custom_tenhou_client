@@ -15,7 +15,7 @@ class Client(object):
         self.player = self.table.get_main_player()
         self.id = make_random_letters_and_digit_string()
 
-    def authenticate(self):
+    def _authenticate(self):
         pass
 
     def start_game(self):

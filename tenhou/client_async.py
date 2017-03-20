@@ -25,16 +25,15 @@ def post_event(game_event: GameEvents, data: dict = None):
 
 
 class TenhouClient(Client):
-    socket = None
-    game_is_continue = True
-    looking_for_game = True
-    keep_alive_thread = None
-
-    decoder = TenhouDecoder()
 
     def __init__(self, socket_object):
         super(TenhouClient, self).__init__()
         self.socket = socket_object
+        self.game_is_continue = True
+        self.looking_for_game = True
+        self.connection_thread = None
+        self.keep_alive_thread = None
+        self.decoder = TenhouDecoder()
 
     def __send_login_request(self, user_id):
         self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(user_id)))
@@ -45,7 +44,7 @@ class TenhouClient(Client):
         self._send_message(self._pxr_tag())
         post_event(GameEvents.SENT_AUTH_TOKEN, {'auth_token': auth_token})
 
-    def authenticate(self):  # DONE
+    def _authenticate(self):
         self.__send_login_request(settings.USER_ID)
         auth_message = self._read_message()
 
@@ -78,6 +77,9 @@ class TenhouClient(Client):
             logger.info('Failed to authenticate')
             post_event(GameEvents.AUTH_FAILED, {})
             return False
+
+    def authenticate(self):
+        pass
 
     def start_game(self):  # TODO
         log_link = ''
@@ -311,7 +313,7 @@ class TenhouClient(Client):
         def send_request():
             while self.game_is_continue:
                 self._send_message('<Z />')
-                post_event(Event(GameEvents.SENT_KEEP_ALIVE, {}))
+                post_event(GameEvents.SENT_KEEP_ALIVE)
                 sleep(15)
 
         self.keep_alive_thread = Thread(target=send_request)

@@ -2,6 +2,9 @@ from enum import Enum
 
 import pygame
 
+GAME_EVENT = pygame.USEREVENT + 0
+UI_EVENT = pygame.USEREVENT + 1
+
 
 class GameEvents(Enum):  # TODO: Sort these nicely
     RECV_DRAW = 0
@@ -33,8 +36,19 @@ class GameEvents(Enum):  # TODO: Sort these nicely
     CALL_STEP_BACKWARD = 26
 
 
+class UiEvents(Enum):
+    EXIT_GAME, LOG_IN, LOG_OFF, OPEN_REPLAY, JOIN_LOBBY, TEST = range(6)
+
+
 def GameEvent(game_event: GameEvents, data: dict = None):
     if data is None:
         data = {}
     data['game_event'] = game_event
-    return pygame.event.Event(pygame.USEREVENT, data)
+    return pygame.event.Event(GAME_EVENT, data)
+
+
+def UiEvent(ui_event: UiEvents, data: dict = None):
+    if data is None:
+        data = {}
+    data['game_event'] = ui_event
+    return pygame.event.Event(UI_EVENT, data)

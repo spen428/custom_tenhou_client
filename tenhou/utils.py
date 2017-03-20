@@ -12,8 +12,8 @@ def wind_ordinal_to_string(ordinal):
         return u"北"
 
 
-def calculate_score_deltas(players):
-    return [p.score - players[0].score for p in players]
+def calculate_score_deltas(scores):
+    return [scores[n] - scores[0] for n in range(len(scores))]
 
 
 def seconds_to_time_string(seconds):

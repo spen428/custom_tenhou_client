@@ -634,7 +634,10 @@ class InGameScreen(AbstractScreen, EventListener):
         riichi_offset = self.tile_height * 3.00
 
         # Calculate score deltas first
-        score_deltas = calculate_score_deltas(self.table.players)
+        scores = []
+        for p in self.table.players:
+            scores.append(p.score if not p.is_riichi else p.score - 1000)
+        score_deltas = calculate_score_deltas(scores)
 
         for player in self.table.players:
             position = player.seat

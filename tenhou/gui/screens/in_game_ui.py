@@ -12,7 +12,7 @@ from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
-from tenhou.events import GameEvents, GameEvent, GAME_EVENT
+from tenhou.events import GameEvents, GAME_EVENT
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import CallType, Position
@@ -77,8 +77,7 @@ class InGameScreen(AbstractScreen, EventListener):
 
         # WINDS
         self.wind_sprites = _load_wind_sprites()
-        self.riichi_stick_sprite = pygame.image.load(
-            os.path.join(tenhou.gui.get_resource_dir(), "riichi_stick.png"))
+        self.riichi_stick_sprite = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "riichi_stick.png"))
 
         # Call buttons
         self.call_buttons = [MenuButton("ロン", self._call_ron), MenuButton("ツモ", self._call_tsumo),
@@ -98,12 +97,11 @@ class InGameScreen(AbstractScreen, EventListener):
         self.tile_height = self._get_tile_image(0, True).get_height()
         self.hand_tile_width = self._get_tile_image(0, False).get_width()
         self.hand_tile_height = self._get_tile_image(0, False).get_height()
-        self.tile_highlights = [
-            pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-green.png")),
-            pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-red.png")),
-            pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-yellow.png")),
-            pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-grey.png")),
-            pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "70perc-black.png"))]
+        self.tile_highlights = [pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-green.png")),
+                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-red.png")),
+                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-yellow.png")),
+                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-grey.png")),
+                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "70perc-black.png"))]
         self.tile_hover_colour = (255, 0, 0)
         self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 15)
         self.score_font = pygame.font.SysFont("Arial", 16)
@@ -160,8 +158,6 @@ class InGameScreen(AbstractScreen, EventListener):
 
     def _get_tile_back(self, small=False):
         return self._get_tile_image(-1, small)
-
-    # Event methods #
 
     def _toggle_esc_menu(self):
         self.hover_tile = None
@@ -294,17 +290,17 @@ class InGameScreen(AbstractScreen, EventListener):
         round_num = (self.table.round_number % 4) + 1  # it starts from 0, so +1
         return '{}{}局'.format(WINDS_TO_STR[self.table.round_wind], round_num)
 
+    def _get_discard_time(self):
+        now = time.time()
+        discard_time_secs = 4.0  # TODO
+        return self.discard_start_secs + discard_time_secs - now
+
     def _get_bonus_name(self):
         if self.table.count_of_honba_sticks <= 0:
             return ""
         return "{}本場".format(self.table.count_of_honba_sticks)
 
     # Drawing methods #
-
-    def _get_discard_time(self):
-        now = time.time()
-        discard_time_secs = 4.0  # TODO
-        return self.discard_start_secs + discard_time_secs - now
 
     def draw_to_canvas(self, canvas):
         canvas_width = canvas.get_width()
@@ -339,18 +335,8 @@ class InGameScreen(AbstractScreen, EventListener):
         if self.hover_tile is not None:
             self._draw_highlight(canvas, self.hover_tile, 0)
 
-        time_delta_secs = 0
-        if self.start_time_secs >= 0:
-            time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
-        time_string = seconds_to_time_string(time_delta_secs)
-
-        round_string = self._get_round_name() + self._get_bonus_name()
-        lines = [time_string, self.table.table_name, round_string]
-        if self.table.count_of_riichi_sticks > 0:
-            lines.append("立直棒{}本".format(self.table.count_of_riichi_sticks))
-        if self.table.is_oorasu:
-            lines.append("オーラス")
-        self._draw_corner_text(canvas, lines)
+        self._draw_corner_info(canvas)
+        self._draw_corner_text(canvas)
 
         # Draw call buttons
         x = canvas_width - self._call_button_width_px - 20
@@ -601,13 +587,53 @@ class InGameScreen(AbstractScreen, EventListener):
                     y_count += 1
                     riichi_count = 0
 
-    def _draw_corner_text(self, surface, lines):
+    def _draw_corner_info(self, surface):
+        y_offset = 20
+        x = y = 2 * y_offset
+
+        # Remaining tiles
+        text = self.corner_font.render("残り牌数：" + str(self.table.count_of_remaining_tiles), 1, (0, 0, 0))
+        surface.blit(text, (x, y))
+        y += y_offset
+
+        # Dora indicators
+        text = self.corner_font.render("ドラ表示：", 1, (0, 0, 0))
+        surface.blit(text, (x, y))
+        dora_width = 16
+        dora_height = 20
+        dora_x_offset = 5
+        dora_x = x + text.get_width()
+        dora_y = y
+        for dora in self.table.dora_indicators:
+            tile_id = Tile(dora).normalised()
+            img = self._get_tile_image(tile_id, small=True)
+            img = pygame.transform.scale(img, (dora_width, dora_height))
+            surface.blit(img, (dora_x, dora_y))
+            dora_x += dora_x_offset
+        y += y_offset
+
+        # Riichi stick count
+        text = self.corner_font.render("立直棒数：" + str(self.table.count_of_riichi_sticks), 1, (0, 0, 0))
+        surface.blit(text, (x, y))
+        y += y_offset
+
+    def _draw_corner_text(self, surface):
         """
         Render lines of text in the top right of the screen.
         :param surface: the surface to render to
-        :param lines: the lines of text as a string list
         :return: None
         """
+        time_delta_secs = 0
+        if self.start_time_secs >= 0:
+            time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
+        time_string = seconds_to_time_string(time_delta_secs)
+        round_string = self._get_round_name() + self._get_bonus_name()
+        lines = [time_string, self.table.table_name, round_string]
+        if self.table.count_of_riichi_sticks > 0:
+            lines.append("立直棒{}本".format(self.table.count_of_riichi_sticks))
+        if self.table.is_oorasu:
+            lines.append("オーラス")
+
         canvas_width = surface.get_width()
         y_offset = 20
         x_offset = y = 2 * y_offset

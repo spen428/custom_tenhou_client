@@ -21,7 +21,7 @@ class Gui(object):
     def __init__(self, width=1280, height=720, framerate_limit=2000, resizable=True):
         pygame.init()
         display_flags = (pygame.RESIZABLE | pygame.HWACCEL) if resizable else 0
-        self.version_str: str = "v0.81 Alpha"
+        self.version_str: str = "v1.00 Alpha"
         self.screen: pygame.Surface = pygame.display.set_mode((width, height), display_flags)
         self.canvas: pygame.Surface = self._create_canvas()
         self.clock: pygame.time.Clock = pygame.time.Clock()

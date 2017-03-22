@@ -107,6 +107,7 @@ class InGameScreen(AbstractScreen, EventListener):
         self.discard_timer_font = pygame.font.SysFont("Arial", 10)
         self.name_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 12)
         self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 12)
+        self.call_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 28)
         self.end_dialog_title_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 34)
         self.end_dialog_yaku_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 16)
 
@@ -121,6 +122,9 @@ class InGameScreen(AbstractScreen, EventListener):
         self.end_dialog_data = {}
         self._set_end_dialog()
         self.end_dialog_show_time_secs = 5
+        self.call_start_time = 0
+        self.call_data = None
+        self.call_show_time_secs = 1.0
 
         # Test vars
         self.discard_start_secs = time.time()
@@ -274,6 +278,7 @@ class InGameScreen(AbstractScreen, EventListener):
             if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN]:
                 self.table.get_player(self.last_discarder).call_discard()
             self.table.get_player(event.meld.who).add_meld(event.meld)
+            self._set_call(event.meld.who, event.meld.type)
             return True
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
             player = self.table.get_player(event.who)
@@ -351,6 +356,9 @@ class InGameScreen(AbstractScreen, EventListener):
 
         self._draw_corner_info(canvas)
         self._draw_corner_text(canvas)
+
+        if time.time() < self.call_start_time + self.call_show_time_secs:
+            self._draw_call_text(canvas)
 
         # Draw call buttons
         x = canvas_width - self._call_button_width_px - 20
@@ -826,3 +834,19 @@ class InGameScreen(AbstractScreen, EventListener):
             text = self.end_dialog_yaku_font.render(self.end_dialog_data['yakuman'], 1, (255, 255, 255))
             x = centre_x - text.get_width() / 2
             canvas.blit(text, (x, y))
+
+    def _draw_call_text(self, canvas):
+        centre_x = canvas.get_width() / 2
+        centre_y = canvas.get_height() / 2
+        string, who = self.call_data
+        text = self.call_font.render(string, 1, (255, 255, 255))
+        x = centre_x - text.get_width() / 2
+        y = centre_y * 2 * 7 / 8
+        coordinates = rotate((centre_x, centre_y), (x, y), [0, -90, 180, 90][who])
+        text = pygame.transform.rotate(text, [0, 90, 180, -90][who])
+        canvas.blit(text, coordinates)
+
+    def _set_call(self, who, meld_type):
+        string = {Meld.CHI: 'チー', Meld.PON: 'ポン', Meld.KAN: 'カン', Meld.NUKI: '北'}[meld_type]
+        self.call_data = (string, who)
+        self.call_start_time = time.time()

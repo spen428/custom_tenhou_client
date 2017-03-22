@@ -1,3 +1,4 @@
+import time
 from random import randint
 
 import pygame
@@ -28,8 +29,14 @@ class TestInGameScreen(InGameScreen):
         font = pygame.font.SysFont("Arial", 13)
         text = font.render("InGameScreen Test", 1, (0, 0, 0))
         canvas.blit(text, (0, 0))
+        self.end_dialog_start_time = time.time()
 
     def _test(self):
+        yaku_list = ['立直', '平和', 'ドラ１枚', '裏ドラ１枚']
+        self.end_dialog_data = [{'title': '和了', 'yaku': yaku_list, 'points': (30, 4, 11600), 'yakuman': None},
+                                {'title': '流局', 'yaku': [], 'points': None, 'yakuman': None},
+                                {'title': '途中流局', 'yaku': [], 'points': None, 'yakuman': '九種九牌'}][randint(0, 2)]
+
         names = ["Dave", "Adam", "Rob", "Mark"]
         ranks = ["四段", "初段", "六段", "８級"]
         rates = [randint(1300, 2400) for _ in range(4)]

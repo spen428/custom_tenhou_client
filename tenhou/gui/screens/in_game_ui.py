@@ -107,6 +107,8 @@ class InGameScreen(AbstractScreen, EventListener):
         self.discard_timer_font = pygame.font.SysFont("Arial", 10)
         self.name_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 12)
         self.centre_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 12)
+        self.end_dialog_title_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 34)
+        self.end_dialog_yaku_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 16)
 
         # Graphics Vars
         self.tile_rects = []
@@ -115,6 +117,9 @@ class InGameScreen(AbstractScreen, EventListener):
         self.hover_tile = None
         self.is_esc_menu_open = False
         self.start_time_secs = time.time()
+        self.end_dialog_data = {'title': '', 'yaku': [], 'points': None, 'yakuman': None}
+        self.end_dialog_start_time = 0
+        self.end_dialog_show_time_secs = 10
 
         # Test vars
         self.discard_start_secs = time.time()
@@ -353,6 +358,56 @@ class InGameScreen(AbstractScreen, EventListener):
             label_y = y + (self._call_button_height_px / 2 - btn_label.get_height() / 2)
             canvas.blit(btn_label, (label_x, label_y))
             x -= btn_h_spacing + self._call_button_width_px
+
+        # Draw end of hand dialog
+        if time.time() < self.end_dialog_start_time + self.end_dialog_show_time_secs:
+            yaku_list = self.end_dialog_data['yaku']
+
+            dialog_width = 500
+            dialog_height = (len(yaku_list)) * 20
+            if self.end_dialog_data['title'] is not None:
+                dialog_height += 70
+            if len(yaku_list) > 0:
+                dialog_height += 40
+            if self.end_dialog_data['points'] is not None:
+                dialog_height += 20
+            if self.end_dialog_data['yakuman'] is not None:
+                dialog_height += 30
+
+            x = centre_x - dialog_width / 2
+            y = centre_y - dialog_height / 2
+            self._draw_highlight(canvas, pygame.Rect(x, y, dialog_width, dialog_height), 3)
+            self._draw_highlight(canvas, pygame.Rect(x, y, dialog_width, dialog_height),
+                                 3)  # Drawn twice for extra darkness
+            # Title
+            text = self.end_dialog_title_font.render(self.end_dialog_data['title'], 1, (255, 255, 255))
+            x = centre_x - text.get_width() / 2
+            y += 10
+            canvas.blit(text, (x, y))
+            y += 40
+            # Yaku
+            if len(yaku_list) > 0:
+                for yaku in yaku_list:
+                    y += 20
+                    text = self.end_dialog_yaku_font.render(yaku, 1, (255, 255, 255))
+                    x = centre_x - text.get_width() / 2
+                    canvas.blit(text, (x, y))
+            # Points
+            if self.end_dialog_data['points'] is not None:
+                fu, han, points = self.end_dialog_data['points']
+                text = self.end_dialog_yaku_font.render("{}符{}翻".format(fu, han), 1, (255, 255, 255))
+                x = centre_x - text.get_width() - 10
+                y += 40
+                canvas.blit(text, (x, y))
+                text = self.end_dialog_yaku_font.render("{}点".format(points), 1, (255, 255, 255))
+                x = centre_x + 10
+                canvas.blit(text, (x, y))
+            # Yakuman string
+            elif self.end_dialog_data['yakuman'] is not None:
+                y += 15
+                text = self.end_dialog_yaku_font.render(self.end_dialog_data['yakuman'], 1, (255, 255, 255))
+                x = centre_x - text.get_width() / 2
+                canvas.blit(text, (x, y))
 
         # Draw 'Esc' menu -- MUST BE CALLED LAST
         if self.is_esc_menu_open:

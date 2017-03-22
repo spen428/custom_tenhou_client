@@ -52,7 +52,7 @@ def __load_tile_sprites(small):
     for name in ('1s 2s 3s 4s 5s 6s 7s 8s 9s 1p 2p 3p 4p 5p 6p 7p 8p 9p 1m 2m 3m 4m 5m 6m 7m 8m '
                  '9m ton nan shaa pei haku hatsu chun 5sd 5pd 5md back').split():
         filename = "{}.{}".format(name, ext)
-        img = pygame.image.load(os.path.join(tile_dir, filename))
+        img = pygame.image.load(os.path.join(tile_dir, filename)).convert_alpha()
         tiles.append(img)
     return tiles
 
@@ -61,7 +61,7 @@ def _load_wind_sprites():
     winds = []
     resource_dir = tenhou.gui.get_resource_dir()
     for wind in ["east", "south", "west", "north"]:
-        img = pygame.image.load(os.path.join(resource_dir, wind + ".png"))
+        img = pygame.image.load(os.path.join(resource_dir, wind + ".png")).convert_alpha()
         winds.append(img)
     return winds
 
@@ -77,7 +77,8 @@ class InGameScreen(AbstractScreen, EventListener):
 
         # WINDS
         self.wind_sprites = _load_wind_sprites()
-        self.riichi_stick_sprite = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "riichi_stick.png"))
+        self.riichi_stick_sprite = pygame.image.load(
+            os.path.join(tenhou.gui.get_resource_dir(), "riichi_stick.png")).convert_alpha()
 
         # Call buttons
         self.call_buttons = [MenuButton("ロン", self._call_ron), MenuButton("ツモ", self._call_tsumo),
@@ -97,11 +98,9 @@ class InGameScreen(AbstractScreen, EventListener):
         self.tile_height = self._get_tile_image(0, True).get_height()
         self.hand_tile_width = self._get_tile_image(0, False).get_width()
         self.hand_tile_height = self._get_tile_image(0, False).get_height()
-        self.tile_highlights = [pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-green.png")),
-                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-red.png")),
-                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-yellow.png")),
-                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "highlight-grey.png")),
-                                pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "70perc-black.png"))]
+        self.tile_highlights = [
+            pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), file_name)).convert_alpha() for file_name in
+            "highlight-green.png highlight-red.png highlight-yellow.png highlight-grey.png 70perc-black.png".split()]
         self.tile_hover_colour = (255, 0, 0)
         self.corner_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 15)
         self.score_font = pygame.font.SysFont("Arial", 16)

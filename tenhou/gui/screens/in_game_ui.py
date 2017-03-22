@@ -30,6 +30,21 @@ def rotate(origin, point, degrees):
     return qx, qy
 
 
+def rotate_center(image, degrres):
+    """Rotate an image while keeping its center and size"""
+    orig_rect = image.get_rect()
+    rot_image = pygame.transform.rotate(image, degrres)
+    rot_rect = orig_rect.copy()
+    rot_rect.center = rot_image.get_rect().center
+    rot_image = rot_image.subsurface(rot_rect).copy()
+    return rot_image
+
+
+def rotate_about(image, origin, degrees):
+    """Rotate an image about a point"""
+    raise NotImplementedError()
+
+
 def _load_64px_tile_sprites():
     return __load_tile_sprites(False)
 

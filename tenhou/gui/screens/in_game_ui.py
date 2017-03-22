@@ -318,6 +318,8 @@ class InGameScreen(AbstractScreen, EventListener):
                     self.table.players[n].tiles = hai
             self._set_end_dialog('流局')
             return True
+        elif event.game_event == GameEvents.RECV_DORA_FLIPPED:
+            self.table.add_dora_indicator(event.tile)
         return False
 
     def _get_round_name(self):
@@ -652,7 +654,7 @@ class InGameScreen(AbstractScreen, EventListener):
             img = self._get_tile_image(tile_id, small=True)
             img = pygame.transform.scale(img, (dora_width, dora_height))
             surface.blit(img, (dora_x, dora_y))
-            dora_x += dora_x_offset
+            dora_x += dora_x_offset + dora_width
         y += y_offset
 
         # Riichi stick count

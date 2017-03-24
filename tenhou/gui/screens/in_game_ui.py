@@ -135,10 +135,11 @@ class InGameScreen(AbstractScreen, EventListener):
         self.end_dialog_start_time = 0
         self.end_dialog_data = {}
         self._set_end_dialog()
-        self.end_dialog_show_time_secs = 5
-        self.call_start_time = 0
-        self.call_data = None
-        self.call_show_time_secs = 1.0
+        self.call_data = [None for _ in range(4)]
+
+        # Consts
+        self.END_DIALOG_SHOW_TIME_SECS = 5
+        self.CALL_SHOW_TIME_SECS = 0.5
 
         # Test vars
         self.discard_start_secs = time.time()
@@ -302,13 +303,13 @@ class InGameScreen(AbstractScreen, EventListener):
                 self.table.get_player(self.last_discarder).call_discard()
             self.table.get_player(event.meld.who).add_meld(event.meld)
             string = {Meld.CHI: 'チー', Meld.PON: 'ポン', Meld.KAN: 'カン', Meld.NUKI: '北'}[event.meld.type]
-            self._set_call(event.meld.who, string)
+            self._add_call(event.meld.who, string)
             return True
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
             player = self.table.get_player(event.who)
             player.is_riichi = True
             player.not_rotated_discard = True
-            self._set_call(event.who, 'リーチ')
+            self._add_call(event.who, 'リーチ')
             return True
         elif event.game_event == GameEvents.RECV_RIICHI_STICK_PLACED:
             self.table.get_player(event.who).score -= 1000
@@ -320,14 +321,14 @@ class InGameScreen(AbstractScreen, EventListener):
             yaku_list = ['Yaku #{}'.format(x) for x in event.yaku]
             yakuman_string = None  # TODO
             self._set_end_dialog('和了', yaku_list, fu, han, points, yakuman_string)
-            self._set_call(event.who, 'ロン' if event.who != event.from_who else 'ツモ')
+            self._add_call(event.who, 'ロン' if event.who != event.from_who else 'ツモ')
             return True
         elif event.game_event == GameEvents.RECV_RYUUKYOKU:
             for n in range(len(event.hai)):
                 hai = event.hai[n]
                 if hai is not None:
                     self.table.players[n].tiles = hai
-                    self._set_call(n, 'テンパイ')
+                    self._add_call(n, 'テンパイ')
             self._set_end_dialog('流局')
             return True
         elif event.game_event == GameEvents.RECV_DORA_FLIPPED:
@@ -386,8 +387,8 @@ class InGameScreen(AbstractScreen, EventListener):
         self._draw_corner_info(canvas)
         self._draw_corner_text(canvas)
 
-        if time.time() < self.call_start_time + self.call_show_time_secs:
-            self._draw_call_text(canvas)
+        # Draw call text
+        self._draw_call_text(canvas)
 
         # Draw call buttons
         x = canvas_width - self._call_button_width_px - 20
@@ -407,7 +408,7 @@ class InGameScreen(AbstractScreen, EventListener):
             x -= btn_h_spacing + self._call_button_width_px
 
         # Draw end of hand dialog
-        if time.time() < self.end_dialog_start_time + self.end_dialog_show_time_secs:
+        if time.time() < self.end_dialog_start_time + self.END_DIALOG_SHOW_TIME_SECS:
             self._draw_end_dialog(canvas)
 
         # Draw 'Esc' menu -- MUST BE CALLED LAST
@@ -867,14 +868,19 @@ class InGameScreen(AbstractScreen, EventListener):
     def _draw_call_text(self, canvas):
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
-        string, who = self.call_data
-        text = self.call_font.render(string, 1, (255, 255, 255))
-        x = centre_x - text.get_width() / 2
-        y = centre_y * 2 * 7 / 8
-        coordinates = rotate((centre_x, centre_y), (x, y), [0, -90, 180, 90][who])
-        text = pygame.transform.rotate(text, [0, 90, 180, -90][who])
-        canvas.blit(text, coordinates)
+        for n in range(len(self.call_data)):
+            if self.call_data[n] is None:
+                continue
+            start_time, string = self.call_data[n]
+            if time.time() < start_time + self.CALL_SHOW_TIME_SECS:
+                text = self.call_font.render(string, 1, (255, 255, 255))
+                x = centre_x - text.get_width() / 2
+                y = centre_y * 2 * 7 / 8
+                coordinates = rotate((centre_x, centre_y), (x, y), [0, -90, 180, 90][n])
+                text = pygame.transform.rotate(text, [0, 90, 180, -90][n])
+                canvas.blit(text, coordinates)
+            else:
+                self.call_data[n] = None  # Erase expired call
 
-    def _set_call(self, who, string):
-        self.call_data = (string, who)
-        self.call_start_time = time.time()
+    def _add_call(self, who, string):
+        self.call_data[who] = (time.time(), string)

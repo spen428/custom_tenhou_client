@@ -3,18 +3,19 @@ import datetime
 import logging
 import re
 import socket
+from queue import Queue
 from threading import Thread
 from time import sleep
 from urllib.parse import quote
 
 import pygame
 
-from mahjong.client import Client
 from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.tile import TilesConverter
 from tenhou.decoder import TenhouDecoder
-from tenhou.events import GameEvents, GameEvent
+from tenhou.events import GameEvents, GameEvent, GAMEEVENT
+from tenhou.gui.screens import EventListener
 from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
@@ -24,16 +25,40 @@ def post_event(game_event: GameEvents, data: dict = None):
     pygame.event.post(GameEvent(game_event, data))
 
 
-class TenhouClient(Client):
-
-    def __init__(self, socket_object):
-        super(TenhouClient, self).__init__()
-        self.socket = socket_object
-        self.game_is_continue = True
+class TenhouClient(EventListener):
+    def __init__(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.looking_for_game = True
-        self.connection_thread = None
         self.keep_alive_thread = None
+        self.keep_alive = False
+        self.connection_thread = None
+        self.connection_thread_queue = Queue()
+        self.connection_alive = False
         self.decoder = TenhouDecoder()
+
+    def __del__(self):
+        # Let the spawned threads die
+        self.connection_alive = False
+        self.keep_alive = False
+
+    def _start_connection_thread(self):
+        def target():
+            while self.connection_alive:
+                function, callback = self.connection_thread_queue.get()
+                function()
+                callback()
+
+        self.connection_thread = Thread(target=target)
+        self.connection_thread.setDaemon(True)
+        self.connection_thread.start()
+        self.connection_alive = True
+        self._start_keep_alive_thread()
+
+    def _queue_function(self, function, callback=None):
+        self.connection_thread_queue.put_nowait((function, callback))
+
+    def _connect(self):
+        self.socket.connect((settings.TENHOU_HOST, settings.TENHOU_PORT))
 
     def __send_login_request(self, user_id):
         self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(user_id)))
@@ -44,8 +69,17 @@ class TenhouClient(Client):
         self._send_message(self._pxr_tag())
         post_event(GameEvents.SENT_AUTH_TOKEN, {'auth_token': auth_token})
 
-    def _authenticate(self):
-        self.__send_login_request(settings.USER_ID)
+    def log_in(self, user_id):
+        """Send an async log in request."""
+
+        def __log_in_as_user():
+            self._log_in(user_id)
+
+        self._queue_function(__log_in_as_user)
+
+    def _log_in(self, user_id):
+        self._connect()
+        self.__send_login_request(user_id)
         auth_message = self._read_message()
 
         auth_string = self.decoder.parse_auth_string(auth_message)
@@ -70,16 +104,13 @@ class TenhouClient(Client):
                 break
 
         if authenticated:
-            self._send_keep_alive_ping()
+            self._start_keep_alive_thread()
             logger.info('Successfully authenticated')
             return True
         else:
             logger.info('Failed to authenticate')
             post_event(GameEvents.AUTH_FAILED, {})
             return False
-
-    def authenticate(self):
-        pass
 
     def start_game(self):  # TODO
         log_link = ''
@@ -151,7 +182,7 @@ class TenhouClient(Client):
 
         main_player = self.table.get_main_player()
 
-        while self.game_is_continue:
+        while self.keep_alive:
             sleep(1)
 
             messages = self._get_multiple_messages()
@@ -257,7 +288,7 @@ class TenhouClient(Client):
                     self.table.set_players_scores(values['scores'], values['uma'])
 
                 if '<prof' in message:
-                    self.game_is_continue = False
+                    self.keep_alive = False
 
         logger.info('Final results: {0}'.format(self.table.get_players_sorted_by_scores()))
 
@@ -273,7 +304,7 @@ class TenhouClient(Client):
             logger.info('Statistics sent: {0}'.format(result))
 
     def end_game(self):
-        self.game_is_continue = False
+        self.keep_alive = False
         self._send_message('<BYE />')
 
         if self.keep_alive_thread:
@@ -309,14 +340,15 @@ class TenhouClient(Client):
 
         return messages
 
-    def _send_keep_alive_ping(self):
-        def send_request():
-            while self.game_is_continue:
+    def _start_keep_alive_thread(self):
+        def target():
+            while self.keep_alive:
                 self._send_message('<Z />')
                 post_event(GameEvents.SENT_KEEP_ALIVE)
                 sleep(15)
 
-        self.keep_alive_thread = Thread(target=send_request)
+        self.keep_alive_thread = Thread(target=target)
+        self.keep_alive_thread.setDaemon(True)
         self.keep_alive_thread.start()
 
     def _pxr_tag(self):
@@ -328,3 +360,13 @@ class TenhouClient(Client):
             return '<PXR V="1" />'
         else:
             return '<PXR V="9" />'
+
+    def on_event(self, event):
+        if event.type == GAMEEVENT:
+            self.on_game_event(event)
+            return True
+        return False
+
+    def on_game_event(self, event):
+        if event.game_event == GameEvents.RECV_LOGIN_REQUEST_ACK:
+            pass

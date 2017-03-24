@@ -2,12 +2,11 @@
 
 import logging
 import os
-import socket
 
 import pygame
 
-from tenhou.client import TenhouClient
-from tenhou.events import UIEVENT, UiEvents, UiEvent
+from tenhou.client_async import TenhouClient
+from tenhou.events import UIEVENT, UiEvents, UiEvent, GameEvents
 from tenhou.gui import get_resource_dir
 from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
@@ -15,7 +14,6 @@ from tenhou.gui.screens.replay_ui import ReplayScreen
 from tenhou.gui.tests.test_in_game_ui import TestInGameScreen
 from tenhou.gui.tests.test_replay_ui import TestReplayScreen
 from tenhou.replayer import ReplayClient
-from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
 
@@ -78,12 +76,7 @@ class Gui(object):
         pygame.quit()
 
     def on_ui_event(self, event):
-        if event.ui_event == UiEvents.LOG_IN:
-            if self._log_in(event.user_id):
-                pygame.event.post(UiEvent(UiEvents.LOGGED_IN))
-            else:
-                pygame.event.post(UiEvent(UiEvents.LOGIN_FAILED))
-        elif event.ui_event == UiEvents.LOG_OUT:
+        if event.ui_event == UiEvents.LOG_OUT:
             self._log_out()
         elif event.ui_event == UiEvents.LEAVE_GAME:
             self._leave_game()
@@ -102,19 +95,18 @@ class Gui(object):
         elif event.ui_event == UiEvents.TEST_LGR:
             self._lgr_test()
 
+    def on_game_event(self, event):
+        if event.game_event == GameEvents.LOGIN_REQUEST_FAILED:
+            logger.error("Login request failure")
+        elif event.game_event == GameEvents.RECV_AUTH_SUCCESSFUL:
+            logger.info("Successfully logged in")
+
     def _log_in(self, user_id):
         if self.game_manager is not None:
-            return False
+            return False  # already logged in
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((settings.TENHOU_HOST, settings.TENHOU_PORT))
-        self.game_manager = TenhouClient(sock, user_id)
-        if self.game_manager.authenticate():
-            logger.info("Successfully logged in as {0}".format(user_id))
-            return True
-        else:
-            logger.error("Authentication failure")
-            return False
+        self.game_manager = TenhouClient()
+        self.game_manager.log_in(user_id)
 
     def _log_out(self):
         self.game_manager.end_game()

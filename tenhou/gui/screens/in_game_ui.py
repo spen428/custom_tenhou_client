@@ -271,6 +271,12 @@ class InGameScreen(AbstractScreen, EventListener):
             self.table.init_round(event.round_number, event.count_of_honba_sticks, event.count_of_riichi_sticks,
                                   event.dora_indicator, event.oya, event.ten)
             # If this is a live game, len(haipai) will be 1, in a replay it will be 4
+            if len(event.haipai) == 1:
+                # Extend with tile backs for other players' unknown tiles
+                for n in range(1, 4):
+                    event.haipai.append([-1 for _ in range(13)])
+                    # Mark player as invisibles
+                    self.table.players[n].tiles_hidden = True
             for n in range(len(event.haipai)):
                 self.table.players[n].init_hand(event.haipai[n])
             return True

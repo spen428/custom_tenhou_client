@@ -28,6 +28,7 @@ class Player(object):
         self.sex = ''
         self.is_tempai = False
         self.is_riichi = False
+        self.tiles_hidden = False  # TODO: This should be True by default, and disabled for replays?
 
     def add_meld(self, meld):
         self.melds.append(meld)
@@ -36,6 +37,8 @@ class Player(object):
         self.tiles = [Tile(i) for i in tiles]
 
     def draw_tile(self, tile_id):
+        if tile_id is None:
+            tile_id = -1
         tile = Tile(tile_id)
         self.tiles.append(tile)
         self.tsumohai = tile
@@ -46,7 +49,10 @@ class Player(object):
         tile = Tile(tile_id)
         self.tsumohai = None
         self.discards.append(tile)
-        self.tiles.remove(tile)
+        if self.tiles_hidden:
+            self.tiles.pop()  # Just remove anything
+        else:
+            self.tiles.remove(tile)
         if self.is_riichi and self.not_rotated_discard:
             self.riichi_discards.append(tile)
             self.not_rotated_discard = False
@@ -72,6 +78,7 @@ class Player(object):
         self.score = 0
         self.not_rotated_discard = False
         self.called_discards = set()
+        self.tiles_hidden = False
 
     def can_call_riichi(self):
         return all([self.is_tempai, not self.is_riichi, self.score >= 1000, self.table.count_of_remaining_tiles > 4])

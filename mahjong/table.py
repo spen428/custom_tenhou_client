@@ -39,10 +39,14 @@ class Table(object):
 
         self.set_players_scores(scores)
 
-        # 136 - total count of tiles
-        # 14 - tiles in dead wall
-        # 13 - tiles in each player hand
-        self.count_of_remaining_tiles = 136 - 14 - self.count_of_players * 13
+        if self.count_of_players == 3:
+            # Remove 2 to 8m = 4 x 7 tiles
+            self.count_of_remaining_tiles = 136 - 14 - self.count_of_players * 13 - (4 * 7)
+        else:
+            # 136 - total count of tiles
+            # 14 - tiles in dead wall
+            # 13 - tiles in each player hand
+            self.count_of_remaining_tiles = 136 - 14 - self.count_of_players * 13
 
     def init_main_player_hand(self, tiles):
         self.get_main_player().init_hand(tiles)
@@ -105,4 +109,7 @@ class Table(object):
 
     @property
     def table_name(self):
-        return ''  # TODO
+        # TODO
+        if self.count_of_players == 3:
+            return '三麻'
+        return '麻雀'

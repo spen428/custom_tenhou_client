@@ -287,6 +287,9 @@ class InGameScreen(AbstractScreen, EventListener):
                 self.table.players[n].rank = event.data[n]['rank']
                 self.table.players[n].rate = event.data[n]['rate']
                 self.table.players[n].sex = event.data[n]['sex']
+            if len(event.data) == 3 or event.data[3]['name'] == '':
+                # This is a 3-player game
+                self.table.count_of_players = 3
             return True
         elif event.game_event == GameEvents.RECV_DISCARD:
             self.table.get_player(event.who).discard_tile(event.tile)

@@ -392,7 +392,8 @@ class TenhouDecoder(object):
         elif lower_msg.startswith('/mjloggm'):
             return GameEvent(GameEvents.END_OF_REPLAY)
         elif lower_msg.startswith('prof'):
-            pass  # idk what this msg does
+            # Not sure what this msg does, but it seems to be safe to ignore
+            return
         elif lower_msg.startswith('bye'):
             data = self.parse_bye(message)
             return GameEvent(GameEvents.RECV_DISCONNECTED, data)

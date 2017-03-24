@@ -317,12 +317,14 @@ class InGameScreen(AbstractScreen, EventListener):
             yaku_list = ['Yaku #{}'.format(x) for x in event.yaku]
             yakuman_string = None  # TODO
             self._set_end_dialog('和了', yaku_list, fu, han, points, yakuman_string)
+            self._set_call(event.who, 'ロン' if event.who != event.from_who else 'ツモ')
             return True
         elif event.game_event == GameEvents.RECV_RYUUKYOKU:
             for n in range(len(event.hai)):
                 hai = event.hai[n]
                 if hai is not None:
                     self.table.players[n].tiles = hai
+                    self._set_call(n, 'テンパイ')
             self._set_end_dialog('流局')
             return True
         elif event.game_event == GameEvents.RECV_DORA_FLIPPED:

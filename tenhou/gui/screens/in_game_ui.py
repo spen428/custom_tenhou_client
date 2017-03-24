@@ -293,6 +293,9 @@ class InGameScreen(AbstractScreen, EventListener):
             return True
         elif event.game_event == GameEvents.RECV_DRAW:
             self.table.get_player(event.who).draw_tile(event.tile)
+            self.table.count_of_remaining_tiles -= 1
+            if self.table.count_of_remaining_tiles < 0:
+                raise ValueError('Wall count dropped below zero!')
             return True
         elif event.game_event == GameEvents.RECV_CALL:
             if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN]:

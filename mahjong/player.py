@@ -10,13 +10,13 @@ logger = logging.getLogger('tenhou')
 
 
 class Player(object):
-    def __init__(self, seat, dealer_seat, table):
+    def __init__(self, seat, oya, table):
         self.discards: [Tile] = []
         self.melds: [Meld] = []
         self.tiles: [Tile] = []
         self.seat = seat
         self.table: 'Table' = table  # Use string literal for type as we have a cyclic dependency
-        self.dealer_seat = dealer_seat
+        self.dealer_seat = self.set_oya(oya)
         self.tsumohai: Tile = None
         self.riichi_discards: [Tile] = []
         self.called_discards: Set[Tile] = set()
@@ -111,3 +111,7 @@ class Player(object):
     @property
     def is_dealer(self):
         return self.seat == self.dealer_seat
+
+    def set_oya(self, oya):
+        self.dealer_seat = (self.seat - oya) % 4  # Dealer location relative to the player
+        return self.dealer_seat

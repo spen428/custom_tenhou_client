@@ -23,8 +23,7 @@ class Table(object):
         return 'Round: {0}, Honba: {1}, Dora Indicators: {2}'.format(self.round_number, self.count_of_honba_sticks,
                                                                      self.dora_indicators)
 
-    def init_round(self, round_number, count_of_honba_sticks, count_of_riichi_sticks, dora_indicator, dealer_seat,
-                   scores):
+    def init_round(self, round_number, count_of_honba_sticks, count_of_riichi_sticks, dora_indicator, oya, scores):
 
         self.round_number = round_number
         self.count_of_honba_sticks = count_of_honba_sticks
@@ -36,7 +35,7 @@ class Table(object):
         # erase players state
         for player in self.players:
             player.erase_state()
-            player.dealer_seat = dealer_seat
+            player.set_oya(oya)
 
         self.set_players_scores(scores)
 
@@ -86,7 +85,7 @@ class Table(object):
         self.players = []
 
         for seat in range(0, self.count_of_players):
-            player = Player(seat=seat, dealer_seat=0, table=self)
+            player = Player(seat=seat, oya=0, table=self)
             self.players.append(player)
 
     @property

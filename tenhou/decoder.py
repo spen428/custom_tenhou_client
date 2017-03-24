@@ -391,6 +391,8 @@ class TenhouDecoder(object):
             return GameEvent(GameEvents.RECV_RYUUKYOKU, data)
         elif lower_msg.startswith('/mjloggm'):
             return GameEvent(GameEvents.END_OF_REPLAY)
+        elif lower_msg.startswith('prof'):
+            pass  # idk what this msg does
         elif lower_msg.startswith('bye'):
             data = self.parse_bye(message)
             return GameEvent(GameEvents.RECV_DISCONNECTED, data)

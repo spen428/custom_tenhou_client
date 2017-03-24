@@ -298,12 +298,14 @@ class InGameScreen(AbstractScreen, EventListener):
             if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN]:
                 self.table.get_player(self.last_discarder).call_discard()
             self.table.get_player(event.meld.who).add_meld(event.meld)
-            self._set_call(event.meld.who, event.meld.type)
+            string = {Meld.CHI: 'チー', Meld.PON: 'ポン', Meld.KAN: 'カン', Meld.NUKI: '北'}[event.meld.type]
+            self._set_call(event.meld.who, string)
             return True
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
             player = self.table.get_player(event.who)
             player.is_riichi = True
             player.not_rotated_discard = True
+            self._set_call(event.who, 'リーチ')
             return True
         elif event.game_event == GameEvents.RECV_RIICHI_STICK_PLACED:
             self.table.get_player(event.who).score -= 1000
@@ -717,7 +719,7 @@ class InGameScreen(AbstractScreen, EventListener):
             else:
                 score_text = self.score_font.render(str(scores[position]), 1, (0, 0, 0))
             name_text = self.name_font.render("{0}・{1}".format(player.name, player.rank), 1, (0, 0, 0))
-            wind_sprite = self.wind_sprites[player.seat]
+            wind_sprite = self.wind_sprites[player.dealer_seat]
             riichi_sprite = self.riichi_stick_sprite
             wind_x = wind_y = score_x = score_y = riichi_x = riichi_y = name_x = name_y = 0
 
@@ -868,7 +870,6 @@ class InGameScreen(AbstractScreen, EventListener):
         text = pygame.transform.rotate(text, [0, 90, 180, -90][who])
         canvas.blit(text, coordinates)
 
-    def _set_call(self, who, meld_type):
-        string = {Meld.CHI: 'チー', Meld.PON: 'ポン', Meld.KAN: 'カン', Meld.NUKI: '北'}[meld_type]
+    def _set_call(self, who, string):
         self.call_data = (string, who)
         self.call_start_time = time.time()

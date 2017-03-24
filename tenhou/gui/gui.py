@@ -125,12 +125,12 @@ class Gui(object):
     def _join_lobby(self):
         pass
 
-    def _load_replay(self, replay_file_path):
+    def _load_replay(self, replay_file_path, autoskip=True):
         if type(self.game_manager) is not ReplayClient:
             self.game_manager = ReplayClient()
         if type(self.current_screen) is not ReplayScreen:
             self.current_screen = ReplayScreen()
-        self.game_manager.load_replay(replay_file_path)
+        self.game_manager.load_replay(replay_file_path, autoskip)
 
     def _leave_game(self):
         self.current_screen = MainMenuScreen()
@@ -145,7 +145,7 @@ class Gui(object):
 
     def _lg_test(self):
         path = os.path.join(get_resource_dir(), 'live_game', 'gamelog.thr')
-        self._load_replay(path)
+        self._load_replay(path, autoskip=False)
 
     def _lgr_test(self):
         path = os.path.join(get_resource_dir(), 'live_game', 'replay.thr')

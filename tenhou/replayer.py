@@ -28,7 +28,13 @@ class ReplayClient(EventListener):
         if self.current_replay is not None:
             self.load_replay(self.current_replay)
 
-    def load_replay(self, replay_file_path):
+    def load_replay(self, replay_file_path, autoskip=True):
+        """Load a replay file for viewing.
+
+        :param replay_file_path: The path to the replay file
+        :param autoskip: Whether to step past all of the game initialisation steps automatically
+        :return: None
+        """
         self._erase_state()
         self.current_replay = replay_file_path
         logger.info('Loading replay file: ' + replay_file_path)
@@ -39,7 +45,8 @@ class ReplayClient(EventListener):
                 sep_lines = line.replace('><', '>\n<').split('\n')
                 # Add lines to list
                 self.lines.extend(sep_lines)
-        self.step(5)  # Step past all the initialisation automatically
+        if autoskip:
+            self.step(5)
 
     def step(self, steps=1):
         """

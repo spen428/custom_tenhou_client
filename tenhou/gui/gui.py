@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 import socket
 
 import pygame
 
 from tenhou.client import TenhouClient
+from tenhou.gui import get_resource_dir
 from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
 from tenhou.gui.screens.replay_ui import ReplayScreen
@@ -112,3 +114,11 @@ class Gui(object):
         self.game_manager = ReplayClient()
         self.current_screen = TestReplayScreen(self)
         self.current_screen._load_next_replay()
+
+    def lg_test(self):
+        path = os.path.join(get_resource_dir(), 'live_game', 'gamelog.thr')
+        self.load_replay(path)
+
+    def lgr_test(self):
+        path = os.path.join(get_resource_dir(), 'live_game', 'replay.thr')
+        self.load_replay(path)

@@ -6,7 +6,7 @@ import pygame
 
 import tenhou.gui
 import tenhou.gui.gui
-from tenhou.events import GAME_EVENT
+from tenhou.events import GAMEEVENT, UiEvent, UiEvents, UIEVENT
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 
 
@@ -17,8 +17,7 @@ class LoginStatus(Enum):
 
 
 class MainMenuScreen(AbstractScreen, EventListener):
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "tenhou-logo.png"))
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
@@ -26,8 +25,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
                               MenuButton("Test In-Game UI", self._test_in_game_ui),
                               MenuButton("Test Replay Viewer", self._test_replay_viewer),
                               MenuButton("Test Live Game", self._test_lg),
-                              MenuButton("Test Live Game Replay", self._test_lgr)
-                              ]
+                              MenuButton("Test Live Game Replay", self._test_lgr)]
         self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
         self.status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
@@ -42,19 +40,19 @@ class MainMenuScreen(AbstractScreen, EventListener):
     # Private Methods #
 
     def _exit_game(self):
-        self.client.running = False
+        pygame.event.post(UiEvent(UiEvents.EXIT_GAME))
 
     def _test_in_game_ui(self):
-        self.client.ingameui_test()
+        pygame.event.post(UiEvent(UiEvents.TEST_INGAMEUI))
 
     def _test_replay_viewer(self):
-        self.client.replay_test()
+        pygame.event.post(UiEvent(UiEvents.TEST_REPLAY))
 
     def _test_lg(self):
-        self.client.lg_test()
+        pygame.event.post(UiEvent(UiEvents.TEST_LG))
 
     def _test_lgr(self):
-        self.client.lgr_test()
+        pygame.event.post(UiEvent(UiEvents.TEST_LGR))
 
     def _log_in(self):
         pass
@@ -67,21 +65,17 @@ class MainMenuScreen(AbstractScreen, EventListener):
         if filename == '':
             return False
         else:
-            self.client.load_replay(filename)
+            pygame.event.post(UiEvent(UiEvents.OPEN_REPLAY, {'file_path': filename}))
 
     def _log_out(self):
-        if self.client.log_out():
-            self.status = LoginStatus.NOT_LOGGED_IN
+        pygame.event.post(UiEvent(UiEvents.LOG_OUT))
 
     def _join_lobby(self):
-        self.client.join_lobby()
+        pygame.event.post(UiEvent(UiEvents.JOIN_LOBBY))
 
     def _play_anonymously(self):
         self.status = LoginStatus.LOGGING_IN
-        if self.client.log_in():
-            self.status = LoginStatus.LOGGED_IN
-        else:
-            self.status = LoginStatus.NOT_LOGGED_IN
+        pygame.event.post(UiEvent(UiEvents.LOG_IN, {'user_id': 'NoName'}))
 
     def _get_buttons(self):
         if self.status in [LoginStatus.NOT_LOGGED_IN, LoginStatus.LOGGING_IN]:
@@ -104,8 +98,16 @@ class MainMenuScreen(AbstractScreen, EventListener):
             self.on_mouse_motion(event)
         elif event.type == pygame.VIDEORESIZE:
             self.on_window_resized(event)
-        elif event.type == GAME_EVENT:
+        elif event.type == GAMEEVENT:
             self.on_game_event(event)
+        elif event.type == UIEVENT:
+            self.on_ui_event(event)
+
+    def on_ui_event(self, event):
+        if event.ui_event == UiEvents.LOGGED_IN:
+            self.status = LoginStatus.LOGGED_IN
+        elif event.ui_event in [UiEvents.LOGIN_FAILED, UiEvents.LOGGED_OUT]:
+            self.status = LoginStatus.NOT_LOGGED_IN
 
     def on_key_down(self, event):
         pass

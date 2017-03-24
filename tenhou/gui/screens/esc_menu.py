@@ -4,13 +4,12 @@ import pygame
 
 import tenhou.gui
 import tenhou.gui.gui
-from tenhou.events import GAME_EVENT
+from tenhou.events import GAMEEVENT, UiEvents, UiEvent
 from tenhou.gui.screens import AbstractScreen, MenuButton, EventListener
 
 
 class EscMenuScreen(AbstractScreen, EventListener):
-    def __init__(self, parent):
-        self.parent = parent
+    def __init__(self):
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "tenhou-logo.png"))
         self.menu_buttons = [MenuButton("NOP", self._nop), MenuButton("NOP", self._nop), MenuButton("NOP", self._nop),
                              MenuButton("NOP", self._nop), MenuButton("Leave game", self._leave_game)]
@@ -27,7 +26,7 @@ class EscMenuScreen(AbstractScreen, EventListener):
         pass
 
     def _leave_game(self):
-        self.parent.leave_game()
+        pygame.event.post(UiEvent(UiEvents.LEAVE_GAME))
 
     # Event methods #
 
@@ -44,7 +43,7 @@ class EscMenuScreen(AbstractScreen, EventListener):
             self.on_mouse_motion(event)
         elif event.type == pygame.VIDEORESIZE:
             self.on_window_resized(event)
-        elif event.type == GAME_EVENT:
+        elif event.type == GAMEEVENT:
             self.on_game_event(event)
 
     def on_key_down(self, event):

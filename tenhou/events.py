@@ -2,8 +2,8 @@ from enum import Enum
 
 import pygame
 
-GAME_EVENT = pygame.USEREVENT + 0
-UI_EVENT = pygame.USEREVENT + 1
+GAMEEVENT = pygame.USEREVENT + 0
+UIEVENT = pygame.USEREVENT + 1
 
 
 class GameEvents(Enum):  # TODO: Sort these nicely
@@ -41,18 +41,31 @@ class GameEvents(Enum):  # TODO: Sort these nicely
 
 
 class UiEvents(Enum):
-    EXIT_GAME, LOG_IN, LOG_OFF, OPEN_REPLAY, JOIN_LOBBY, TEST = range(6)
+    EXIT_GAME = -1
+    LEAVE_GAME = 0
+    LOG_IN = 1
+    LOG_OUT = 2
+    OPEN_REPLAY = 3
+    JOIN_LOBBY = 4
+    TEST_INGAMEUI = 5
+    TEST_REPLAY = 6
+    TEST_LG = 7
+    TEST_LGR = 8
+    LOGGED_IN = 9
+    LOGGED_OUT = 10
+    LOGIN_FAILED = 11
+    RELOAD_REPLAY = 12
 
 
 def GameEvent(game_event: GameEvents, data: dict = None):
     if data is None:
         data = {}
     data['game_event'] = game_event
-    return pygame.event.Event(GAME_EVENT, data)
+    return pygame.event.Event(GAMEEVENT, data)
 
 
 def UiEvent(ui_event: UiEvents, data: dict = None):
     if data is None:
         data = {}
-    data['game_event'] = ui_event
-    return pygame.event.Event(UI_EVENT, data)
+    data['ui_event'] = ui_event
+    return pygame.event.Event(UIEVENT, data)

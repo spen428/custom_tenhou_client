@@ -4,7 +4,7 @@ import logging
 import pygame
 
 from tenhou.decoder import TenhouDecoder
-from tenhou.events import GameEvents, GameEvent
+from tenhou.events import GameEvents, GameEvent, GAMEEVENT, UIEVENT, UiEvents
 from tenhou.gui.screens import EventListener
 
 logger = logging.getLogger('tenhou')
@@ -75,10 +75,13 @@ class ReplayClient(EventListener):
     # Event methods #
 
     def on_event(self, event):
-        if event.type == pygame.USEREVENT:
-            self.on_user_event(event)
+        if event.type == GAMEEVENT:
+            self.on_game_event(event)
+        elif event.type == UIEVENT:
+            if event.ui_event == UiEvents.RELOAD_REPLAY:
+                self.reload_replay()
 
-    def on_user_event(self, event):
+    def on_game_event(self, event):
         if event.game_event == GameEvents.CALL_STEP_FORWARD:
             self.step(1)
         elif event.game_event == GameEvents.CALL_STEP_BACKWARD:

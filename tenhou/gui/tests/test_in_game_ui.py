@@ -11,8 +11,8 @@ from tenhou.gui.screens.in_game_ui import InGameScreen
 
 
 class TestInGameScreen(InGameScreen):
-    def __init__(self, client):
-        super().__init__(client)
+    def __init__(self):
+        super().__init__()
         self._test()
 
     def on_key_up(self, event):

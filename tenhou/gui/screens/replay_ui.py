@@ -2,13 +2,13 @@ import time
 
 import pygame
 
-from tenhou.events import GameEvents, GameEvent
+from tenhou.events import GameEvents, GameEvent, UiEvents, UiEvent
 from tenhou.gui.screens.in_game_ui import InGameScreen
 
 
 class ReplayScreen(InGameScreen):
-    def __init__(self, client):
-        super().__init__(client)
+    def __init__(self):
+        super().__init__()
         self.autoplay = False
         self.last_autoplay = 0
         self.autoplay_delay_secs = 0.01
@@ -24,7 +24,7 @@ class ReplayScreen(InGameScreen):
         elif event.key == pygame.K_d:
             self.autoplay = not self.autoplay
         elif event.key == pygame.K_r:
-            self.client.game_manager.reload_replay()
+            pygame.event.post(UiEvent(UiEvents.RELOAD_REPLAY))
         return False
 
     def on_game_event(self, event):

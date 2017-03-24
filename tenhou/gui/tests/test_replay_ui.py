@@ -3,7 +3,7 @@ import os
 
 import pygame
 
-from tenhou.events import GameEvents
+from tenhou.events import GameEvents, UiEvents, UiEvent
 from tenhou.gui import get_resource_dir
 from tenhou.gui.screens.replay_ui import ReplayScreen
 
@@ -11,8 +11,8 @@ logger = logging.getLogger('tenhou')
 
 
 class TestReplayScreen(ReplayScreen):
-    def __init__(self, client):
-        super().__init__(client)
+    def __init__(self):
+        super().__init__()
         logger.setLevel(logging.INFO)
         self.autoplay = False
         self.last_autoplay = 0
@@ -47,5 +47,5 @@ class TestReplayScreen(ReplayScreen):
     def _load_next_replay(self):
         path = os.path.join(get_resource_dir(), "replays", self.replays[self.replayidx])
         self.replayidx += 1
-        self.client.game_manager.load_replay(path)
+        pygame.event.post(UiEvent(UiEvents.OPEN_REPLAY, {'file_path': path}))
         self.autoplay = True

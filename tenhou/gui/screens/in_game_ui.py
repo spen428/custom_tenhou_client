@@ -12,7 +12,7 @@ from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
-from tenhou.events import GameEvents, GAME_EVENT
+from tenhou.events import GameEvents, GAMEEVENT
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import CallType, Position
@@ -82,8 +82,7 @@ def _load_wind_sprites():
 
 
 class InGameScreen(AbstractScreen, EventListener):
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
         self.table_name = None
         self.round_name = None
         # TILES
@@ -146,7 +145,7 @@ class InGameScreen(AbstractScreen, EventListener):
         self.last_discarder = -1
 
         # Other
-        self.esc_menu = EscMenuScreen(client)
+        self.esc_menu = EscMenuScreen()
         self.table: Table = Table()
 
     # Private methods #
@@ -201,7 +200,7 @@ class InGameScreen(AbstractScreen, EventListener):
             self.on_mouse_motion(event)
         elif event.type == pygame.VIDEORESIZE:
             self.on_window_resized(event)
-        elif event.type == GAME_EVENT:
+        elif event.type == GAMEEVENT:
             self.on_game_event(event)
 
     def on_key_down(self, event):

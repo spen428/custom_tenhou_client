@@ -26,12 +26,13 @@ class TenhouClient(Client):
 
     decoder = TenhouDecoder()
 
-    def __init__(self, socket_object):
+    def __init__(self, socket_object, user_id):
         super(TenhouClient, self).__init__()
         self.socket = socket_object
+        self.user_id = user_id
 
     def _authenticate(self):
-        self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(settings.USER_ID)))
+        self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(self.user_id)))
         auth_message = self._read_message()
 
         auth_string = self.decoder.parse_auth_string(auth_message)

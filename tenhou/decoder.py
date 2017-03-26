@@ -139,7 +139,6 @@ class TenhouDecoder(object):
             except KeyError:
                 # No ura dora, probably because no riichi
                 dora_hai_ura = []
-            # TODO : Multiple ron?
             who = int(tag.attrs['who'])
             from_who = int(tag.attrs['fromwho'])
         else:
@@ -210,7 +209,7 @@ class TenhouDecoder(object):
         except ValueError:
             return None
 
-    def parse_tile_new(self, message):  # TODO: This method could be simplified
+    def parse_tile_new(self, message):
         # tenhou format: <t23/>, <e23/>, <f23 t="4"/>, <f23/>, <g23/>
         # in live games, enemy draws will have no number, e.g. <u />
         soup = BeautifulSoup(message, 'html.parser')
@@ -386,7 +385,7 @@ class TenhouDecoder(object):
         elif lower_msg.startswith('agari'):
             data = self.parse_agari(message)
             return GameEvent(GameEvents.RECV_AGARI, data)
-        elif lower_msg.startswith('ryuukyoku'):  # TODO: What about abortive draws?
+        elif lower_msg.startswith('ryuukyoku'):
             data = self.parse_ryuukyoku(message)
             return GameEvent(GameEvents.RECV_RYUUKYOKU, data)
         elif lower_msg.startswith('/mjloggm'):

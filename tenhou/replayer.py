@@ -38,7 +38,7 @@ class ReplayClient(EventListener):
         self._erase_state()
         self.current_replay = replay_file_path
         logger.info('Loading replay file: ' + replay_file_path)
-        with open(replay_file_path, 'r') as f:  # TODO: Verify replay
+        with open(replay_file_path, 'r') as f:
             tmp_lines = [line.strip() for line in f.readlines()]
             for line in tmp_lines:
                 # Ensure there is only one tag per line
@@ -92,4 +92,4 @@ class ReplayClient(EventListener):
         if event.game_event == GameEvents.CALL_STEP_FORWARD:
             self.step(1)
         elif event.game_event == GameEvents.CALL_STEP_BACKWARD:
-            pass  # TODO: Not currently supported, as it messes up the Table state
+            raise NotImplementedError()  # Not currently supported, as it messes up the Table state

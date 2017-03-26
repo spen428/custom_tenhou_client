@@ -448,7 +448,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 coordinates = rotate((centre_x, centre_y), (x, y), rotation)
                 self._draw_tile(surface, player.tsumohai, coordinates, small=True, rotation=tile_rotation)
 
-    def _draw_hand(self, canvas):  # TODO: This is an unreadable mess
+    def _draw_hand(self, canvas):
         center_pos = (canvas.get_width() / 2, 7 * canvas.get_height() / 8)
         player = self.table.get_main_player()
 

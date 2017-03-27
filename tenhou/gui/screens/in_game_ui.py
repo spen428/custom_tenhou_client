@@ -12,6 +12,8 @@ from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
+from tenhou.decoder import RYUUKYOKU_NAGASHI_MANGAN, RYUUKYOKU_FOUR_WINDS, RYUUKYOKU_FOUR_KAN, RYUUKYOKU_TRIPLE_RON, \
+    RYUUKYOKU_FOUR_RIICHI, RYUUKYOKU_KYUUSHU, RYUUKYOKU_EXHAUSTIVE_DRAW
 from tenhou.events import GameEvents, GAMEEVENT
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
@@ -327,12 +329,38 @@ class InGameScreen(AbstractScreen, EventListener):
             self._add_call(event.who, 'ロン' if event.who != event.from_who else 'ツモ')
             return True
         elif event.game_event == GameEvents.RECV_RYUUKYOKU:
+            whos = []
             for n in range(len(event.hai)):
                 hai = event.hai[n]
                 if hai is not None:
                     self.table.players[n].tiles = hai
-                    self._add_call(n, 'テンパイ')
-            self._set_end_dialog('流局')
+                    whos.append(n)
+
+            if event.ryuukyoku_type == RYUUKYOKU_EXHAUSTIVE_DRAW:
+                end_string = '流局'
+                call_string = 'テンパイ'
+            elif event.ryuukyoku_type == RYUUKYOKU_KYUUSHU:
+                end_string = call_string = '九種九牌'
+            elif event.ryuukyoku_type == RYUUKYOKU_FOUR_RIICHI:
+                end_string = '四家立直'
+                call_string = 'リーチ'
+            elif event.ryuukyoku_type == RYUUKYOKU_TRIPLE_RON:
+                end_string = '三家和了'
+                call_string = 'ロン'
+            elif event.ryuukyoku_type == RYUUKYOKU_FOUR_KAN:
+                end_string = '四槓散了'
+                call_string = 'カン'
+            elif event.ryuukyoku_type == RYUUKYOKU_FOUR_WINDS:
+                end_string = '四風連打'
+                call_string = ''
+            elif event.ryuukyoku_type == RYUUKYOKU_NAGASHI_MANGAN:
+                end_string = call_string = '流し満貫'
+            else:
+                raise NotImplementedError('Unhandled ryuukyoku_type', event.ryuukyoku_type)
+
+            for who in whos:
+                self._add_call(who, call_string)
+            self._set_end_dialog(end_string)
             return True
         elif event.game_event == GameEvents.RECV_DORA_FLIPPED:
             self.table.add_dora_indicator(event.tile)

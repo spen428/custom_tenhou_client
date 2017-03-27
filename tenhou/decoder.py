@@ -12,6 +12,17 @@ from tenhou.events import GameEvents, GameEvent
 
 logger = logging.getLogger('tenhou')
 
+RYUUKYOKU_EXHAUSTIVE_DRAW = None
+RYUUKYOKU_KYUUSHU = 'yao9'
+RYUUKYOKU_FOUR_RIICHI = 'reach4'
+RYUUKYOKU_TRIPLE_RON = 'ron3'
+RYUUKYOKU_FOUR_KAN = 'kan4'
+RYUUKYOKU_FOUR_WINDS = 'kaze4'
+RYUUKYOKU_NAGASHI_MANGAN = 'nm'
+
+
+# http://arcturus.su/~alvin/docs/tenhoudoc/commands.html
+# http://arcturus.su/~alvin/docs/tenhoudoc/values.html
 
 class TenhouDecoder(object):
     RANKS = [u'新人', u'9級', u'8級', u'7級', u'6級', u'5級', u'4級', u'3級', u'2級', u'1級', u'初段', u'二段', u'三段', u'四段', u'五段',
@@ -141,6 +152,8 @@ class TenhouDecoder(object):
                 dora_hai_ura = []
             who = int(tag.attrs['who'])
             from_who = int(tag.attrs['fromwho'])
+            # Init unused
+            ryuukyoku_type = None
         else:
             # Present 'hai' tags are tenpai players showing their hands
             hai = [None for _ in range(4)]
@@ -148,6 +161,11 @@ class TenhouDecoder(object):
                 hai_n = 'hai{}'.format(n)
                 if hai_n in tag.attrs:
                     hai[n] = [int(t) for t in tag.attrs[hai_n].split(',')]
+            # Try to get 'type' tag, which exists for abortive draws
+            try:
+                ryuukyoku_type = tag.attrs['type']
+            except KeyError:
+                ryuukyoku_type = None
             # Initialise unused vars
             machi = yaku = yakuman = dora_hai = dora_hai_ura = who = from_who = ten = None
 
@@ -169,7 +187,7 @@ class TenhouDecoder(object):
 
         return {'ba': ba, 'hai': hai, 'machi': machi, 'ten': ten, 'yaku': yaku, 'yakuman': yakuman,
                 'dora_hai': dora_hai, 'dora_hai_ura': dora_hai_ura, 'who': who, 'from_who': from_who, 'points': points,
-                'point_exchange': point_exchange, 'owari': owari}
+                'point_exchange': point_exchange, 'owari': owari, 'ryuukyoku_type': ryuukyoku_type}
 
     def parse_shuffle(self, message):
         tag = self._bs(message, 'shuffle')

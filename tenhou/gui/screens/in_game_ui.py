@@ -17,7 +17,7 @@ from tenhou.decoder import RYUUKYOKU_NAGASHI_MANGAN, RYUUKYOKU_FOUR_WINDS, RYUUK
 from tenhou.events import GameEvents, GAMEEVENT
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
-from tenhou.jong.classes import CallType, Position
+from tenhou.jong.classes import Position
 from tenhou.utils import seconds_to_time_string, calculate_score_deltas
 
 logger = logging.getLogger('tenhou')
@@ -537,7 +537,7 @@ class InGameScreen(AbstractScreen, EventListener):
         if type(tile) == Tile:
             tile_id = tile.normalised()
         elif tile is None or tile < 0:
-            tile_id = self._get_tile_back(small)
+            tile_id = -1  # Back of tile
         elif tile >= len(self.tiles_38px):
             tile_id = Tile(tile).normalised()
         else:
@@ -581,6 +581,8 @@ class InGameScreen(AbstractScreen, EventListener):
                 tile_rotation += 180
 
             for meld in player.melds:
+                call_tile_idx = self._determine_call_tile_idx(meld)
+
                 # Determine how many tiles to display
                 num_tiles = len(meld.tiles)
                 if meld.type == Meld.NUKI:
@@ -588,7 +590,14 @@ class InGameScreen(AbstractScreen, EventListener):
 
                 # Draw tiles
                 for n in range(num_tiles):
-                    is_call_tile = (meld.type is not Meld.NUKI and False)  # TODO
+                    # Flip first and last tile if ankan
+                    if meld.type == Meld.ANKAN and n in [0, 3]:
+                        tile = None
+                    else:
+                        tile = meld.tiles[n]
+
+                    # Rotate the stolen tile
+                    is_call_tile = (meld.type not in [Meld.NUKI, Meld.ANKAN] and n == call_tile_idx)
                     if is_call_tile:
                         # More positioning hacks
                         if position in [Position.SHIMOCHA, Position.TOIMEN]:
@@ -599,15 +608,16 @@ class InGameScreen(AbstractScreen, EventListener):
                         # Adjust for rotation
                         x -= self.tile_height - self.tile_width
                         y += self.tile_height - self.tile_width
-                        if meld.kan_type == CallType.SHOUMINKAN:
+                        if meld.type == Meld.SHOUMINKAN:
                             y -= self.tile_width
                             coordinates = rotate((centre_x, centre_y), (x, y), rotation)
                             self._draw_tile(surface, meld.tiles[n], coordinates, True, tile_rotation, sideways=True)
                             y += self.tile_width
                             if n is not num_tiles - 1:
                                 n += 1
+
                     coordinates = rotate((centre_x, centre_y), (x, y), rotation)
-                    self._draw_tile(surface, meld.tiles[n], coordinates, True, tile_rotation, sideways=is_call_tile)
+                    self._draw_tile(surface, tile, coordinates, True, tile_rotation, sideways=is_call_tile)
                     if meld.type == Meld.NUKI:
                         txt = "{}x".format(len(meld.tiles))
                         nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
@@ -926,3 +936,17 @@ class InGameScreen(AbstractScreen, EventListener):
 
     def _add_call(self, who, string):
         self.call_data[who] = (time.time(), string)
+
+    def _determine_call_tile_idx(self, meld):
+        if meld.type in [Meld.NUKI, Meld.ANKAN]:
+            return 0
+
+        seat = (meld.who - meld.from_who) % self.table.count_of_players
+        if seat == Position.KAMICHA:
+            return 0
+        elif seat == Position.TOIMEN:
+            return 1
+        elif seat == Position.SHIMOCHA and meld.type == Meld.DAIMINKAN:
+            return 3
+        else:
+            return 2

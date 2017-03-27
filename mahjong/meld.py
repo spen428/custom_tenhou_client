@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from mahjong.tile import Tile
 
 
 class Meld(object):
@@ -12,7 +13,6 @@ class Meld(object):
 
     who = None
     tiles = []
-    call_tile = None
     type = None
     from_who = None
 

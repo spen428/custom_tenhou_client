@@ -134,5 +134,6 @@ class Player(object):
         return self.seat == self.dealer_seat
 
     def set_oya(self, oya):
-        self.dealer_seat = (self.seat - oya) % 4  # Dealer location relative to the player
+        """Set dealer location relative to the player."""
+        self.dealer_seat = (self.seat - oya) % self.table.count_of_players
         return self.dealer_seat

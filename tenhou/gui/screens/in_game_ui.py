@@ -352,6 +352,9 @@ class InGameScreen(AbstractScreen, EventListener):
             if event.ryuukyoku_type == RYUUKYOKU_EXHAUSTIVE_DRAW:
                 end_string = '流局'
                 call_string = 'テンパイ'
+                for n in range(len(event.hai)):
+                    if n not in whos:
+                        self._add_call(n, 'ノーテン')
             elif event.ryuukyoku_type == RYUUKYOKU_KYUUSHU:
                 end_string = call_string = '九種九牌'
             elif event.ryuukyoku_type == RYUUKYOKU_FOUR_RIICHI:

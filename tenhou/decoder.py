@@ -299,15 +299,24 @@ class TenhouDecoder(object):
         if data & 0x8:
             meld.type = Meld.PON
             meld.tiles = [Tile(t0 + 4 * base), Tile(t1 + 4 * base), Tile(t2 + 4 * base)]
-        else:
-            meld.type = Meld.CHAKAN
+        elif data & 2:
+            # Could be CHAKAN or SHOUMINKAN
+            # 0b1100100001110010 = chun shouminkan, extended middle
+            meld.type = Meld.SHOUMINKAN
             meld.tiles = [Tile(t0 + 4 * base), Tile(t1 + 4 * base), Tile(t2 + 4 * base), Tile(t4 + 4 * base)]
+        print('data={} base_and_called={} base={}'.format(data, base_and_called, base))
 
     def parse_kan(self, data, meld):
         base_and_called = data >> 8
         base = base_and_called // 4
-        meld.type = Meld.KAN
+        if data & 3:
+            meld.type = Meld.DAIMINKAN
+        else:
+            meld.type = Meld.ANKAN
         meld.tiles = [Tile(4 * base), Tile(1 + 4 * base), Tile(2 + 4 * base), Tile(3 + 4 * base)]
+        # print('data={} base_and_called={} base={}'.format(data, base_and_called, base))
+        # 0b0111111000000011 = haku daiminkan, stole from left
+        # 0b0110010000000000 = ankan
 
     def parse_nuki(self, data, meld):
         meld.type = Meld.NUKI

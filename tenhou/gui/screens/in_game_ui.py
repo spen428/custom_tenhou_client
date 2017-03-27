@@ -56,8 +56,8 @@ def _load_38px_tile_sprites():
 
 
 def __load_tile_sprites(small):
-    """Load tile sprites from the resource directory. The tiles should be loaded in the following order: 1s 2s 3s 4s
-    5s 6s 7s 8s 9s 1p 2p 3p 4p 5p 6p 7p 8p 9p 1m 2m 3m 4m 5m 6m 7m 8m 9m ton nan shaa pei haku hatsu chun 5sd 5pd 5md
+    """Load tile sprites from the resource directory. The tiles should be loaded in the following order: 1m 2m 3m 4m 
+    5m 6m 7m 8m 9m 1p 2p 3p 4p 5p 6p 7p 8p 9p 1s 2s 3s 4s 5s 6s 7s 8s 9s ton nan shaa pei haku hatsu chun 5sd 5pd 5md
     back
 
     :param small: whether to load the small tiles or the large tiles
@@ -66,8 +66,8 @@ def __load_tile_sprites(small):
     tiles = []
     tile_dir = os.path.join(tenhou.gui.get_resource_dir(), "tiles_38" if small else "tiles_64")
     ext = "gif" if small else "png"
-    for name in ('1s 2s 3s 4s 5s 6s 7s 8s 9s 1p 2p 3p 4p 5p 6p 7p 8p 9p 1m 2m 3m 4m 5m 6m 7m 8m '
-                 '9m ton nan shaa pei haku hatsu chun 5sd 5pd 5md back').split():
+    for name in ('1m 2m 3m 4m 5m 6m 7m 8m 9m 1p 2p 3p 4p 5p 6p 7p 8p 9p 1s 2s 3s 4s 5s 6s 7s 8s 9s '
+                 'ton nan shaa pei haku hatsu chun 5sd 5pd 5md back').split():
         filename = "{}.{}".format(name, ext)
         img = pygame.image.load(os.path.join(tile_dir, filename)).convert_alpha()
         tiles.append(img)
@@ -304,10 +304,21 @@ class InGameScreen(AbstractScreen, EventListener):
                 raise ValueError('Wall count dropped below zero!')
             return True
         elif event.game_event == GameEvents.RECV_CALL:
-            if event.meld.type in [Meld.CHI, Meld.PON, Meld.KAN]:
+            if event.meld.type in [Meld.CHI, Meld.PON, Meld.DAIMINKAN]:
                 self.table.get_player(self.last_discarder).call_discard()
+                event.meld.from_who = self.last_discarder
+            else:
+                event.meld.from_who = event.meld.who
             self.table.get_player(event.meld.who).add_meld(event.meld)
-            string = {Meld.CHI: 'チー', Meld.PON: 'ポン', Meld.KAN: 'カン', Meld.NUKI: '北'}[event.meld.type]
+            string = ''
+            if event.meld.type == Meld.CHI:
+                string = 'チー'
+            elif event.meld.type == Meld.PON:
+                string = 'ポン'
+            elif event.meld.type == Meld.NUKI:
+                string = '北'
+            elif event.meld.is_kan():
+                string = 'カン'
             self._add_call(event.meld.who, string)
             return True
         elif event.game_event == GameEvents.RECV_RIICHI_DECLARED:
@@ -597,7 +608,7 @@ class InGameScreen(AbstractScreen, EventListener):
                                 n += 1
                     coordinates = rotate((centre_x, centre_y), (x, y), rotation)
                     self._draw_tile(surface, meld.tiles[n], coordinates, True, tile_rotation, sideways=is_call_tile)
-                    if meld.kan_type == Meld.NUKI:
+                    if meld.type == Meld.NUKI:
                         txt = "{}x".format(len(meld.tiles))
                         nuke_text = self.discard_timer_font.render(txt, 1, (0, 0, 0))
                         tx = x + self.tile_width / 2 - nuke_text.get_width() / 2

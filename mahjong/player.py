@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+
 from typing import Set
 
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
@@ -32,11 +33,23 @@ class Player(object):
         self.tiles_hidden = False  # TODO: This should be True by default, and disabled for replays?
 
     def add_meld(self, meld):
-        self.melds.append(meld)
+        if meld.type == Meld.SHOUMINKAN:
+            # Modify PON meld
+            meld_tile = Tile(meld.tiles[0]).normalised()
+            for m in self.melds:
+                if m.type == Meld.PON and Tile(m.tiles[0]).normalised() == meld_tile:
+                    m.type = Meld.SHOUMINKAN
+                    m.tiles = meld.tiles
+                    break
+        elif meld.type == Meld.NUKI:
+            raise NotImplementedError
+        else:
+            self.melds.append(meld)
+
         # Remove used tiles from hand
         if self.tiles_hidden:
             num_to_remove = 2
-            if meld.type == Meld.KAN:
+            if meld.is_kan():
                 if meld.kan_type == CallType.ANKAN:
                     num_to_remove = 4
                 elif meld.kan_type == CallType.SHOUMINKAN:

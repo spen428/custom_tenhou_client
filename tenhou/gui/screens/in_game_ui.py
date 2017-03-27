@@ -309,7 +309,9 @@ class InGameScreen(AbstractScreen, EventListener):
                 event.meld.from_who = self.last_discarder
             else:
                 event.meld.from_who = event.meld.who
+
             self.table.get_player(event.meld.who).add_meld(event.meld)
+
             string = ''
             if event.meld.type == Meld.CHI:
                 string = 'チー'
@@ -588,8 +590,9 @@ class InGameScreen(AbstractScreen, EventListener):
                 if meld.type == Meld.NUKI:
                     num_tiles = 1
 
-                # Draw tiles
-                for n in range(num_tiles):
+                # Draw tiles, must be a while loop because of SHOUMINKAN branch that adjusts n
+                n = 0
+                while n < num_tiles:
                     # Flip first and last tile if ankan
                     if meld.type == Meld.ANKAN and n in [0, 3]:
                         tile = None
@@ -641,6 +644,8 @@ class InGameScreen(AbstractScreen, EventListener):
                             x -= self.tile_height - self.tile_width
                         if position in [Position.TOIMEN, Position.KAMICHA]:
                             y += self.tile_height - self.tile_width
+
+                    n += 1
 
     def _draw_discards(self, surface: pygame.Surface):
         centre_x = surface.get_width() / 2

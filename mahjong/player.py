@@ -6,7 +6,6 @@ from typing import Set
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
 from mahjong.meld import Meld
 from mahjong.tile import Tile
-from tenhou.jong.classes import CallType
 
 logger = logging.getLogger('tenhou')
 
@@ -50,11 +49,11 @@ class Player(object):
         if self.tiles_hidden:
             num_to_remove = 2
             if meld.is_kan():
-                if meld.kan_type == CallType.ANKAN:
+                if meld.type == Meld.ANKAN:
                     num_to_remove = 4
-                elif meld.kan_type == CallType.SHOUMINKAN:
+                elif meld.type == Meld.SHOUMINKAN:
                     num_to_remove = 1
-                elif meld.kan_type == CallType.DAIMINKAN:
+                elif meld.type == Meld.DAIMINKAN:
                     num_to_remove = 3
             for _ in range(num_to_remove):
                 self.tiles.pop()

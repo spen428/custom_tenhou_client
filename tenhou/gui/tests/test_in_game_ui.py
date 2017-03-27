@@ -82,7 +82,7 @@ class TestInGameScreen(InGameScreen):
             rs.append(randint(0, 135 - 4))
             ts = [[Tile(rs[0]) for _ in range(4)], [Tile(rs[1]) for _ in range(4)], [Tile(rs[2]) for _ in range(3)],
                   [Tile(rs[3] + n) for n in range(3)]]
-            ms = [Meld.KAN, Meld.KAN, Meld.KAN, Meld.CHI]
+            ms = [Meld.ANKAN, Meld.SHOUMINKAN, Meld.DAIMINKAN, Meld.CHI]
             for i in range(len(rs)):
                 meld = Meld()
                 meld.who = n

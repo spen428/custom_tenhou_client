@@ -32,16 +32,24 @@ class Player(object):
         self.tiles_hidden = False  # TODO: This should be True by default, and disabled for replays?
 
     def add_meld(self, meld):
+        meld_tile = Tile(meld.tiles[0]).normalised()
         if meld.type == Meld.SHOUMINKAN:
             # Modify PON meld
-            meld_tile = Tile(meld.tiles[0]).normalised()
             for m in self.melds:
                 if m.type == Meld.PON and Tile(m.tiles[0]).normalised() == meld_tile:
                     m.type = Meld.SHOUMINKAN
                     m.tiles = meld.tiles
                     break
         elif meld.type == Meld.NUKI:
-            raise NotImplementedError
+            # Extend existing NUKI if it exists
+            found = False
+            for m in self.melds:
+                if m.type == Meld.NUKI and Tile(m.tiles[0].normalised() == meld_tile):
+                    m.tiles.append(meld.tiles[0])
+                    found = True
+                    break
+            if not found:
+                self.melds.insert(0, meld)
         else:
             self.melds.append(meld)
 
@@ -55,9 +63,12 @@ class Player(object):
                     num_to_remove = 1
                 elif meld.type == Meld.DAIMINKAN:
                     num_to_remove = 3
+            elif meld.type == Meld.NUKI:
+                num_to_remove = 1
             for _ in range(num_to_remove):
                 self.tiles.pop()
             return
+
         for tile in meld.tiles:
             if self.tsumohai == tile:
                 self.tsumohai = None  # Can be the case for ANKAN and SHOUMINKAN

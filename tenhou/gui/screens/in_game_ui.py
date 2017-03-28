@@ -12,6 +12,7 @@ from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
+from mahjong.yaku import YAKU_STRINGS
 from tenhou.decoder import RYUUKYOKU_NAGASHI_MANGAN, RYUUKYOKU_FOUR_WINDS, RYUUKYOKU_FOUR_KAN, RYUUKYOKU_TRIPLE_RON, \
     RYUUKYOKU_FOUR_RIICHI, RYUUKYOKU_KYUUSHU, RYUUKYOKU_EXHAUSTIVE_DRAW
 from tenhou.events import GameEvents, GAMEEVENT
@@ -333,12 +334,18 @@ class InGameScreen(AbstractScreen, EventListener):
             self.table.get_player(event.who).score -= 1000
             return True
         elif event.game_event == GameEvents.RECV_AGARI:
+            han = sum([han for _, han in event.yaku])
+            yakuman = len(event.yakuman)
+
+            if han == 0 and yakuman > 0:
+                yaku_string_list = [(YAKU_STRINGS[n], '役満') for n in event.yakuman]
+            else:
+                yaku_string_list = [(YAKU_STRINGS[n], str(han) + '翻') for n, han in event.yaku]
+
             fu = event.ten[0]
-            han = 0  # TODO
             points = event.ten[1]
-            yaku_list = ['Yaku #{}'.format(x) for x in event.yaku]
-            yakuman_string = None  # TODO
-            self._set_end_dialog('和了', yaku_list, fu, han, points, yakuman_string)
+            yakuman_string = self._get_yakuman_string(yakuman)
+            self._set_end_dialog('和了', yaku_string_list, fu, han, points, yakuman_string)
             self._add_call(event.who, 'ロン' if event.who != event.from_who else 'ツモ')
             return True
         elif event.game_event == GameEvents.RECV_RYUUKYOKU:
@@ -886,7 +893,7 @@ class InGameScreen(AbstractScreen, EventListener):
         if self.end_dialog_data['points'] is not None:
             dialog_height += 20
         if self.end_dialog_data['yakuman'] is not None:
-            dialog_height += 30
+            dialog_height += 40
 
         centre_x = canvas.get_width() / 2
         centre_y = canvas.get_height() / 2
@@ -903,25 +910,29 @@ class InGameScreen(AbstractScreen, EventListener):
         y += 40
         # Yaku
         if len(yaku_list) > 0:
-            for yaku in yaku_list:
+            for yaku_string, yaku_han in yaku_list:
                 y += 20
-                text = self.end_dialog_yaku_font.render(yaku, 1, (255, 255, 255))
-                x = centre_x - text.get_width() / 2
+                text = self.end_dialog_yaku_font.render(yaku_string, 1, (255, 255, 255))
+                x = centre_x - 100
+                canvas.blit(text, (x, y))
+
+                text = self.end_dialog_yaku_font.render(yaku_han, 1, (255, 255, 255))
+                x = centre_x + 100 - text.get_width()
                 canvas.blit(text, (x, y))
         # Points
         if self.end_dialog_data['points'] is not None:
             fu, han, points = self.end_dialog_data['points']
+            y += 40
             text = self.end_dialog_yaku_font.render("{}符 {}翻".format(fu, han), 1, (255, 255, 255))
             x = centre_x - text.get_width() - 10
-            y += 40
             canvas.blit(text, (x, y))
             text = self.end_dialog_yaku_font.render("{}点".format(points), 1, (255, 255, 255))
             x = centre_x + 10
             canvas.blit(text, (x, y))
         # Yakuman string
-        elif self.end_dialog_data['yakuman'] is not None:
-            y += 15
-            text = self.end_dialog_yaku_font.render(self.end_dialog_data['yakuman'], 1, (255, 255, 255))
+        if self.end_dialog_data['yakuman'] is not None:
+            y += 25
+            text = self.end_dialog_title_font.render(self.end_dialog_data['yakuman'], 1, (255, 255, 255))
             x = centre_x - text.get_width() / 2
             canvas.blit(text, (x, y))
 
@@ -958,3 +969,21 @@ class InGameScreen(AbstractScreen, EventListener):
             return 3
         else:
             return 2
+
+    def _get_yakuman_string(self, num_yakuman):
+        """Given a number of yakuman, return a string representing it. i.e. 1 -> '役満', 2 -> 'ダブル役満'
+        
+        :param num_yakuman: the number of yakuman
+        :return: the string representation
+        """
+        if num_yakuman < 1:
+            return None
+        elif num_yakuman == 1:
+            prefix = ''
+        elif num_yakuman == 2:
+            prefix = 'ダブル'
+        elif num_yakuman == 3:
+            prefix = 'トリプル'
+        else:
+            prefix = str(num_yakuman) + '倍'
+        return prefix + '役満'

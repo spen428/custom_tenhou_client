@@ -252,7 +252,7 @@ class FinishedHand(object):
                         hand_yaku.append(yaku.iipeiko)
 
                 if self.is_sanshoku(hand):
-                    hand_yaku.append(yaku.sanshoku)
+                    hand_yaku.append(yaku.sanshoku_doujun)
 
             # small optimization, try to detect yaku with pon required sets only if we have pon sets in hand
             if len(pon_sets):
@@ -263,7 +263,7 @@ class FinishedHand(object):
                     hand_yaku.append(yaku.sanankou)
 
                 if self.is_sanshoku_douko(hand):
-                    hand_yaku.append(yaku.sanshoku_douko)
+                    hand_yaku.append(yaku.sanshoku_doukoo)
 
                 if self.is_shosangen(hand):
                     hand_yaku.append(yaku.shosangen)
@@ -319,7 +319,7 @@ class FinishedHand(object):
 
                 if not is_open_hand and self.is_chuuren_poutou(hand):
                     if tiles_34[win_tile // 4] == 2:
-                        hand_yaku.append(yaku.daburu_chuuren_poutou)
+                        hand_yaku.append(yaku.junsei_chuuren_poutou)
                     else:
                         hand_yaku.append(yaku.chuuren_poutou)
 

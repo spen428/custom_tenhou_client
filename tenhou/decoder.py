@@ -136,7 +136,10 @@ class TenhouDecoder(object):
             machi = int(tag.attrs['machi'])
             ten = [int(t) for t in tag.attrs['ten'].split(',')]
             try:
-                yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
+                yakulist = [int(t) for t in tag.attrs['yaku'].split(',')]
+                yaku_ids = yakulist[::2]
+                yaku_han = yakulist[1::2]
+                yaku = list(zip(yaku_ids, yaku_han))
             except KeyError:
                 # In the case of a yakuman, yaku is not present
                 yaku = []
@@ -173,7 +176,7 @@ class TenhouDecoder(object):
         sc = [int(t) for t in tag.attrs['sc'].split(',')]
         # start at the beginning at take every second item (even)
         points = sc[::2]
-        # start at the beginning at take every second item (even)
+        # start at the beginning at take every second item (odd)
         point_exchange = sc[1::2]
         # owari tag is present if it is the end of the game
         owari = None

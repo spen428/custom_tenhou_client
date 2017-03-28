@@ -517,7 +517,13 @@ class InGameScreen(AbstractScreen, EventListener):
         if player.tsumohai is not None:
             num_tiles -= 1
         total_width = self.hand_tile_width * num_tiles
-        x = centre_x - (total_width / 2)
+
+        # make space for called melds
+        meld_space = 0
+        if len(player.melds) > 1:
+            meld_space = (len(player.melds) - 1) * 3 * self.tile_width
+
+        x = centre_x - (total_width / 2) - meld_space
         y = canvas.get_height() - self.hand_tile_height - 30
         for tile in tiles:
             if not skipped_tsumohai and player.tsumohai == tile:

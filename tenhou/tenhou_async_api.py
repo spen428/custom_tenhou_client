@@ -138,7 +138,7 @@ class AsyncTenhouApi(object):
         def target():
             while self.keep_alive:
                 self._send_message('<Z />')
-                sleep(15)
+                sleep(5)
 
         self.keep_alive = True
         self.keep_alive_thread = Thread(target=target)
@@ -227,6 +227,7 @@ class AsyncTenhouApi(object):
         log_link = ''
         game_id = None
 
+        game_messages = []  # Messages to forward to client
         while self.looking_for_game:
             sleep(1)
             messages = self._get_multiple_messages()
@@ -236,23 +237,25 @@ class AsyncTenhouApi(object):
                     self._send_message('<JOIN t="{0},r" />'.format(game_type))
 
                 if '<go' in message:
+                    game_messages.append(message)
                     self._send_message('<GOK />')
                     self._send_message('<NEXTREADY />')
 
                 if '<taikyoku' in message:
+                    game_messages.append(message)
                     self.looking_for_game = False
                     game_id, seat = self.decoder.parse_log_link(message)
                     log_link = 'http://tenhou.net/0/?log={0}&tw={1}'.format(game_id, seat)
 
                 if '<un' in message:
-                    pass
+                    game_messages.append(message)
 
                 if '<ln' in message:
                     self._send_message(self._get_pxr_tag(self.user_id, is_tournament))
 
         logger.info('Game started')
         logger.info('Log: {0}'.format(log_link))
-        return game_id
+        return game_id, game_messages
 
     def __handle_game(self, message_handler=None):
         while self.in_game:

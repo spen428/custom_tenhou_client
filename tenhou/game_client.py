@@ -39,9 +39,11 @@ class GameClient(object):
 
         def callback(data):
             if data is not None:
-                game_id = data
+                game_id, game_messages = data
                 pygame.event.post(
                     UiEvent(UiEvents.JOINED_GAME, {'lobby': lobby, 'game_type_id': game_type_id, 'game_id': game_id}))
+                for message in game_messages:
+                    self._game_message_handler(message)
             pygame.event.post(UiEvent(UiEvents.FAILED_TO_JOIN_GAME))
 
         self.tenhou_client.async_join_game(self._game_message_handler, lobby, game_type_id, callback)

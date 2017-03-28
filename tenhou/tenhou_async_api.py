@@ -33,12 +33,14 @@ DEFAULT_GAME_LOBBY = 0
   00000001 = 1 = tonpu-sen ari-ari
 """
 DEFAULT_GAME_TYPE_ID = '1'
+DEFAULT_KEEP_ALIVE_DELAY_SECS = 15
 
 
 class Error(Enum):
     AUTH_FAILED = 0
     LOGIN_FAILED = 1
     LOGIN_SUCCESS = 2
+    REJOINED_GAME = 3
 
 
 class AsyncTenhouApi(object):
@@ -81,6 +83,9 @@ class AsyncTenhouApi(object):
             ret = self._log_in(user_id)
             if ret == Error.LOGIN_SUCCESS:
                 self.user_id = user_id
+            elif '<go' in ret:
+                self.user_id = user_id
+                return Error.REJOINED_GAME
             return ret
 
         if not self.connection_alive:
@@ -112,11 +117,16 @@ class AsyncTenhouApi(object):
         """
 
         def __join_game():
-            game_id = self._join_game(lobby, game_type_id)
+            game_id, _, _, game_messages = self._join_game(lobby, game_type_id)
             self._start_game_thread(message_handler)
-            return game_id
+            return game_id, lobby, game_type_id, game_messages
 
         self._queue_function(__join_game, callback)
+
+    def rejoin_game(self, messages, message_handler):
+        game_id, lobby, game_type_id, game_messages = self.__establish_game(None, False, messages)
+        self._start_game_thread(message_handler)
+        return game_id, lobby, game_type_id, game_messages
 
     def _queue_function(self, func, callback=None):
         self.connection_thread_queue.put_nowait((func, callback))
@@ -134,11 +144,11 @@ class AsyncTenhouApi(object):
         self.connection_thread.setDaemon(True)
         self.connection_thread.start()
 
-    def _start_keep_alive_thread(self):
+    def _start_keep_alive_thread(self, keep_alive_delay_secs=DEFAULT_KEEP_ALIVE_DELAY_SECS):
         def target():
             while self.keep_alive:
                 self._send_message('<Z />')
-                sleep(5)
+                sleep(keep_alive_delay_secs)
 
         self.keep_alive = True
         self.keep_alive_thread = Thread(target=target)
@@ -168,6 +178,12 @@ class AsyncTenhouApi(object):
         self._connect()
         self.__send_login_request(user_id)
         auth_message = self._read_message()
+
+        if '<go' in auth_message:
+            messages = self.__split_messages(auth_message)
+            self._start_keep_alive_thread()
+            logger.info('Rejoined game')
+            return Error.REJOINED_GAME, messages
 
         auth_string = self.decoder.parse_auth_string(auth_message)
         if not auth_string:
@@ -218,44 +234,11 @@ class AsyncTenhouApi(object):
                 self._send_message('<CHAT text="{0}" />'.format(quote('/lobby {0}'.format(lobby))))
                 sleep(2)
 
-        game_type = '{0},{1}'.format(lobby, game_type_id)
-
         if not is_tournament:
-            self._send_message('<JOIN t="{0}" />'.format(game_type))
+            self._send_message('<JOIN t="{0}" />'.format('{0},{1}'.format(lobby, game_type_id)))
             logger.info('Looking for the game...')
 
-        log_link = ''
-        game_id = None
-
-        game_messages = []  # Messages to forward to client
-        while self.looking_for_game:
-            sleep(1)
-            messages = self._get_multiple_messages()
-            for message in messages:
-                if '<rejoin' in message:
-                    # game wasn't found, continue to wait
-                    self._send_message('<JOIN t="{0},r" />'.format(game_type))
-
-                if '<go' in message:
-                    game_messages.append(message)
-                    self._send_message('<GOK />')
-                    self._send_message('<NEXTREADY />')
-
-                if '<taikyoku' in message:
-                    game_messages.append(message)
-                    self.looking_for_game = False
-                    game_id, seat = self.decoder.parse_log_link(message)
-                    log_link = 'http://tenhou.net/0/?log={0}&tw={1}'.format(game_id, seat)
-
-                if '<un' in message:
-                    game_messages.append(message)
-
-                if '<ln' in message:
-                    self._send_message(self._get_pxr_tag(self.user_id, is_tournament))
-
-        logger.info('Game started')
-        logger.info('Log: {0}'.format(log_link))
-        return game_id, game_messages
+        return self.__establish_game(lobby, game_type_id, is_tournament)
 
     def __handle_game(self, message_handler=None):
         while self.in_game:
@@ -302,11 +285,7 @@ class AsyncTenhouApi(object):
     def _get_multiple_messages(self):
         # tenhou can send multiple messages in one request
         messages = self._read_message()
-        messages = messages.split('\x00')
-        # last message always is empty after split, so let's exclude it
-        messages = messages[0:-1]
-
-        return messages
+        return self.__split_messages(messages)
 
     def _get_pxr_tag(self, user_id, is_tournament):
         # I have no idea why we need to send it, but better to do it
@@ -317,3 +296,54 @@ class AsyncTenhouApi(object):
             return '<PXR V="1" />'
         else:
             return '<PXR V="9" />'
+
+    def async_discard_tile(self, tile_id):
+        def _discard_tile():
+            self._send_message('<D' + str(tile_id) + '/>')
+
+        self._queue_function(_discard_tile)
+
+    def __establish_game(self, lobby, game_type_id, is_tournament, rejoin_messages=None):
+        log_link = ''
+        game_id = None
+        game_type_string = '{0},{1}'.format(lobby, game_type_id)
+        game_messages = []  # Messages to forward to client
+        while self.looking_for_game:
+            sleep(1)
+            if rejoin_messages is not None:
+                messages = rejoin_messages
+                rejoin_messages = None
+            else:
+                messages = self._get_multiple_messages()
+            for message in messages:
+                if '<rejoin' in message:
+                    # game wasn't found, continue to wait
+                    self._send_message('<JOIN t="{0},r" />'.format(game_type_string))
+
+                if '<go' in message:
+                    game_messages.append(message)
+                    self._send_message('<GOK />')
+                    self._send_message('<NEXTREADY />')
+
+                if '<taikyoku' in message:
+                    game_messages.append(message)
+                    self.looking_for_game = False
+                    game_id, seat = self.decoder.parse_log_link(message)
+                    log_link = 'http://tenhou.net/0/?log={0}&tw={1}'.format(game_id, seat)
+
+                if '<un' in message:
+                    game_messages.append(message)
+
+                if '<ln' in message:
+                    self._send_message(self._get_pxr_tag(self.user_id, is_tournament))
+
+        logger.info('Game started')
+        logger.info('Log: {0}'.format(log_link))
+        return game_id, lobby, game_type_id, game_messages
+
+    def __split_messages(self, messages):
+        messages = messages.split('\x00')
+        # last message always is empty after split, so let's exclude it
+        messages = messages[0:-1]
+
+        return messages

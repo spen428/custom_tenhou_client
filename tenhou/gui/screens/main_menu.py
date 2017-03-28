@@ -72,9 +72,8 @@ class MainMenuScreen(AbstractScreen, EventListener):
             pygame.event.post(UiEvent(UiEvents.OPEN_REPLAY, {'file_path': filename}))
 
     def _log_in(self):
-        return  # TODO
-        # self._login_status = LoginStatus.LOGGING_IN
-        # pygame.event.post(UiEvent(UiEvents.LOG_IN, {'user_id': user_id}))
+        self._login_status = LoginStatus.LOGGING_IN
+        pygame.event.post(UiEvent(UiEvents.LOG_IN, {'user_id': 'ID2D103CF0-gV2EX5e6'}))
 
     def _log_out(self):
         pygame.event.post(UiEvent(UiEvents.LOG_OUT))

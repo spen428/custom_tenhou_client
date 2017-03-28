@@ -15,7 +15,7 @@ from mahjong.tile import Tile
 from mahjong.yaku import YAKU_STRINGS
 from tenhou.decoder import RYUUKYOKU_NAGASHI_MANGAN, RYUUKYOKU_FOUR_WINDS, RYUUKYOKU_FOUR_KAN, RYUUKYOKU_TRIPLE_RON, \
     RYUUKYOKU_FOUR_RIICHI, RYUUKYOKU_KYUUSHU, RYUUKYOKU_EXHAUSTIVE_DRAW
-from tenhou.events import GameEvents, GAMEEVENT
+from tenhou.events import GameEvents, GAMEEVENT, GameEvent
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import Position
@@ -144,9 +144,10 @@ class InGameScreen(AbstractScreen, EventListener):
         self.END_DIALOG_SHOW_TIME_SECS = 5
         self.CALL_SHOW_TIME_SECS = 0.5
 
-        # Test vars
+        # State vars
         self.discard_start_secs = time.time()
         self.last_discarder = -1
+        self.turn = -1
 
         # Other
         self.esc_menu = EscMenuScreen()
@@ -177,6 +178,9 @@ class InGameScreen(AbstractScreen, EventListener):
 
     def _call_pasu(self):
         pass
+
+    def _discard(self, tile):
+        pygame.event.post(GameEvent(GameEvents.DISCARD, {'tile': tile}))
 
     def _get_tile_image(self, tile_id, small=False):
         if small:
@@ -236,7 +240,7 @@ class InGameScreen(AbstractScreen, EventListener):
             if rect.collidepoint(pos):
                 player = self.table.get_main_player()
                 if tile in player.tiles:
-                    player.discard_tile(tile)
+                    self._discard(tile)
                     self.hover_tile_rect = None
 
     def on_mouse_motion(self, event):
@@ -290,6 +294,10 @@ class InGameScreen(AbstractScreen, EventListener):
                     self.table.players[n].tiles_hidden = True
             for n in range(len(event.haipai)):
                 self.table.players[n].init_hand(event.haipai[n])
+            # If rejoining a game, set the discards
+            for n in range(len(event.kawa)):
+                if len(event.kawa[n]) > 0:
+                    self.table.players[n].discards = event.kawa[n]
             return True
         elif event.game_event == GameEvents.RECV_PLAYER_DETAILS:
             for n in range(len(event.data)):
@@ -307,6 +315,7 @@ class InGameScreen(AbstractScreen, EventListener):
             return True
         elif event.game_event == GameEvents.RECV_DRAW:
             self.table.get_player(event.who).draw_tile(event.tile)
+            self.turn = event.who
             self.table.count_of_remaining_tiles -= 1
             if self.table.count_of_remaining_tiles < 0:
                 raise ValueError('Wall count dropped below zero!')
@@ -1016,4 +1025,5 @@ class InGameScreen(AbstractScreen, EventListener):
         self.call_data = [None for _ in range(4)]
         self.discard_start_secs = time.time()
         self.last_discarder = -1
+        self.turn = -1
         self.table: Table = Table()

@@ -47,14 +47,21 @@ class TenhouDecoder(object):
 
         return tiles
 
-    def parse_init(self, message):
-        tag = self._bs(message, 'init')
+    def parse_reinit(self, message):
+        pass
+
+    def parse_init(self, message, reinit=False):
+        if reinit:
+            tag = self._bs(message, 'reinit')
+        else:
+            tag = self._bs(message, 'init')
 
         seed = [int(s) for s in tag.attrs['seed'].split(',')]
         round_number = seed[0]
         count_of_honba_sticks = seed[1]
         count_of_riichi_sticks = seed[2]
         dora_indicator = seed[5]
+        kawa = []
 
         ten = [int(p) for p in tag.attrs['ten'].split(',')]
         oya = int(tag.attrs['oya'])
@@ -74,9 +81,22 @@ class TenhouDecoder(object):
                 tiles = [int(i) for i in tiles.split(',')]
             haipai.append(tiles)
 
+        if reinit:
+            kawas = ['kawa{}'.format(n) for n in range(len(ten))]
+            for k in kawas:
+                try:
+                    tiles = tag.attrs[k]
+                    if tiles == "":
+                        tiles = []
+                    else:
+                        tiles = [int(i) for i in tiles.split(',')]
+                except KeyError:
+                    tiles = []
+                kawa.append(tiles)
+
         return {'seed': seed, 'ten': ten, 'oya': oya, 'haipai': haipai, 'round_number': round_number,
                 'count_of_honba_sticks': count_of_honba_sticks, 'count_of_riichi_sticks': count_of_riichi_sticks,
-                'dora_indicator': dora_indicator}
+                'dora_indicator': dora_indicator, 'kawa': kawa}
 
     def parse_final_scores_and_uma(self, message):
         tag = self._bs(message, 'agari')
@@ -399,6 +419,9 @@ class TenhouDecoder(object):
             return GameEvent(GameEvents.RECV_BEGIN_GAME, data)
         elif lower_msg.startswith('init'):
             data = self.parse_init(message)
+            return GameEvent(GameEvents.RECV_BEGIN_HAND, data)
+        elif lower_msg.startswith('reinit'):
+            data = self.parse_reinit(message)
             return GameEvent(GameEvents.RECV_BEGIN_HAND, data)
         elif lower_msg.startswith('reach'):
             data = self.parse_riichi(message)

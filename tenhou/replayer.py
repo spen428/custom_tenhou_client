@@ -53,7 +53,7 @@ class ReplayClient(EventListener):
     def step(self, steps=1):
         """
         Step the replay forward, causing an event to be posted.
-
+\
         :param steps: number of steps to advance
         :return: True if the next game event was successfully posted, else False if the current line of the replay
         could not be parsed into an event.

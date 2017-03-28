@@ -4,9 +4,11 @@ import pygame
 
 GAMEEVENT = pygame.USEREVENT + 0
 UIEVENT = pygame.USEREVENT + 1
+COMMAND = pygame.USEREVENT + 2
 
 
 class GameEvents(Enum):  # TODO: Sort these nicely
+    """In-game events."""
     RECV_DRAW = 0
     RECV_SHUFFLE_SEED = 12
     RECV_JOIN_TABLE = 13
@@ -27,9 +29,17 @@ class GameEvents(Enum):  # TODO: Sort these nicely
     END_OF_REPLAY = 28
     RECV_DISCONNECTED = 29
     RECV_RECONNECTED = 30
+    SENT_DISCARD = 31
+    DISCARD = 32
+
+
+class Commands(Enum):
+    """Commands sent by the client to the server."""
+    pass
 
 
 class UiEvents(Enum):
+    """Events outside of the game."""
     LEAVE_GAME = 0
     LOG_IN = 1
     LOG_OUT = 2
@@ -55,6 +65,13 @@ def GameEvent(game_event: GameEvents, data: dict = None):
         data = {}
     data['game_event'] = game_event
     return pygame.event.Event(GAMEEVENT, data)
+
+
+def Command(command: Commands, data: dict = None):
+    if data is None:
+        data = {}
+    data['command'] = command
+    return pygame.event.Event(COMMAND, data)
 
 
 def UiEvent(ui_event: UiEvents, data: dict = None):

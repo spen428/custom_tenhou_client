@@ -1,12 +1,19 @@
 import pygame
 
 from tenhou.decoder import TenhouDecoder
-from tenhou.events import UiEvent, UiEvents
+from tenhou.events import UiEvent, UiEvents, GAMEEVENT, GameEvents, GameEvent
+from tenhou.gui.screens import EventListener
 from tenhou.tenhou_async_api import AsyncTenhouApi, Error
 
 
-class GameClient(object):
+class GameClient(EventListener):
     """Responsible for firing pygame events when interacting with the game/Tenhou server."""
+
+    def on_event(self, event):
+        if event.type == GAMEEVENT:
+            if event.game_event == GameEvents.DISCARD:
+                self.tenhou_client.async_discard_tile(event.tile)
+                pygame.event.post(GameEvent(GameEvents.SENT_DISCARD, {'tile': event.tile}))
 
     def __init__(self):
         self.tenhou_decoder = TenhouDecoder()
@@ -16,8 +23,20 @@ class GameClient(object):
         def callback(data):
             if data == Error.LOGIN_SUCCESS:
                 pygame.event.post(UiEvent(UiEvents.LOGGED_IN))
-            else:
+            elif data == Error.LOGIN_FAILED or data == Error.AUTH_FAILED:
                 pygame.event.post(UiEvent(UiEvents.LOGIN_FAILED))
+            elif type(data) == tuple:
+                err, messages = data
+                if err == Error.REJOINED_GAME:
+                    pygame.event.post(UiEvent(UiEvents.LOGGED_IN))
+                    data = self.tenhou_client.rejoin_game(messages, self._game_message_handler)
+                    lobby, game_type_id, game_id, game_messages = data
+                    pygame.event.post(UiEvent(UiEvents.JOINED_GAME,
+                                              {'lobby': lobby, 'game_type_id': game_type_id, 'game_id': game_id}))
+                    for message in game_messages:
+                        self._game_message_handler(message)
+            else:
+                print(data)
 
         self.tenhou_client.async_log_in(user_id, callback)
 
@@ -39,7 +58,7 @@ class GameClient(object):
 
         def callback(data):
             if data is not None:
-                game_id, game_messages = data
+                game_id, _, _, game_messages = data
                 pygame.event.post(
                     UiEvent(UiEvents.JOINED_GAME, {'lobby': lobby, 'game_type_id': game_type_id, 'game_id': game_id}))
                 for message in game_messages:

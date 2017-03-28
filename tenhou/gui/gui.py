@@ -60,6 +60,8 @@ class Gui(object):
                 self.current_screen.on_event(event)
                 if self.replay_client is not None:
                     self.replay_client.on_event(event)
+                if self.game_client is not None:
+                    self.game_client.on_event(event)
 
             # Print framerate and playtime in titlebar.
             text = "Lykat's custom Tenhou client {0} | FPS: {1:.2f}".format(self.version_str, self.clock.get_fps())

@@ -5,9 +5,11 @@ import os
 
 import pygame
 
-from tenhou.events import UIEVENT, UiEvents, GameEvents
+from tenhou.events import UIEVENT, UiEvents
+from tenhou.game_client import GameClient
 from tenhou.gui import get_resource_dir
 from tenhou.gui.screens import AbstractScreen
+from tenhou.gui.screens.in_game_ui import InGameScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
 from tenhou.gui.screens.replay_ui import ReplayScreen
 from tenhou.gui.tests.test_in_game_ui import TestInGameScreen
@@ -26,8 +28,11 @@ class Gui(object):
         self.canvas: pygame.Surface = self._create_canvas()
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.framerate_limit: int = framerate_limit
-        self.current_screen: AbstractScreen = MainMenuScreen()
-        self.game_manager = None
+        self.main_menu = MainMenuScreen()
+        self.in_game_screen = InGameScreen()
+        self.current_screen: AbstractScreen = self.main_menu
+        self.replay_client: ReplayClient = None
+        self.game_client: GameClient = GameClient()
         self.running: bool = False
 
     def _create_canvas(self):
@@ -53,8 +58,8 @@ class Gui(object):
                     self.on_ui_event(event)
                 # Pass events to other listeners
                 self.current_screen.on_event(event)
-                if self.game_manager is not None:
-                    self.game_manager.on_event(event)
+                if self.replay_client is not None:
+                    self.replay_client.on_event(event)
 
             # Print framerate and playtime in titlebar.
             text = "Lykat's custom Tenhou client {0} | FPS: {1:.2f}".format(self.version_str, self.clock.get_fps())
@@ -70,13 +75,17 @@ class Gui(object):
             pygame.display.flip()
 
         # Finish Pygame.
-        if self.game_manager is not None:
-            self.game_manager.end_game()
+        if self.replay_client is not None:
+            self.replay_client.end_game()
         pygame.quit()
 
     def on_ui_event(self, event):
-        if event.ui_event == UiEvents.LOG_OUT:
+        if event.ui_event == UiEvents.LOG_IN:
+            self._log_in(event.user_id)
+        elif event.ui_event == UiEvents.LOG_OUT:
             self._log_out()
+        elif event.ui_event == UiEvents.CANCEL_LOGIN:
+            self._cancel_login()
         elif event.ui_event == UiEvents.LEAVE_GAME:
             self._leave_game()
         elif event.ui_event == UiEvents.EXIT_GAME:
@@ -84,7 +93,7 @@ class Gui(object):
         elif event.ui_event == UiEvents.OPEN_REPLAY:
             self._load_replay(event.file_path)
         elif event.ui_event == UiEvents.JOIN_GAME:
-            self._join_game()
+            self._join_game(event.lobby, event.game_type_id)
         elif event.ui_event == UiEvents.TEST_INGAMEUI:
             self._ingameui_test()
         elif event.ui_event == UiEvents.TEST_REPLAY:
@@ -93,37 +102,47 @@ class Gui(object):
             self._lg_test()
         elif event.ui_event == UiEvents.TEST_LGR:
             self._lgr_test()
-
-    def on_game_event(self, event):
-        if event.game_event == GameEvents.LOGIN_REQUEST_FAILED:
-            logger.error("Login request failure")
-        elif event.game_event == GameEvents.RECV_AUTH_SUCCESSFUL:
-            logger.info("Successfully logged in")
+        elif event.ui_event == UiEvents.LOGGED_IN:
+            self.main_menu.set_logged_in(True)
+            logging.info('Logged in')
+        elif event.ui_event == UiEvents.LOGGED_OUT:
+            self.main_menu.set_logged_in(False)
+            logging.info('Logged out')
+        elif event.ui_event == UiEvents.JOINED_GAME_QUEUE:
+            logging.info('Joined game queue')
+        elif event.ui_event == UiEvents.JOINED_GAME:
+            self.current_screen = self.in_game_screen
+            self.in_game_screen.erase_state()
+            logging.info('Joined game')
 
     def _log_in(self, user_id):
-        return False
+        self.game_client.log_in(user_id)
 
     def _log_out(self):
-        return False
+        self.game_client.log_out()
 
-    def _join_game(self):
-        pass
+    def _cancel_login(self):
+        self.game_client.cancel_login()
 
-    def _load_replay(self, replay_file_path, autoskip=True):
-        if type(self.game_manager) is not ReplayClient:
-            self.game_manager = ReplayClient()
-        if type(self.current_screen) is not ReplayScreen:
-            self.current_screen = ReplayScreen()
-        self.game_manager.load_replay(replay_file_path, autoskip)
+    def _join_game(self, lobby, game_type_id):
+        self.game_client.join_game(lobby, game_type_id)
 
     def _leave_game(self):
+        self.game_client.leave_game()
         self.current_screen = MainMenuScreen()
+
+    def _load_replay(self, replay_file_path, autoskip=True):
+        if type(self.replay_client) is not ReplayClient:
+            self.replay_client = ReplayClient()
+        if type(self.current_screen) is not ReplayScreen:
+            self.current_screen = ReplayScreen()
+        self.replay_client.load_replay(replay_file_path, autoskip)
 
     def _ingameui_test(self):
         self.current_screen = TestInGameScreen()
 
     def _replay_test(self):
-        self.game_manager = ReplayClient()
+        self.replay_client = ReplayClient()
         self.current_screen = TestReplayScreen()
         self.current_screen._load_next_replay()
 

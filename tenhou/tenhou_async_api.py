@@ -41,7 +41,7 @@ class Error(Enum):
     LOGIN_SUCCESS = 2
 
 
-class AsyncTenhouClient(object):
+class AsyncTenhouApi(object):
     """Async API for interacting with the Tenhou.net game servers. Every async function can take an optional callback 
     argument which should be a function that takes one argument. The callback function will be invoked on completion 
     of the async request, and the value returned by it will be passed as the first argument.
@@ -78,9 +78,10 @@ class AsyncTenhouClient(object):
         """Send an async log in request."""
 
         def __log_in_as_user():
-            self._log_in(user_id)
-            self.user_id = user_id
-            return user_id
+            ret = self._log_in(user_id)
+            if ret == Error.LOGIN_SUCCESS:
+                self.user_id = user_id
+            return ret
 
         if not self.connection_alive:
             self._start_connection_thread()
@@ -128,10 +129,10 @@ class AsyncTenhouClient(object):
                 if callback is not None:
                     callback(ret)
 
+        self.connection_alive = True
         self.connection_thread = Thread(target=target)
         self.connection_thread.setDaemon(True)
         self.connection_thread.start()
-        self.connection_alive = True
 
     def _start_keep_alive_thread(self):
         def target():

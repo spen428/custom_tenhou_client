@@ -86,8 +86,6 @@ def _load_wind_sprites():
 
 class InGameScreen(AbstractScreen, EventListener):
     def __init__(self):
-        self.table_name = None
-        self.round_name = None
         # TILES
         self.tiles_64px = _load_64px_tile_sprites()
         self.tiles_38px = _load_38px_tile_sprites()
@@ -129,10 +127,12 @@ class InGameScreen(AbstractScreen, EventListener):
         self.end_dialog_yaku_font = pygame.font.Font(os.path.join(tenhou.gui.get_resource_dir(), "meiryo.ttc"), 16)
 
         # Graphics Vars
+        self.table_name = None
+        self.round_name = None
         self.tile_rects = []
         self.centre_hover = False
         self.centre_square = None
-        self.hover_tile = None
+        self.hover_tile_rect = None
         self.is_esc_menu_open = False
         self.start_time_secs = time.time()
         self.end_dialog_start_time = 0
@@ -187,7 +187,7 @@ class InGameScreen(AbstractScreen, EventListener):
         return self._get_tile_image(-1, small)
 
     def _toggle_esc_menu(self):
-        self.hover_tile = None
+        self.hover_tile_rect = None
         self.centre_hover = False
         self.is_esc_menu_open = not self.is_esc_menu_open
 
@@ -223,14 +223,21 @@ class InGameScreen(AbstractScreen, EventListener):
     def on_mouse_up(self, event):
         if self.is_esc_menu_open:
             self.esc_menu.on_mouse_up(event)
-            return
+            return True
 
         pos = pygame.mouse.get_pos()
         for btn in self.call_buttons:
             if btn.rect is not None and btn.rect.collidepoint(pos):
                 if callable(btn.on_click):
                     btn.on_click()
-                    break
+                    return True
+
+        for rect, tile in reversed(self.tile_rects):
+            if rect.collidepoint(pos):
+                player = self.table.get_main_player()
+                if tile in player.tiles:
+                    player.discard_tile(tile)
+                    self.hover_tile_rect = None
 
     def on_mouse_motion(self, event):
         pos = pygame.mouse.get_pos()
@@ -242,7 +249,7 @@ class InGameScreen(AbstractScreen, EventListener):
         # Clear hover state before starting search
         for btn in self.call_buttons:
             btn.hover = False
-        self.hover_tile = None
+        self.hover_tile_rect = None
         self.centre_hover = False
 
         # Search for hover state
@@ -256,9 +263,9 @@ class InGameScreen(AbstractScreen, EventListener):
             if self.centre_hover:
                 return
 
-        for rect in reversed(self.tile_rects):
+        for rect, _ in reversed(self.tile_rects):
             if rect.collidepoint(pos):
-                self.hover_tile = rect
+                self.hover_tile_rect = rect
                 return
 
     def on_window_resized(self, event):
@@ -435,8 +442,8 @@ class InGameScreen(AbstractScreen, EventListener):
         self._draw_enemy_hands(canvas)
         self._draw_centre_console(canvas)
 
-        if self.hover_tile is not None:
-            self._draw_highlight(canvas, self.hover_tile, 0)
+        if self.hover_tile_rect is not None:
+            self._draw_highlight(canvas, self.hover_tile_rect, 0)
 
         self._draw_corner_info(canvas)
         self._draw_corner_text(canvas)
@@ -570,7 +577,7 @@ class InGameScreen(AbstractScreen, EventListener):
             tile_image = pygame.transform.rotate(tile_image, rotation)
         surface.blit(tile_image, (x, y))
         rect = pygame.Rect(x, y, tile_image.get_width(), tile_image.get_height())
-        self.tile_rects.append(rect)
+        self.tile_rects.append((rect, tile))
         if highlight_id is not None:
             self._draw_highlight(surface, rect, highlight_id)
 
@@ -993,3 +1000,20 @@ class InGameScreen(AbstractScreen, EventListener):
         else:
             prefix = str(num_yakuman) + '倍'
         return prefix + '役満'
+
+    def erase_state(self):
+        self.table_name = None
+        self.round_name = None
+        self.tile_rects = []
+        self.centre_hover = False
+        self.centre_square = None
+        self.hover_tile_rect = None
+        self.is_esc_menu_open = False
+        self.start_time_secs = time.time()
+        self.end_dialog_start_time = 0
+        self.end_dialog_data = {}
+        self._set_end_dialog()
+        self.call_data = [None for _ in range(4)]
+        self.discard_start_secs = time.time()
+        self.last_discarder = -1
+        self.table: Table = Table()

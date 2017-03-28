@@ -26,8 +26,9 @@ class MainMenuScreen(AbstractScreen, EventListener):
                               MenuButton("Test Replay Viewer", self._test_replay_viewer),
                               MenuButton("Test Live Game", self._test_lg),
                               MenuButton("Test Live Game Replay", self._test_lgr)]
-        self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
-        self.status: LoginStatus = LoginStatus.NOT_LOGGED_IN
+        self.logging_in_buttons = [MenuButton("Logging in ...", self._nop), MenuButton("Cancel", self._cancel_login)]
+        self.lobby_buttons = [MenuButton("Join game", self._join_game), MenuButton("Log out", self._log_out)]
+        self._login_status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
         self._footer_font = pygame.font.SysFont("Arial", 13)
         self._footer_text = self._footer_font.render("Custom client for Tenhou.net by lykat 2017", 1, (0, 0, 0))
@@ -38,6 +39,12 @@ class MainMenuScreen(AbstractScreen, EventListener):
         self._button_color_hover = (255, 255, 100)  # Pale yellow
 
     # Private Methods #
+
+    def _nop(self):
+        pass
+
+    def _cancel_login(self):
+        pygame.event.post(UiEvent(UiEvents.CANCEL_LOGIN))
 
     def _exit_game(self):
         pygame.event.post(UiEvent(UiEvents.EXIT_GAME))
@@ -54,9 +61,6 @@ class MainMenuScreen(AbstractScreen, EventListener):
     def _test_lgr(self):
         pygame.event.post(UiEvent(UiEvents.TEST_LGR))
 
-    def _log_in(self):
-        pass
-
     def _open_replay(self):
         root = Tk()
         root.withdraw()  # Make the root window invisible
@@ -67,21 +71,36 @@ class MainMenuScreen(AbstractScreen, EventListener):
         else:
             pygame.event.post(UiEvent(UiEvents.OPEN_REPLAY, {'file_path': filename}))
 
+    def _log_in(self):
+        return  # TODO
+        # self._login_status = LoginStatus.LOGGING_IN
+        # pygame.event.post(UiEvent(UiEvents.LOG_IN, {'user_id': user_id}))
+
     def _log_out(self):
         pygame.event.post(UiEvent(UiEvents.LOG_OUT))
 
-    def _join_lobby(self):
-        pygame.event.post(UiEvent(UiEvents.JOIN_GAME))
+    def _join_game(self):
+        lobby = 0
+        game_type_id = 1
+        pygame.event.post(UiEvent(UiEvents.JOIN_GAME, {'lobby': lobby, 'game_type_id': game_type_id}))
 
     def _play_anonymously(self):
-        self.status = LoginStatus.LOGGING_IN
+        self._login_status = LoginStatus.LOGGING_IN
         pygame.event.post(UiEvent(UiEvents.LOG_IN, {'user_id': 'NoName'}))
 
     def _get_buttons(self):
-        if self.status in [LoginStatus.NOT_LOGGED_IN, LoginStatus.LOGGING_IN]:
+        if self._login_status == LoginStatus.NOT_LOGGED_IN:
             return self.login_buttons
-        elif self.status is LoginStatus.LOGGED_IN:
+        elif self._login_status == LoginStatus.LOGGED_IN:
             return self.lobby_buttons
+        elif self._login_status == LoginStatus.LOGGING_IN:
+            return self.logging_in_buttons
+
+    def set_logged_in(self, b):
+        if b:
+            self._login_status = LoginStatus.LOGGED_IN
+        else:
+            self._login_status = LoginStatus.NOT_LOGGED_IN
 
     # Event methods #
 
@@ -105,9 +124,9 @@ class MainMenuScreen(AbstractScreen, EventListener):
 
     def on_ui_event(self, event):
         if event.ui_event == UiEvents.LOGGED_IN:
-            self.status = LoginStatus.LOGGED_IN
+            self._login_status = LoginStatus.LOGGED_IN
         elif event.ui_event in [UiEvents.LOGIN_FAILED, UiEvents.LOGGED_OUT]:
-            self.status = LoginStatus.NOT_LOGGED_IN
+            self._login_status = LoginStatus.NOT_LOGGED_IN
 
     def on_key_down(self, event):
         pass

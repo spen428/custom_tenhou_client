@@ -30,18 +30,6 @@ class GameEvents(Enum):  # TODO: Sort these nicely
 
 
 class UiEvents(Enum):
-    SENT_LOGIN_REQUEST = 1
-    RECV_LOGIN_REQUEST_ACK = 2
-    SENT_AUTH_TOKEN = 3
-    RECV_AUTH_SUCCESSFUL = 4
-    SENT_KEEP_ALIVE = 5
-    RECV_UNKNOWN = 7
-    SENT_END_GAME = 8
-    LOGIN_REQUEST_FAILED = 10
-    DISCONNECTED = 9
-    AUTH_FAILED = 11
-
-    EXIT_GAME = -1
     LEAVE_GAME = 0
     LOG_IN = 1
     LOG_OUT = 2
@@ -55,6 +43,11 @@ class UiEvents(Enum):
     LOGGED_OUT = 10
     LOGIN_FAILED = 11
     RELOAD_REPLAY = 12
+    EXIT_GAME = 13
+    CANCEL_LOGIN = 14
+    JOINED_GAME_QUEUE = 15
+    JOINED_GAME = 16
+    FAILED_TO_JOIN_GAME = 17
 
 
 def GameEvent(game_event: GameEvents, data: dict = None):

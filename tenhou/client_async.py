@@ -1,81 +1,167 @@
 # -*- coding: utf-8 -*-
-import datetime
 import logging
-import re
 import socket
+from enum import Enum
 from queue import Queue
 from threading import Thread
 from time import sleep
 from urllib.parse import quote
 
-import pygame
-
-from mahjong.constants import WINDS_TO_STR
-from mahjong.meld import Meld
-from mahjong.tile import TilesConverter
 from tenhou.decoder import TenhouDecoder
-from tenhou.events import GameEvents, GameEvent, GAMEEVENT
-from tenhou.gui.screens import EventListener
-from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
 
+TENHOU_IP = '133.242.10.78'
+TENHOU_PORT = 10080
+DEFAULT_USER_ID = 'NoName'
+DEFAULT_GAME_LOBBY = 0
 
-def post_event(game_event: GameEvents, data: dict = None):
-    pygame.event.post(GameEvent(game_event, data))
+"""
+  0 - 1 - online, 0 - bots
+  1 - aka forbidden
+  2 - kuitan forbidden
+  3 - hanchan
+  4 - 3man
+  5 - dan flag
+  6 - fast game
+  7 - dan flag
+
+  Combine them as:
+  76543210
+
+  00001001 = 9 = hanchan ari-ari
+  00000001 = 1 = tonpu-sen ari-ari
+"""
+DEFAULT_GAME_TYPE_ID = '1'
 
 
-class TenhouClient(EventListener):
+class Error(Enum):
+    AUTH_FAILED = 0
+    LOGIN_FAILED = 1
+    LOGIN_SUCCESS = 2
+
+
+class AsyncTenhouClient(object):
+    """Async API for interacting with the Tenhou.net game servers. Every async function can take an optional callback 
+    argument which should be a function that takes one argument. The callback function will be invoked on completion 
+    of the async request, and the value returned by it will be passed as the first argument.
+    """
+
     def __init__(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.looking_for_game = True
+
         self.keep_alive_thread = None
         self.keep_alive = False
         self.connection_thread = None
         self.connection_thread_queue = Queue()
         self.connection_alive = False
+        self.game_thread = None
+        self.in_game = False
+
         self.decoder = TenhouDecoder()
+        self.user_id = None
 
     def __del__(self):
         # Let the spawned threads die
         self.connection_alive = False
         self.keep_alive = False
+        self.in_game = False
+        if self.game_thread:
+            self.game_thread.join()
+        if self.keep_alive_thread:
+            self.keep_alive_thread.join()
+        if self.connection_thread:
+            self.connection_thread.join()
+
+    def async_log_in(self, user_id, callback=None):
+        """Send an async log in request."""
+
+        def __log_in_as_user():
+            self._log_in(user_id)
+            self.user_id = user_id
+            return user_id
+
+        if not self.connection_alive:
+            self._start_connection_thread()
+
+        self._queue_function(__log_in_as_user, callback)
+
+    def async_log_out(self, callback=None):
+        """Send an async log out request."""
+
+        def __log_out():
+            self._disconnect()
+            self.user_id = None
+            self.connection_alive = False
+            if self.connection_thread:
+                self.connection_thread.join()
+
+        self._queue_function(__log_out, callback)
+
+    def async_join_game(self, message_handler, lobby=DEFAULT_GAME_LOBBY, game_type_id=DEFAULT_GAME_TYPE_ID,
+                        callback=None):
+        """Queue for and join a game.
+        
+        :param message_handler: function that will receive all messages sent by Tenhou.net server
+        :param lobby: the lobby to join
+        :param game_type_id: the game type to join
+        :param callback: optional callback function
+        :return: None
+        """
+
+        def __join_game():
+            game_id = self._join_game(lobby, game_type_id)
+            self._start_game_thread(message_handler)
+            return game_id
+
+        self._queue_function(__join_game, callback)
+
+    def _queue_function(self, func, callback=None):
+        self.connection_thread_queue.put_nowait((func, callback))
 
     def _start_connection_thread(self):
         def target():
             while self.connection_alive:
-                function, callback = self.connection_thread_queue.get()
-                function()
-                callback()
+                func, callback = self.connection_thread_queue.get()
+                ret = func()
+                if callback is not None:
+                    callback(ret)
 
         self.connection_thread = Thread(target=target)
         self.connection_thread.setDaemon(True)
         self.connection_thread.start()
         self.connection_alive = True
-        self._start_keep_alive_thread()
 
-    def _queue_function(self, function, callback=None):
-        self.connection_thread_queue.put_nowait((function, callback))
+    def _start_keep_alive_thread(self):
+        def target():
+            while self.keep_alive:
+                self._send_message('<Z />')
+                sleep(15)
+
+        self.keep_alive = True
+        self.keep_alive_thread = Thread(target=target)
+        self.keep_alive_thread.setDaemon(True)
+        self.keep_alive_thread.start()
+
+    def _start_game_thread(self, message_handler=None):
+        def target():
+            self.__handle_game(message_handler)
+
+        self.in_game = True
+        self.game_thread = Thread(target=target)
+        self.game_thread.setDaemon(True)
+        self.game_thread.start()
 
     def _connect(self):
-        self.socket.connect((settings.TENHOU_HOST, settings.TENHOU_PORT))
+        self.socket.connect((TENHOU_IP, TENHOU_PORT))
 
     def __send_login_request(self, user_id):
         self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(user_id)))
-        post_event(GameEvents.SENT_LOGIN_REQUEST, {'user_id': user_id})
 
-    def __send_auth_token(self, auth_token):
+    def __send_auth_token(self, auth_token, user_id):
         self._send_message('<AUTH val="{0}"/>'.format(auth_token))
-        self._send_message(self._pxr_tag())
-        post_event(GameEvents.SENT_AUTH_TOKEN, {'auth_token': auth_token})
-
-    def log_in(self, user_id):
-        """Send an async log in request."""
-
-        def __log_in_as_user():
-            self._log_in(user_id)
-
-        self._queue_function(__log_in_as_user)
+        self._send_message(self._get_pxr_tag(user_id, False))
 
     def _log_in(self, user_id):
         self._connect()
@@ -84,11 +170,11 @@ class TenhouClient(EventListener):
 
         auth_string = self.decoder.parse_auth_string(auth_message)
         if not auth_string:
-            post_event(GameEvents.LOGIN_REQUEST_FAILED, {})
-            return False
+            logger.info('Did not receive auth_string')
+            return Error.LOGIN_FAILED
 
         auth_token = self.decoder.generate_auth_token(auth_string)
-        self.__send_auth_token(auth_token)
+        self.__send_auth_token(auth_token, user_id)
 
         # sometimes tenhou send an empty tag after authentication (in tournament mode)
         # and bot thinks that he was not auth
@@ -100,47 +186,50 @@ class TenhouClient(EventListener):
         for message in messages:
             if '<ln' in message:
                 authenticated = True
-                post_event(GameEvents.RECV_AUTH_SUCCESSFUL, {'message': message})
                 break
 
         if authenticated:
             self._start_keep_alive_thread()
             logger.info('Successfully authenticated')
-            return True
+            return Error.LOGIN_SUCCESS
         else:
             logger.info('Failed to authenticate')
-            post_event(GameEvents.AUTH_FAILED, {})
-            return False
+            return Error.AUTH_FAILED
 
-    def start_game(self):  # TODO
-        log_link = ''
+    def _join_game(self, lobby, game_type_id):
+        """Queue for a game.
+        
+        :param lobby: the lobby id to join
+        :param game_type_id: the id of the game type to join
+        :return: the id of the joined game 
+        """
 
-        if settings.LOBBY != '0':
-            if settings.IS_TOURNAMENT:
-                logger.info('Go to the tournament lobby: {0}'.format(settings.LOBBY))
-                self._send_message('<CS lobby="{0}" />'.format(settings.LOBBY))
+        is_tournament = False  # TODO
+
+        if int(lobby) != '0':
+            if is_tournament:
+                logger.info('Go to the tournament lobby: {0}'.format(lobby))
+                self._send_message('<CS lobby="{0}" />'.format(lobby))
                 sleep(2)
                 self._send_message('<DATE />')
             else:
-                logger.info('Go to the lobby: {0}'.format(settings.LOBBY))
-                self._send_message('<CHAT text="{0}" />'.format(quote('/lobby {0}'.format(settings.LOBBY))))
+                logger.info('Go to the lobby: {0}'.format(lobby))
+                self._send_message('<CHAT text="{0}" />'.format(quote('/lobby {0}'.format(lobby))))
                 sleep(2)
 
-        game_type = '{0},{1}'.format(settings.LOBBY, settings.GAME_TYPE)
+        game_type = '{0},{1}'.format(lobby, game_type_id)
 
-        if not settings.IS_TOURNAMENT:
+        if not is_tournament:
             self._send_message('<JOIN t="{0}" />'.format(game_type))
             logger.info('Looking for the game...')
 
-        start_time = datetime.datetime.now()
+        log_link = ''
+        game_id = None
 
         while self.looking_for_game:
             sleep(1)
-
             messages = self._get_multiple_messages()
-
             for message in messages:
-
                 if '<rejoin' in message:
                     # game wasn't found, continue to wait
                     self._send_message('<JOIN t="{0},r" />'.format(game_type))
@@ -153,157 +242,32 @@ class TenhouClient(EventListener):
                     self.looking_for_game = False
                     game_id, seat = self.decoder.parse_log_link(message)
                     log_link = 'http://tenhou.net/0/?log={0}&tw={1}'.format(game_id, seat)
-                    self.statistics.game_id = game_id
 
                 if '<un' in message:
-                    values = self.decoder.parse_names_and_ranks(message)
-                    self.table.set_players_names_and_ranks(values)
+                    pass
 
                 if '<ln' in message:
-                    self._send_message(self._pxr_tag())
-
-            current_time = datetime.datetime.now()
-            time_difference = current_time - start_time
-
-            if time_difference.seconds > 60 * settings.WAITING_GAME_TIMEOUT_MINUTES:
-                break
-
-        # we wasn't able to find the game in timeout minutes
-        # sometimes it happens and we need to end process
-        # and try again later
-        if self.looking_for_game:
-            logger.error('Game is not started. Can\'t find the game')
-            self.end_game()
-            return
+                    self._send_message(self._get_pxr_tag(self.user_id, is_tournament))
 
         logger.info('Game started')
         logger.info('Log: {0}'.format(log_link))
-        logger.info('Players: {0}'.format(self.table.players))
+        return game_id
 
-        main_player = self.table.get_main_player()
-
-        while self.keep_alive:
+    def __handle_game(self, message_handler=None):
+        while self.in_game:
             sleep(1)
-
             messages = self._get_multiple_messages()
-
             for message in messages:
-
-                if '<init' in message:
-                    values = self.decoder.parse_initial_values(message)
-                    self.table.init_round(values['round_number'], values['count_of_honba_sticks'],
-                                          values['count_of_riichi_sticks'], values['dora_indicator'], values['dealer'],
-                                          values['scores'], )
-
-                    tiles = self.decoder.parse_initial_hand(message)
-                    self.table.init_main_player_hand(tiles)
-
-                    logger.info(self.table.__str__())
-                    logger.info('Players: {}'.format(self.table.get_players_sorted_by_scores()))
-                    logger.info('Dealer: {}'.format(self.table.get_player(values['dealer'])))
-                    logger.info('Round  wind: {}'.format(WINDS_TO_STR[self.table.round_wind]))
-                    logger.info('Player wind: {}'.format(WINDS_TO_STR[main_player.player_wind]))
-
-                # draw and discard
-                if '<t' in message:
-                    tile = self.decoder.parse_tile(message)
-
-                    if not main_player.in_riichi:
-                        self.draw_tile(tile)
-                        sleep(1)
-
-                        logger.info('Hand: {0}'.format(TilesConverter.to_one_line_string(main_player.tiles)))
-
-                        tile = self.discard_tile()
-
-                    if 't="16"' in message:
-                        # we win by self draw (tsumo)
-                        self._send_message('<N type="7" />')
-                    else:
-                        # let's call riichi and after this discard tile
-                        if main_player.can_call_riichi():
-                            self._send_message('<REACH hai="{0}" />'.format(tile))
-                            sleep(2)
-                            main_player.in_riichi = True
-
-                        # tenhou format: <D p="133" />
-                        self._send_message('<D p="{0}"/>'.format(tile))
-
-                        logger.info('Remaining tiles: {0}'.format(self.table.count_of_remaining_tiles))
-
-                # new dora indicator after kan
-                if '<dora' in message:
-                    tile = self.decoder.parse_dora_indicator(message)
-                    self.table.add_dora_indicator(tile)
-                    logger.info('New dora indicator: {0}'.format(tile))
-
-                if '<reach' in message and 'step="2"' in message:
-                    who_called_riichi = self.decoder.parse_who_called_riichi(message)
-                    self.enemy_riichi(who_called_riichi)
-                    logger.info('Riichi called by {0} player'.format(who_called_riichi))
-
-                # the end of round
-                if 'agari' in message or 'ryuukyoku' in message:
-                    sleep(2)
-                    self._send_message('<NEXTREADY />')
-
-                # t="7" - suggest to open kan
-                open_sets = ['t="1"', 't="2"', 't="3"', 't="4"', 't="5"', 't="7"']
-                if any(i in message for i in open_sets):
-                    sleep(1)
-                    self._send_message('<N />')
-
-                # set call
-                if '<n who=' in message:
-                    meld = self.decoder.parse_meld(message)
-                    self.call_meld(meld)
-                    logger.info('Meld: {0}, who {1}'.format(meld.type, meld.who))
-
-                    # other player upgraded pon to kan, and it is our winning tile
-                    if meld.type == Meld.CHAKAN and 't="8"' in message:
-                        # actually I don't know what exactly client response should be
-                        # let's try usual ron response
-                        self._send_message('<N type="6" />')
-
-                # other players discards: <e, <f, <g + tile number
-                match_discard = re.match(r"^<[efg]+\d.*", message)
-                if match_discard:
-                    # we win by other player's discard
-                    if 't="8"' in message:
-                        self._send_message('<N type="6" />')
-
-                    tile = self.decoder.parse_tile(message)
-
-                    if '<e' in message:
-                        player_seat = 1
-                    elif '<f' in message:
-                        player_seat = 2
-                    else:
-                        player_seat = 3
-
-                    self.enemy_discard(player_seat, tile)
-
-                if 'owari' in message:
-                    values = self.decoder.parse_final_scores_and_uma(message)
-                    self.table.set_players_scores(values['scores'], values['uma'])
-
+                if message_handler:
+                    message_handler(message)
                 if '<prof' in message:
-                    self.keep_alive = False
+                    self.in_game = False
+                    logger.info('Game over')
 
-        logger.info('Final results: {0}'.format(self.table.get_players_sorted_by_scores()))
+        pass
+        # self._disconnect()
 
-        # we need to finish the game, and only after this try to send statistics
-        # if order will be different, tenhou will return 404 on log download endpoint
-        self.end_game()
-
-        # sometimes log is not available just after the game
-        # let's wait one minute before the statistics update
-        if settings.STAT_SERVER_URL:
-            sleep(60)
-            result = self.statistics.send_statistics()
-            logger.info('Statistics sent: {0}'.format(result))
-
-    def end_game(self):
+    def _disconnect(self):
         self.keep_alive = False
         self._send_message('<BYE />')
 
@@ -340,33 +304,12 @@ class TenhouClient(EventListener):
 
         return messages
 
-    def _start_keep_alive_thread(self):
-        def target():
-            while self.keep_alive:
-                self._send_message('<Z />')
-                post_event(GameEvents.SENT_KEEP_ALIVE)
-                sleep(15)
-
-        self.keep_alive_thread = Thread(target=target)
-        self.keep_alive_thread.setDaemon(True)
-        self.keep_alive_thread.start()
-
-    def _pxr_tag(self):
+    def _get_pxr_tag(self, user_id, is_tournament):
         # I have no idea why we need to send it, but better to do it
-        if settings.IS_TOURNAMENT:
+        if is_tournament:
             return '<PXR V="-1" />'
 
-        if settings.USER_ID == 'NoName':
+        if user_id == 'NoName':
             return '<PXR V="1" />'
         else:
             return '<PXR V="9" />'
-
-    def on_event(self, event):
-        if event.type == GAMEEVENT:
-            self.on_game_event(event)
-            return True
-        return False
-
-    def on_game_event(self, event):
-        if event.game_event == GameEvents.RECV_LOGIN_REQUEST_ACK:
-            pass

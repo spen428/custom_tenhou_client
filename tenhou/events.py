@@ -8,17 +8,6 @@ UIEVENT = pygame.USEREVENT + 1
 
 class GameEvents(Enum):  # TODO: Sort these nicely
     RECV_DRAW = 0
-    SENT_LOGIN_REQUEST = 1
-    RECV_LOGIN_REQUEST_ACK = 2
-    SENT_AUTH_TOKEN = 3
-    RECV_AUTH_SUCCESSFUL = 4
-    SENT_KEEP_ALIVE = 5
-    SENT_UNKNOWN = 6
-    RECV_UNKNOWN = 7
-    SENT_END_GAME = 8
-    DISCONNECTED = 9
-    LOGIN_REQUEST_FAILED = 10
-    AUTH_FAILED = 11
     RECV_SHUFFLE_SEED = 12
     RECV_JOIN_TABLE = 13
     RECV_PLAYER_DETAILS = 14
@@ -41,12 +30,23 @@ class GameEvents(Enum):  # TODO: Sort these nicely
 
 
 class UiEvents(Enum):
+    SENT_LOGIN_REQUEST = 1
+    RECV_LOGIN_REQUEST_ACK = 2
+    SENT_AUTH_TOKEN = 3
+    RECV_AUTH_SUCCESSFUL = 4
+    SENT_KEEP_ALIVE = 5
+    RECV_UNKNOWN = 7
+    SENT_END_GAME = 8
+    LOGIN_REQUEST_FAILED = 10
+    DISCONNECTED = 9
+    AUTH_FAILED = 11
+
     EXIT_GAME = -1
     LEAVE_GAME = 0
     LOG_IN = 1
     LOG_OUT = 2
     OPEN_REPLAY = 3
-    JOIN_LOBBY = 4
+    JOIN_GAME = 4
     TEST_INGAMEUI = 5
     TEST_REPLAY = 6
     TEST_LG = 7

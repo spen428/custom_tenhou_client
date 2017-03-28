@@ -71,7 +71,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
         pygame.event.post(UiEvent(UiEvents.LOG_OUT))
 
     def _join_lobby(self):
-        pygame.event.post(UiEvent(UiEvents.JOIN_LOBBY))
+        pygame.event.post(UiEvent(UiEvents.JOIN_GAME))
 
     def _play_anonymously(self):
         self.status = LoginStatus.LOGGING_IN

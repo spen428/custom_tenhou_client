@@ -5,8 +5,7 @@ import os
 
 import pygame
 
-from tenhou.client_async import TenhouClient
-from tenhou.events import UIEVENT, UiEvents, UiEvent, GameEvents
+from tenhou.events import UIEVENT, UiEvents, GameEvents
 from tenhou.gui import get_resource_dir
 from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.main_menu import MainMenuScreen
@@ -84,8 +83,8 @@ class Gui(object):
             self.running = False
         elif event.ui_event == UiEvents.OPEN_REPLAY:
             self._load_replay(event.file_path)
-        elif event.ui_event == UiEvents.JOIN_LOBBY:
-            self._join_lobby()
+        elif event.ui_event == UiEvents.JOIN_GAME:
+            self._join_game()
         elif event.ui_event == UiEvents.TEST_INGAMEUI:
             self._ingameui_test()
         elif event.ui_event == UiEvents.TEST_REPLAY:
@@ -102,19 +101,12 @@ class Gui(object):
             logger.info("Successfully logged in")
 
     def _log_in(self, user_id):
-        if self.game_manager is not None:
-            return False  # already logged in
-
-        self.game_manager = TenhouClient()
-        self.game_manager.log_in(user_id)
+        return False
 
     def _log_out(self):
-        self.game_manager.end_game()
-        self.game_manager = None
-        pygame.event.post(UiEvent(UiEvents.LOGGED_OUT))
-        return True
+        return False
 
-    def _join_lobby(self):
+    def _join_game(self):
         pass
 
     def _load_replay(self, replay_file_path, autoskip=True):

@@ -303,11 +303,9 @@ class TenhouDecoder(object):
             meld.type = Meld.PON
             meld.tiles = [Tile(t0 + 4 * base), Tile(t1 + 4 * base), Tile(t2 + 4 * base)]
         elif data & 2:
-            # Could be CHAKAN or SHOUMINKAN
             # 0b1100100001110010 = chun shouminkan, extended middle
             meld.type = Meld.SHOUMINKAN
             meld.tiles = [Tile(t0 + 4 * base), Tile(t1 + 4 * base), Tile(t2 + 4 * base), Tile(t4 + 4 * base)]
-        print('data={} base_and_called={} base={}'.format(data, base_and_called, base))
 
     def parse_kan(self, data, meld):
         base_and_called = data >> 8
@@ -317,7 +315,6 @@ class TenhouDecoder(object):
         else:
             meld.type = Meld.ANKAN
         meld.tiles = [Tile(4 * base), Tile(1 + 4 * base), Tile(2 + 4 * base), Tile(3 + 4 * base)]
-        # print('data={} base_and_called={} base={}'.format(data, base_and_called, base))
         # 0b0111111000000011 = haku daiminkan, stole from left
         # 0b0110010000000000 = ankan
 

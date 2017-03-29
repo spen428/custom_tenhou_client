@@ -19,6 +19,7 @@ from tenhou.events import GameEvents, GAMEEVENT, GameEvent
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
 from tenhou.jong.classes import Position
+from tenhou.tenhou_async_api import CallType
 from tenhou.utils import seconds_to_time_string, calculate_score_deltas
 
 logger = logging.getLogger('tenhou')
@@ -218,6 +219,8 @@ class InGameScreen(AbstractScreen, EventListener):
         if event.key == pygame.K_ESCAPE:
             self._toggle_esc_menu()
             return True
+        if event.key == pygame.K_s:
+            pygame.event.post(GameEvent(GameEvents.CALL, {'call_type': CallType.SKIP}))
         return False
 
     def on_mouse_down(self, event):

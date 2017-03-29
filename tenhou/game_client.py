@@ -14,6 +14,9 @@ class GameClient(EventListener):
             if event.game_event == GameEvents.DISCARD:
                 self.tenhou_client.async_discard_tile(event.tile)
                 pygame.event.post(GameEvent(GameEvents.SENT_DISCARD, {'tile': event.tile}))
+            elif event.game_event == GameEvents.CALL:
+                self.tenhou_client.async_call(event.call_type)
+                pygame.event.post(GameEvent(GameEvents.SENT_CALL, {'call_type': event.call_type}))
 
     def __init__(self):
         self.tenhou_decoder = TenhouDecoder()

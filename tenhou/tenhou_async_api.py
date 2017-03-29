@@ -43,6 +43,15 @@ class Error(Enum):
     REJOINED_GAME = 3
 
 
+class CallType(object):
+    SKIP = -1
+    CHII = 0
+    PON = 1
+    NUKI = 2
+    RON = 6
+    TSUMO = 7
+
+
 class AsyncTenhouApi(object):
     """Async API for interacting with the Tenhou.net game servers. Every async function can take an optional callback 
     argument which should be a function that takes one argument. The callback function will be invoked on completion 
@@ -83,9 +92,11 @@ class AsyncTenhouApi(object):
             ret = self._log_in(user_id)
             if ret == Error.LOGIN_SUCCESS:
                 self.user_id = user_id
-            elif '<go' in ret:
-                self.user_id = user_id
-                return Error.REJOINED_GAME
+            elif type(ret) == tuple:
+                err, messages = ret
+                if err == Error.REJOINED_GAME:
+                    self.user_id = user_id
+                    return Error.REJOINED_GAME, messages
             return ret
 
         if not self.connection_alive:
@@ -182,7 +193,6 @@ class AsyncTenhouApi(object):
         if '<go' in auth_message:
             messages = self.__split_messages(auth_message)
             self._start_keep_alive_thread()
-            logger.info('Rejoined game')
             return Error.REJOINED_GAME, messages
 
         auth_string = self.decoder.parse_auth_string(auth_message)
@@ -297,9 +307,30 @@ class AsyncTenhouApi(object):
         else:
             return '<PXR V="9" />'
 
+    def async_call(self, call_type_id):
+        def _call():
+            if call_type_id == CallType.SKIP:
+                self._send_message('<N />')
+            else:
+                self._send_message('<N type="' + str(call_type_id) + '" />')
+
+        self._queue_function(_call)
+
+    def async_send_ready(self):
+        def _send_ready():
+            self._send_message('<NEXTREADY />')
+
+        self._queue_function(_send_ready)
+
+    def async_call_riichi(self, tile_id):
+        def _call_riichi():
+            self._send_message('<REACH hai="' + str(tile_id) + '" />')
+
+        self._queue_function(_call_riichi)
+
     def async_discard_tile(self, tile_id):
         def _discard_tile():
-            self._send_message('<D' + str(tile_id) + '/>')
+            self._send_message('<D p="' + str(tile_id) + '"/>')
 
         self._queue_function(_discard_tile)
 

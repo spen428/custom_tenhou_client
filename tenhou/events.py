@@ -31,6 +31,8 @@ class GameEvents(Enum):  # TODO: Sort these nicely
     RECV_RECONNECTED = 30
     SENT_DISCARD = 31
     DISCARD = 32
+    CALL = 33
+    SENT_CALL = 34
 
 
 class Commands(Enum):

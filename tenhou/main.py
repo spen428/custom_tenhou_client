@@ -19,7 +19,7 @@ def connect_and_play():
     client = TenhouClient(s)
 
     try:
-        was_auth = client._authenticate()
+        was_auth = client.authenticate()
 
         if was_auth:
             client.start_game()

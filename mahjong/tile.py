@@ -11,10 +11,22 @@ class Tile(int):
     '''.split()
 
     def as_data(self):
-        return self.TILES[self // 4]
+        return self.TILES[self.normalised()]
 
     def normalised(self):
         return self // 4
+
+    def is_five(self):
+        return self.normalised() in [4, 13, 22]
+
+    def is_jihai(self):
+        return 29 <= self.normalised() <= 35
+
+    def is_kazehai(self):
+        return 29 <= self.normalised() <= 32
+
+    def is_sangenpai(self):
+        return 33 <= self.normalised() <= 35
 
 
 class TilesConverter(object):

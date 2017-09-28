@@ -85,6 +85,7 @@ class InGameScreen(AbstractScreen, EventListener):
     def __init__(self):
         self.table_name = None
         self.round_name = None
+        self.has_red_fives = True  # TODO: Set properly
         # TILES
         self.tiles_64px = _load_64px_tile_sprites()
         self.tiles_38px = _load_38px_tile_sprites()
@@ -482,7 +483,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 canvas.blit(discard_timer_text,
                             (x - discard_timer_text.get_width() / 2 + self.hand_tile_width / 2, y - 13))
 
-    def _draw_tile(self, surface: pygame.Surface, tile: int, coordinates: (int, int), small: bool = False,
+    def _draw_tile(self, surface: pygame.Surface, tile, coordinates: (int, int), small: bool = False,
                    rotation: int = 0, highlight_id=None, sideways: bool = False):
         """
         Blit a tile to a surface.
@@ -495,12 +496,25 @@ class InGameScreen(AbstractScreen, EventListener):
         :param sideways: whether the tile is to be rendered on its side (i.e. rotated 90 degrees)
         :return: None
         """
+        if tile >= len(self.tiles_38px):
+            tile = Tile(tile)
         if type(tile) == Tile:
-            tile_id = tile.normalised()
+            if tile.is_five() and self.has_red_fives:
+                # 4 = 5s, 13 = 5p, 22 = 5m
+                # Draw red five, the last 4 tile sprite ids are 5sd, 5pd, 5md, back_face
+                tile_real = tile / 4
+                if tile_real == 4:
+                    tile_id = -2
+                elif tile_real == 13:
+                    tile_id = -3
+                elif tile_real == 22:
+                    tile_id = -4
+                else:
+                    tile_id = tile.normalised()
+            else:
+                tile_id = tile.normalised()
         elif tile is None or tile < 0:
             tile_id = self._get_tile_back(small)
-        elif tile >= len(self.tiles_38px):
-            tile_id = Tile(tile).normalised()
         else:
             tile_id = tile
 

@@ -31,7 +31,11 @@ class TenhouClient(Client):
         self.socket = socket_object
         self.user_id = user_id
 
-    def _authenticate(self):
+    def on_event(self, event):
+        # logger.debug('TenhouClient ignored event {0}'.format(event))
+        pass
+
+    def authenticate(self):
         self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(self.user_id)))
         auth_message = self._read_message()
 
@@ -170,7 +174,7 @@ class TenhouClient(Client):
 
                         logger.info('Hand: {0}'.format(TilesConverter.to_one_line_string(main_player.tiles)))
 
-                        tile = self.discard_tile()
+                        self.discard_tile(tile)
 
                     if 't="16"' in message:
                         # we win by self draw (tsumo)

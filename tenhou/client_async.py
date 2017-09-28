@@ -44,7 +44,7 @@ class TenhouClient(Client):
         self._send_message(self._pxr_tag())
         post_event(GameEvents.SENT_AUTH_TOKEN, {'auth_token': auth_token})
 
-    def _authenticate(self):
+    def authenticate(self):
         self.__send_login_request(settings.USER_ID)
         auth_message = self._read_message()
 

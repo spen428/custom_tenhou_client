@@ -21,12 +21,14 @@ class MainMenuScreen(AbstractScreen, EventListener):
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "tenhou-logo.png"))
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
-                              MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
+                              MenuButton("Open replay", self._open_replay),
+                              MenuButton("Exit game", self._exit_game),
                               MenuButton("Test In-Game UI", self._test_in_game_ui),
                               MenuButton("Test Replay Viewer", self._test_replay_viewer),
                               MenuButton("Test Live Game", self._test_lg),
                               MenuButton("Test Live Game Replay", self._test_lgr)]
-        self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby), MenuButton("Log out", self._log_out)]
+        self.lobby_buttons = [MenuButton("Join lobby", self._join_lobby),
+                              MenuButton("Log out", self._log_out)]
         self.status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
         self._footer_font = pygame.font.SysFont("Arial", 13)

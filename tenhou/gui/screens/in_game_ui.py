@@ -12,6 +12,7 @@ from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
+from tenhou.decoder import GameMode
 from tenhou.events import GameEvents, GAMEEVENT
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
@@ -85,7 +86,11 @@ class InGameScreen(AbstractScreen, EventListener):
     def __init__(self):
         self.table_name = None
         self.round_name = None
-        self.has_red_fives = True  # TODO: Set properly
+        self.game_mode = None
+        self.game_mode_display_name = '麻雀'  # Placeholder name
+        self.lobby_id = None
+        self.has_red_fives = False
+
         # TILES
         self.tiles_64px = _load_64px_tile_sprites()
         self.tiles_38px = _load_38px_tile_sprites()
@@ -269,7 +274,12 @@ class InGameScreen(AbstractScreen, EventListener):
         :return: True if the event was handled, else False
         """
         logger.debug(event)
-        if event.game_event == GameEvents.RECV_BEGIN_HAND:
+        if event.game_event == GameEvents.RECV_JOIN_TABLE:
+            self.game_mode: GameMode = event.game_mode
+            self.lobby_id = event.lobby_id
+            self.has_red_fives = (not self.game_mode.noaka)
+            self.game_mode_display_name = self.game_mode.display_name
+        elif event.game_event == GameEvents.RECV_BEGIN_HAND:
             self.table.init_round(event.round_number, event.count_of_honba_sticks, event.count_of_riichi_sticks,
                                   event.dora_indicator, event.oya, event.ten)
             # If this is a live game, len(haipai) will be 1, in a replay it will be 4
@@ -277,7 +287,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 # Extend with tile backs for other players' unknown tiles
                 for n in range(1, 4):
                     event.haipai.append([-1 for _ in range(13)])
-                    # Mark player as invisibles
+                # Mark player as invisibles
                     self.table.players[n].tiles_hidden = True
             for n in range(len(event.haipai)):
                 self.table.players[n].init_hand(event.haipai[n])
@@ -703,7 +713,7 @@ class InGameScreen(AbstractScreen, EventListener):
             time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
         time_string = seconds_to_time_string(time_delta_secs)
         round_string = self._get_round_name() + self._get_bonus_name()
-        lines = [time_string, self.table.table_name, round_string]
+        lines = [time_string, self.game_mode_display_name, round_string]
         if self.table.count_of_riichi_sticks > 0:
             lines.append("立直棒{}本".format(self.table.count_of_riichi_sticks))
         if self.table.is_oorasu:

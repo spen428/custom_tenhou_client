@@ -106,10 +106,3 @@ class Table(object):
     @property
     def is_oorasu(self):
         return False  # TODO
-
-    @property
-    def table_name(self):
-        # TODO
-        if self.count_of_players == 3:
-            return '三麻'
-        return '麻雀'

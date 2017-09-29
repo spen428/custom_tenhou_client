@@ -279,6 +279,7 @@ class InGameScreen(AbstractScreen, EventListener):
             self.lobby_id = event.lobby_id
             self.has_red_fives = (not self.game_mode.noaka)
             self.game_mode_display_name = self.game_mode.display_name
+            return True
         elif event.game_event == GameEvents.RECV_BEGIN_HAND:
             self.table.init_round(event.round_number, event.count_of_honba_sticks, event.count_of_riichi_sticks,
                                   event.dora_indicator, event.oya, event.ten)
@@ -287,7 +288,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 # Extend with tile backs for other players' unknown tiles
                 for n in range(1, 4):
                     event.haipai.append([-1 for _ in range(13)])
-                # Mark player as invisibles
+                    # Mark player hand as invisible
                     self.table.players[n].tiles_hidden = True
             for n in range(len(event.haipai)):
                 self.table.players[n].init_hand(event.haipai[n])
@@ -347,6 +348,7 @@ class InGameScreen(AbstractScreen, EventListener):
             return True
         elif event.game_event == GameEvents.RECV_DORA_FLIPPED:
             self.table.add_dora_indicator(event.tile)
+            return True
         return False
 
     def _get_round_name(self):
@@ -514,11 +516,11 @@ class InGameScreen(AbstractScreen, EventListener):
                 # Draw red five, the last 4 tile sprite ids are 5sd, 5pd, 5md, back_face
                 tile_real = tile / 4
                 if tile_real == 4:
-                    tile_id = -2
+                    tile_id = -4
                 elif tile_real == 13:
                     tile_id = -3
                 elif tile_real == 22:
-                    tile_id = -4
+                    tile_id = -2
                 else:
                     tile_id = tile.normalised()
             else:

@@ -7,14 +7,26 @@ class Tile(int):
         1p 2p 3p 4p 5p 6p 7p 8p 9p
         1m 2m 3m 4m 5m 6m 7m 8m 9m
         ew sw ww nw
-        wd gd rd 1sd 1pd 1md
+        wd gd rd
     '''.split()
 
     def as_data(self):
-        return self.TILES[self // 4]
+        return self.TILES[self.normalised()]
 
     def normalised(self):
         return self // 4
+
+    def is_five(self):
+        return self.normalised() in [4, 13, 22]
+
+    def is_jihai(self):
+        return 29 <= self.normalised() <= 35
+
+    def is_kazehai(self):
+        return 29 <= self.normalised() <= 32
+
+    def is_sangenpai(self):
+        return 33 <= self.normalised() <= 35
 
 
 class TilesConverter(object):

@@ -76,7 +76,7 @@ class Table(object):
             self.get_player(x).name = values[x]['name']
             self.get_player(x).rank = values[x]['rank']
 
-    def get_player(self, player_seat) -> Player:
+    def get_player(self, player_seat: int) -> Player:
         return self.players[player_seat]
 
     def get_main_player(self) -> Player:
@@ -106,10 +106,3 @@ class Table(object):
     @property
     def is_oorasu(self):
         return False  # TODO
-
-    @property
-    def table_name(self):
-        # TODO
-        if self.count_of_players == 3:
-            return '三麻'
-        return '麻雀'

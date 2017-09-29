@@ -58,7 +58,7 @@ def _load_38px_tile_sprites():
 
 
 def __load_tile_sprites(small):
-    """Load tile sprites from the resource directory. The tiles should be loaded in the following order: 1m 2m 3m 4m 
+    """Load tile sprites from the resource directory. The tiles should be loaded in the following order: 1m 2m 3m 4m
     5m 6m 7m 8m 9m 1p 2p 3p 4p 5p 6p 7p 8p 9p 1s 2s 3s 4s 5s 6s 7s 8s 9s ton nan shaa pei haku hatsu chun 5sd 5pd 5md
     back
 
@@ -87,6 +87,13 @@ def _load_wind_sprites():
 
 class InGameScreen(AbstractScreen, EventListener):
     def __init__(self):
+        self.table_name = None
+        self.round_name = None
+        self.game_mode = None
+        self.game_mode_display_name = '麻雀'  # Placeholder name
+        self.lobby_id = None
+        self.has_red_fives = False
+
         # TILES
         self.tiles_64px = _load_64px_tile_sprites()
         self.tiles_38px = _load_38px_tile_sprites()
@@ -285,7 +292,13 @@ class InGameScreen(AbstractScreen, EventListener):
         :return: True if the event was handled, else False
         """
         logger.debug(event)
-        if event.game_event == GameEvents.RECV_BEGIN_HAND:
+        if event.game_event == GameEvents.RECV_JOIN_TABLE:
+            self.game_mode: GameMode = event.game_mode
+            self.lobby_id = event.lobby_id
+            self.has_red_fives = (not self.game_mode.noaka)
+            self.game_mode_display_name = self.game_mode.display_name
+            return True
+        elif event.game_event == GameEvents.RECV_BEGIN_HAND:
             self.table.init_round(event.round_number, event.count_of_honba_sticks, event.count_of_riichi_sticks,
                                   event.dora_indicator, event.oya, event.ten)
             # If this is a live game, len(haipai) will be 1, in a replay it will be 4
@@ -293,7 +306,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 # Extend with tile backs for other players' unknown tiles
                 for n in range(1, 4):
                     event.haipai.append([-1 for _ in range(13)])
-                    # Mark player as invisibles
+                    # Mark player hand as invisible
                     self.table.players[n].tiles_hidden = True
             for n in range(len(event.haipai)):
                 self.table.players[n].init_hand(event.haipai[n])
@@ -406,6 +419,7 @@ class InGameScreen(AbstractScreen, EventListener):
             return True
         elif event.game_event == GameEvents.RECV_DORA_FLIPPED:
             self.table.add_dora_indicator(event.tile)
+            return True
         return False
 
     def _get_round_name(self):
@@ -558,7 +572,7 @@ class InGameScreen(AbstractScreen, EventListener):
                 canvas.blit(discard_timer_text,
                             (x - discard_timer_text.get_width() / 2 + self.hand_tile_width / 2, y - 13))
 
-    def _draw_tile(self, surface: pygame.Surface, tile: int, coordinates: (int, int), small: bool = False,
+    def _draw_tile(self, surface: pygame.Surface, tile, coordinates: (int, int), small: bool = False,
                    rotation: int = 0, highlight_id=None, sideways: bool = False):
         """
         Blit a tile to a surface.
@@ -571,9 +585,24 @@ class InGameScreen(AbstractScreen, EventListener):
         :param sideways: whether the tile is to be rendered on its side (i.e. rotated 90 degrees)
         :return: None
         """
+        if tile >= len(self.tiles_38px):
+            tile = Tile(tile)
         if type(tile) == Tile:
-            tile_id = tile.normalised()
-        elif tile is None or tile < 0:
+            if tile.is_five() and self.has_red_fives:
+                # 4 = 5s, 13 = 5p, 22 = 5m
+                # Draw red five, the last 4 tile sprite ids are 5sd, 5pd, 5md, back_face
+                tile_real = tile / 4  # Verify that tile is exactly divisible by 4
+                if tile_real == 4:
+                    tile_id = -4
+                elif tile_real == 13:
+                    tile_id = -3
+                elif tile_real == 22:
+                    tile_id = -2
+                else:
+                    tile_id = tile.normalised()
+            else:
+                tile_id = tile.normalised()
+        elif tile is None:
             tile_id = -1  # Back of tile
         elif tile >= len(self.tiles_38px):
             tile_id = Tile(tile).normalised()
@@ -778,7 +807,7 @@ class InGameScreen(AbstractScreen, EventListener):
             time_delta_secs = int(time.time() - self.start_time_secs)  # Truncate milliseconds
         time_string = seconds_to_time_string(time_delta_secs)
         round_string = self._get_round_name() + self._get_bonus_name()
-        lines = [time_string, self.table.table_name, round_string]
+        lines = [time_string, self.game_mode_display_name, round_string]
         if self.table.count_of_riichi_sticks > 0:
             lines.append("立直棒{}本".format(self.table.count_of_riichi_sticks))
         if self.table.is_oorasu:
@@ -997,7 +1026,7 @@ class InGameScreen(AbstractScreen, EventListener):
 
     def _get_yakuman_string(self, num_yakuman):
         """Given a number of yakuman, return a string representing it. i.e. 1 -> '役満', 2 -> 'ダブル役満'
-        
+
         :param num_yakuman: the number of yakuman
         :return: the string representation
         """

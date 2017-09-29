@@ -24,9 +24,37 @@ RYUUKYOKU_NAGASHI_MANGAN = 'nm'
 # http://arcturus.su/~alvin/docs/tenhoudoc/commands.html
 # http://arcturus.su/~alvin/docs/tenhoudoc/values.html
 
+class GameMode(object):
+    # GAME_MODES = (field_name, bit_flag, display_name)
+    GAME_MODES = [('multi', 0x01, '対人戦'), ('noaka', 0x02, '赤ナシ'), ('nokui', 0x04, '喰ナシ'),
+                  ('nan', 0x08, '東南'), ('sanma', 0x10, 'サンマ'), ('toku', 0x20, '特上'),
+                  ('saku', 0x40, '速'), ('high', 0x80, '上級')]
+
+    def __init__(self, val):
+        self.game_mode_value = val
+        self.display_name = ''
+        # Set attrs such that the field names above are either true or false
+        # indicating their presence. e.g. if mode is sanma then self.sanma = True
+        for (field_name, bit_flag, display_name) in GameMode.GAME_MODES:
+            is_flag_set = (val & bit_flag == bit_flag)
+            self.__setattr__(field_name, is_flag_set)
+            if is_flag_set:
+                if self.display_name is '':
+                    self.display_name = display_name
+                else:
+                    self.display_name += '　' + display_name
+
+
 class TenhouDecoder(object):
     RANKS = [u'新人', u'9級', u'8級', u'7級', u'6級', u'5級', u'4級', u'3級', u'2級', u'1級', u'初段', u'二段', u'三段', u'四段', u'五段',
              u'六段', u'七段', u'八段', u'九段', u'十段', u'天鳳位']
+    YAKU_NAMES = ['門前清自摸和', '立直', '一発', '槍槓', '嶺上開花', '海底摸月', '河底撈魚', '平和',
+                  '断幺九', '一盃口', '自風 東', '自風 南', '自風 西', '自風 北', '場風 東', '場風 南',
+                  '場風 西', '場風 北', '役牌 白', '役牌 發', '役牌 中', '両立直', '七対子', '混全帯幺九',
+                  '一気通貫', '三色同順', '三色同刻', '三槓子', '対々和', '三暗刻', '小三元', '混老頭',
+                  '二盃口', '純全帯幺九', '混一色', '清一色', '人和', '天和', '地和', '大三元', '四暗刻',
+                  '四暗刻単騎', '字一色', '緑一色', '清老頭', '九蓮宝燈', '純正九蓮宝燈', '国士無双',
+                  '国士無双１３面', '大四喜', '小四喜', '四槓子', 'ドラ', '裏ドラ', '赤ドラ']
 
     def _bs(self, message, tag_name):
         soup = BeautifulSoup(message, 'html.parser')
@@ -155,18 +183,25 @@ class TenhouDecoder(object):
             hai = [[int(t) for t in tag.attrs['hai'].split(',')]]
             machi = int(tag.attrs['machi'])
             ten = [int(t) for t in tag.attrs['ten'].split(',')]
+            yaku = []
+            yakuman = []
             try:
+				# Convert list from [1, 1, 1, 2, ...] form into [(1,1), (1,2), ...]
                 yakulist = [int(t) for t in tag.attrs['yaku'].split(',')]
                 yaku_ids = yakulist[::2]
                 yaku_han = yakulist[1::2]
                 yaku = list(zip(yaku_ids, yaku_han))
             except KeyError:
                 # In the case of a yakuman, yaku is not present
-                yaku = []
+                pass
             try:
-                yakuman = [int(t) for t in tag.attrs['yakuman'].split(',')]
+                # As above
+                yakulist = [int(t) for t in tag.attrs['yakuman'].split(',')]
+                yaku_ids = yakulist[::2]
+                yaku_han = yakulist[1::2]
+                yakuman = list(zip(yaku_ids, yaku_han))
             except KeyError:
-                yakuman = []
+                pass
             dora_hai = [int(t) for t in tag.attrs['dorahai'].split(',')]
             try:
                 dora_hai_ura = [int(t) for t in tag.attrs['dorahaiura'].split(',')]
@@ -225,9 +260,9 @@ class TenhouDecoder(object):
 
     def parse_go(self, message):
         tag = self._bs(message, 'go')
-        game_type = int(tag.attrs['type'])
+        game_mode = GameMode(int(tag.attrs['type']))
         lobby_id = int(tag.attrs['lobby'])
-        return {'type': game_type, 'lobby': lobby_id}
+        return {'game_mode': game_mode, 'lobby_id': lobby_id}
 
     def parse_log_link(self, message):
         tag = self._bs(message, 'taikyoku')

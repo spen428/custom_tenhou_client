@@ -21,7 +21,8 @@ class MainMenuScreen(AbstractScreen, EventListener):
         self.logo_image = pygame.image.load(os.path.join(tenhou.gui.get_resource_dir(), "tenhou-logo.png"))
         self.login_buttons = [MenuButton("Log in", self._log_in),
                               MenuButton("Play anonymously", self._play_anonymously),
-                              MenuButton("Open replay", self._open_replay), MenuButton("Exit game", self._exit_game),
+                              MenuButton("Open replay", self._open_replay),
+                              MenuButton("Exit game", self._exit_game),
                               MenuButton("Test In-Game UI", self._test_in_game_ui),
                               MenuButton("Test Replay Viewer", self._test_replay_viewer),
                               MenuButton("Test Live Game", self._test_lg),

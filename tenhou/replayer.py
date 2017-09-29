@@ -3,23 +3,32 @@ import logging
 
 import pygame
 
+from mahjong.client import Client
 from tenhou.decoder import TenhouDecoder
 from tenhou.events import GameEvents, GameEvent, GAMEEVENT, UIEVENT, UiEvents
-from tenhou.gui.screens import EventListener
 
 logger = logging.getLogger('tenhou')
 
 
-class ReplayClient(EventListener):
+class ReplayClient(Client):
     TENHOU_LOG_URLS = ['http://e.mjv.jp/0/log/?', 'http://ee.mjv.jp/0/log/?', 'http://ff.mjv.jp/0/log/?']
-
     def __init__(self, replay_file_path=None):
+        super(ReplayClient, self).__init__()
         self.decoder = TenhouDecoder()
         self.current_line_idx = 0
         self.lines = []
         self.current_replay = None
         if replay_file_path is not None:
             self.load_replay(replay_file_path)
+
+    def close(self):
+        pass
+
+    def authenticate(self, **_):
+        raise NotImplementedError
+
+    def start_game(self):
+        raise NotImplementedError
 
     def _erase_state(self):
         self.current_line_idx = 0

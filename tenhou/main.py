@@ -2,10 +2,9 @@
 import logging
 import socket
 
-from tenhou.tenhou_client import TenhouClient
-from utils.settings_handler import settings
+from tenhou.client_async import TenhouClient
 from tenhou.gui.gui import Gui
-
+from utils.settings_handler import settings
 
 logger = logging.getLogger('tenhou')
 
@@ -19,7 +18,7 @@ def connect_and_play():
     client = TenhouClient(s)
 
     try:
-        was_auth = client._authenticate()
+        was_auth = client.authenticate()
 
         if was_auth:
             client.start_game()

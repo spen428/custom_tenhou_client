@@ -330,11 +330,11 @@ class InGameScreen(AbstractScreen, EventListener):
             self.table.get_player(event.who).score -= 1000
             return True
         elif event.game_event == GameEvents.RECV_AGARI:
-            fu = event.ten[0]
-            han = 0  # TODO
-            points = event.ten[1]
             yaku_list = sorted(event.yaku)
             yakuman_string = None  # TODO
+            fu = event.ten[0]
+            han = sum([n for _, n in yaku_list])
+            points = event.ten[1]
             self._set_end_dialog('和了', yaku_list, fu, han, points, yakuman_string)
             self._add_call(event.who, 'ロン' if event.who != event.from_who else 'ツモ')
             return True

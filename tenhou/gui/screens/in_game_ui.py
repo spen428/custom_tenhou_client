@@ -12,7 +12,7 @@ from mahjong.constants import WINDS_TO_STR
 from mahjong.meld import Meld
 from mahjong.table import Table
 from mahjong.tile import Tile
-from tenhou.decoder import GameMode
+from tenhou.decoder import GameMode, TenhouDecoder
 from tenhou.events import GameEvents, GAMEEVENT
 from tenhou.gui.screens import MenuButton, AbstractScreen, EventListener
 from tenhou.gui.screens.esc_menu import EscMenuScreen
@@ -333,7 +333,7 @@ class InGameScreen(AbstractScreen, EventListener):
             fu = event.ten[0]
             han = 0  # TODO
             points = event.ten[1]
-            yaku_list = ['Yaku #{}'.format(x) for x in event.yaku]
+            yaku_list = sorted(event.yaku)
             yakuman_string = None  # TODO
             self._set_end_dialog('和了', yaku_list, fu, han, points, yakuman_string)
             self._add_call(event.who, 'ロン' if event.who != event.from_who else 'ツモ')
@@ -514,7 +514,7 @@ class InGameScreen(AbstractScreen, EventListener):
             if tile.is_five() and self.has_red_fives:
                 # 4 = 5s, 13 = 5p, 22 = 5m
                 # Draw red five, the last 4 tile sprite ids are 5sd, 5pd, 5md, back_face
-                tile_real = tile / 4
+                tile_real = tile / 4  # Verify that tile is exactly divisible by 4
                 if tile_real == 4:
                     tile_id = -4
                 elif tile_real == 13:
@@ -872,10 +872,14 @@ class InGameScreen(AbstractScreen, EventListener):
         y += 40
         # Yaku
         if len(yaku_list) > 0:
-            for yaku in yaku_list:
+            for yaku_id, han_value in yaku_list:
                 y += 20
-                text = self.end_dialog_yaku_font.render(yaku, 1, (255, 255, 255))
+                yaku_name = TenhouDecoder.YAKU_NAMES[yaku_id]
+                text = self.end_dialog_yaku_font.render(yaku_name, 1, (255, 255, 255))
                 x = centre_x - text.get_width() / 2
+                canvas.blit(text, (x, y))
+                text = self.end_dialog_yaku_font.render(str(han_value)+'翻', 1, (255, 255, 255))
+                x = centre_x + 75
                 canvas.blit(text, (x, y))
         # Points
         if self.end_dialog_data['points'] is not None:

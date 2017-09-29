@@ -37,6 +37,13 @@ class GameMode(object):
 class TenhouDecoder(object):
     RANKS = [u'新人', u'9級', u'8級', u'7級', u'6級', u'5級', u'4級', u'3級', u'2級', u'1級', u'初段', u'二段', u'三段', u'四段', u'五段',
              u'六段', u'七段', u'八段', u'九段', u'十段', u'天鳳位']
+    YAKU_NAMES = ['門前清自摸和', '立直', '一発', '槍槓', '嶺上開花', '海底摸月', '河底撈魚', '平和',
+                  '断幺九', '一盃口', '自風 東', '自風 南', '自風 西', '自風 北', '場風 東', '場風 南',
+                  '場風 西', '場風 北', '役牌 白', '役牌 發', '役牌 中', '両立直', '七対子', '混全帯幺九',
+                  '一気通貫', '三色同順', '三色同刻', '三槓子', '対々和', '三暗刻', '小三元', '混老頭',
+                  '二盃口', '純全帯幺九', '混一色', '清一色', '人和', '天和', '地和', '大三元', '四暗刻',
+                  '四暗刻単騎', '字一色', '緑一色', '清老頭', '九蓮宝燈', '純正九蓮宝燈', '国士無双',
+                  '国士無双１３面', '大四喜', '小四喜', '四槓子', 'ドラ', '裏ドラ', '赤ドラ']
 
     def _bs(self, message, tag_name):
         soup = BeautifulSoup(message, 'html.parser')
@@ -145,15 +152,23 @@ class TenhouDecoder(object):
             hai = [[int(t) for t in tag.attrs['hai'].split(',')]]
             machi = int(tag.attrs['machi'])
             ten = [int(t) for t in tag.attrs['ten'].split(',')]
+            yaku = []
+            yakuman = []
             try:
-                yaku = [int(t) for t in tag.attrs['yaku'].split(',')]
+                ykr = [int(t) for t in tag.attrs['yaku'].split(',')]
+                # list is actually an (id, value) pair so let's turn that into a tuple list
+                for idx in range(0, len(ykr), 2):
+                    yaku.append((ykr[idx], ykr[idx + 1]))
             except KeyError:
                 # In the case of a yakuman, yaku is not present
-                yaku = []
+                pass
             try:
-                yakuman = [int(t) for t in tag.attrs['yakuman'].split(',')]
+                ykr = [int(t) for t in tag.attrs['yakuman'].split(',')]
+                # as above
+                for idx in range(0, len(ykr), 2):
+                    yakuman.append((ykr[idx], ykr[idx + 1]))
             except KeyError:
-                yakuman = []
+                pass
             dora_hai = [int(t) for t in tag.attrs['dorahai'].split(',')]
             try:
                 dora_hai_ura = [int(t) for t in tag.attrs['dorahaiura'].split(',')]

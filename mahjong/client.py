@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+from abc import ABCMeta, abstractmethod
 from mahjong.stat import Statistics
 from mahjong.table import Table
+from tenhou.gui.screens import EventListener
 from utils.general import make_random_letters_and_digit_string
 
 
-class Client(object):
+class Client(EventListener, metaclass=ABCMeta):
     statistics = None
     id = ''
     position = 0
@@ -15,14 +17,21 @@ class Client(object):
         self.player = self.table.get_main_player()
         self.id = make_random_letters_and_digit_string()
 
-    def authenticate(self):
-        pass
+    @abstractmethod
+    def close(self):
+        raise NotImplementedError
 
+    @abstractmethod
+    def authenticate(self, user_id, is_tournament, callback):
+        raise NotImplementedError
+
+    @abstractmethod
     def start_game(self):
-        pass
+        raise NotImplementedError
 
+    @abstractmethod
     def end_game(self):
-        pass
+        raise NotImplementedError
 
     def init_hand(self, tiles):
         self.player.init_hand(tiles)

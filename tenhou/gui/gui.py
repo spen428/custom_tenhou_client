@@ -74,15 +74,13 @@ class Gui(object):
 
         # Finish Pygame.
         if self.game_manager is not None:
-            self.game_manager.end_game()
-        pygame.quit()
+            def _end_game_callback():
+                pygame.quit()
+            self.game_manager.end_game(_end_game_callback)
 
     def on_ui_event(self, event):
         if event.ui_event == UiEvents.LOG_IN:
-            if self._log_in(event.user_id):
-                pygame.event.post(UiEvent(UiEvents.LOGGED_IN))
-            else:
-                pygame.event.post(UiEvent(UiEvents.LOGIN_FAILED))
+            self._log_in(event.user_id)
         elif event.ui_event == UiEvents.LOG_OUT:
             self._log_out()
         elif event.ui_event == UiEvents.LEAVE_GAME:
@@ -106,27 +104,31 @@ class Gui(object):
         if self.game_manager is not None:
             return False
 
+        # TODO: Should this be in TenhouClient?
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((settings.TENHOU_HOST, settings.TENHOU_PORT))
-        self.game_manager = TenhouClient(sock, user_id)
-        if self.game_manager.authenticate():
-            logger.info("Successfully logged in as {0}".format(user_id))
-            return True
-        else:
-            logger.error("Authentication failure")
-            return False
+        self.game_manager = TenhouClient(sock)
+
+        def _log_in_callback(success):
+            if success:
+                pygame.event.post(UiEvent(UiEvents.LOGGED_IN))
+            else:
+                pygame.event.post(UiEvent(UiEvents.LOGIN_FAILED))
+        self.game_manager.authenticate(user_id, _log_in_callback)
 
     def _log_out(self):
-        self.game_manager.end_game()
-        self.game_manager = None
-        pygame.event.post(UiEvent(UiEvents.LOGGED_OUT))
-        return True
+        def _log_out_callback():
+            self.game_manager = None
+            pygame.event.post(UiEvent(UiEvents.LOGGED_OUT))
+        self.game_manager.end_game(_log_out_callback)
 
     def _join_lobby(self):
         pass
 
     def _load_replay(self, replay_file_path, autoskip=True):
         if type(self.game_manager) is not ReplayClient:
+            if type(self.game_manager) is TenhouClient:
+                self.game_manager.close()
             self.game_manager = ReplayClient()
         if type(self.current_screen) is not ReplayScreen:
             self.current_screen = ReplayScreen()

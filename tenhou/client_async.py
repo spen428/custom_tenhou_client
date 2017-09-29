@@ -3,8 +3,9 @@ import datetime
 import logging
 import re
 import socket
+from queue import Queue
 from threading import Thread
-from time import sleep
+from time import sleep, time
 from urllib.parse import quote
 
 import pygame
@@ -25,35 +26,57 @@ def post_event(game_event: GameEvents, data: dict = None):
 
 
 class TenhouClient(Client):
+    """This is an asynchronous implementation of the previous Tenhou.net client. Methods prepended with a single
+    underscore are synchronous, and methods prepended with two underscores are synchronous methods used by the single
+    underscore methods. To use the async functionality therefore, call only the methods without an underscore prefix.
+    These methods can take an optional callback function, which should take a single argument that will be the return
+    value of the asynchronous task. See the individual methods' documentation for more details."""
 
     def __init__(self, socket_object):
         super(TenhouClient, self).__init__()
         self.socket = socket_object
         self.game_is_continue = True
         self.looking_for_game = True
-        self.connection_thread = None
+        self.connection_thread = Thread(target=self.__connection_target)
+        self.connection_thread_message_queue = Queue()
+        self.connection_thread_running = False
         self.keep_alive_thread = None
+        self.user_id = None
+        self.is_tournament = None
         self.decoder = TenhouDecoder()
 
-    def __send_login_request(self, user_id):
-        self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(user_id)))
-        post_event(GameEvents.SENT_LOGIN_REQUEST, {'user_id': user_id})
+    def close(self):
+        """Close the client, stopping any background threads. This MUST be called when the client is no longer in 
+        use."""
+        self.connection_thread_running = False
+        self.game_is_continue = False
+        self.connection_thread.join()
+        self.keep_alive_thread.join()
 
-    def __send_auth_token(self, auth_token):
-        self._send_message('<AUTH val="{0}"/>'.format(auth_token))
-        self._send_message(self._pxr_tag())
-        post_event(GameEvents.SENT_AUTH_TOKEN, {'auth_token': auth_token})
+    def on_event(self, event):
+        """Method for receiving game events."""
+        pass
 
-    def authenticate(self):
-        self._authenticate()  # TODO: Call async
+    def authenticate(self, user_id, is_tournament=False, callback=None):
+        """Attempt to log in with the given user id. Callback function is passed a boolean value
+        indicating whether the authentication succeeded or failed."""
+        self._put_task(self._authenticate, (user_id, is_tournament), callback)
 
-    def _authenticate(self):
-        self.__send_login_request(settings.USER_ID)
+    def start_game(self, callback=None):
+        self._put_task(self._start_game, None, callback)
+
+    def end_game(self, callback=None):
+        self._put_task(self._end_game, None, callback)
+
+    def _authenticate(self, user_id, is_tournament):
+        self.user_id = user_id
+        self.is_tournament = is_tournament
+        self.__send_login_request(user_id)
         auth_message = self._read_message()
 
         auth_string = self.decoder.parse_auth_string(auth_message)
         if not auth_string:
-            post_event(GameEvents.LOGIN_REQUEST_FAILED, {})
+            post_event(GameEvents.LOGIN_REQUEST_FAILED, {'user_id': user_id})
             return False
 
         auth_token = self.decoder.generate_auth_token(auth_string)
@@ -74,14 +97,15 @@ class TenhouClient(Client):
 
         if authenticated:
             self._send_keep_alive_ping()
-            logger.info('Successfully authenticated')
+            logger.info("Authentication successful")
             return True
         else:
             logger.info('Failed to authenticate')
-            post_event(GameEvents.AUTH_FAILED, {})
+            post_event(GameEvents.AUTH_FAILED,
+                       {'user_id': user_id, 'auth_string': auth_string, 'auth_token': auth_token})
             return False
 
-    def start_game(self):  # TODO
+    def _start_game(self):
         log_link = ''
 
         if settings.LOBBY != '0':
@@ -183,7 +207,7 @@ class TenhouClient(Client):
 
                         logger.info('Hand: {0}'.format(TilesConverter.to_one_line_string(main_player.tiles)))
 
-                        tile = self.discard_tile()
+                        self.discard_tile(tile)
 
                     if 't="16"' in message:
                         # we win by self draw (tsumo)
@@ -272,7 +296,7 @@ class TenhouClient(Client):
             result = self.statistics.send_statistics()
             logger.info('Statistics sent: {0}'.format(result))
 
-    def end_game(self):
+    def _end_game(self):
         self.game_is_continue = False
         self._send_message('<BYE />')
 
@@ -310,21 +334,46 @@ class TenhouClient(Client):
         return messages
 
     def _send_keep_alive_ping(self):
-        def send_request():
+        def __keep_alive_target():
             while self.game_is_continue:
                 self._send_message('<Z />')
                 post_event(GameEvents.SENT_KEEP_ALIVE)
                 sleep(15)
 
-        self.keep_alive_thread = Thread(target=send_request)
+        self.keep_alive_thread = Thread(target=__keep_alive_target)
         self.keep_alive_thread.start()
 
     def _pxr_tag(self):
         # I have no idea why we need to send it, but better to do it
-        if settings.IS_TOURNAMENT:
+        if self.is_tournament:
             return '<PXR V="-1" />'
-
-        if settings.USER_ID == 'NoName':
+        if self.user_id == 'NoName':
             return '<PXR V="1" />'
         else:
             return '<PXR V="9" />'
+
+    def __send_login_request(self, user_id):
+        self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(user_id)))
+        post_event(GameEvents.SENT_LOGIN_REQUEST, {'user_id': user_id})
+
+    def __send_auth_token(self, auth_token):
+        self._send_message('<AUTH val="{0}"/>'.format(auth_token))
+        self._send_message(self._pxr_tag())
+        post_event(GameEvents.SENT_AUTH_TOKEN, {'auth_token': auth_token})
+
+    def __connection_target(self):
+        self.connection_thread_running = True
+        while self.connection_thread_running:
+            message = self.connection_thread_message_queue.get()
+            timestamp, func, params, callback = message
+            logger.debug('Executing async task ' + func.__name__ + ' with timestamp ' + str(timestamp))
+            ret = func(*params)
+            if callback is not None:
+                logger.debug('Executing callback for task ' + func.__name__)
+                callback(ret)
+
+    def _put_task(self, func, params, callback):
+        if not self.connection_thread_running:
+            self.connection_thread.start()
+        message = (time(), func, params, callback)
+        self.connection_thread_message_queue.put(message)

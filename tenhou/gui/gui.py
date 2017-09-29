@@ -6,7 +6,7 @@ import socket
 
 import pygame
 
-from tenhou.client import TenhouClient
+from tenhou.client_async import TenhouClient
 from tenhou.events import UIEVENT, UiEvents, UiEvent
 from tenhou.gui import get_resource_dir
 from tenhou.gui.screens import AbstractScreen

@@ -44,6 +44,9 @@ class TenhouClient(Client):
         self._send_message(self._pxr_tag())
         post_event(GameEvents.SENT_AUTH_TOKEN, {'auth_token': auth_token})
 
+    def authenticate(self):
+        self._authenticate()  # TODO: Call async
+
     def _authenticate(self):
         self.__send_login_request(settings.USER_ID)
         auth_message = self._read_message()
@@ -77,9 +80,6 @@ class TenhouClient(Client):
             logger.info('Failed to authenticate')
             post_event(GameEvents.AUTH_FAILED, {})
             return False
-
-    def authenticate(self):
-        pass
 
     def start_game(self):  # TODO
         log_link = ''

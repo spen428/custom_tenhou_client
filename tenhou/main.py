@@ -2,7 +2,7 @@
 import logging
 import socket
 
-from tenhou.client import TenhouClient
+from tenhou.client_async import TenhouClient
 from utils.settings_handler import settings
 from tenhou.gui.gui import Gui
 

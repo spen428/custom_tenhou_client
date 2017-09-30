@@ -44,11 +44,11 @@ class GameClient(EventListener):
         self.tenhou_client.async_log_in(user_id, callback)
 
     def cancel_login(self):
-        raise NotImplementedError
+        self.tenhou_client.terminate()
 
     def log_out(self):
         def callback(data):
-            pass
+            pygame.event.post(UiEvent(UiEvents.LOGGED_OUT))
 
         self.tenhou_client.async_log_out(callback)
 

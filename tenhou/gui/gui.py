@@ -5,9 +5,8 @@ import os
 
 import pygame
 
+from tenhou.events import UIEVENT, UiEvents
 from tenhou.game_client import GameClient
-from tenhou.client_async import TenhouClient
-from tenhou.events import UIEVENT, UiEvents, UiEvent
 from tenhou.gui import get_resource_dir
 from tenhou.gui.screens import AbstractScreen
 from tenhou.gui.screens.in_game_ui import InGameScreen
@@ -24,7 +23,7 @@ class Gui(object):
     def __init__(self, width=1280, height=720, framerate_limit=2000, resizable=True):
         pygame.init()
         display_flags = (pygame.RESIZABLE | pygame.HWACCEL) if resizable else 0
-        self.version_str: str = "v1.00Alpha"
+        self.version_str = "v1.00Alpha"
         self.screen: pygame.Surface = pygame.display.set_mode((width, height), display_flags)
         self.canvas: pygame.Surface = self._create_canvas()
         self.clock: pygame.time.Clock = pygame.time.Clock()
@@ -32,7 +31,7 @@ class Gui(object):
         self.main_menu = MainMenuScreen()
         self.in_game_screen = InGameScreen()
         self.current_screen: AbstractScreen = self.main_menu
-        self.replay_client: ReplayClient = None
+        self.replay_client: ReplayClient = ReplayClient()
         self.game_client: GameClient = GameClient()
         self.running: bool = False
 
@@ -59,10 +58,8 @@ class Gui(object):
                     self.on_ui_event(event)
                 # Pass events to other listeners
                 self.current_screen.on_event(event)
-                if self.replay_client is not None:
-                    self.replay_client.on_event(event)
-                if self.game_client is not None:
-                    self.game_client.on_event(event)
+                self.replay_client.on_event(event)
+                self.game_client.on_event(event)
 
             # Print framerate and playtime in titlebar.
             text = "Lykat's custom Tenhou client {0} | FPS: {1:.2f}".format(self.version_str, self.clock.get_fps())
@@ -78,10 +75,10 @@ class Gui(object):
             pygame.display.flip()
 
         # Finish Pygame.
-        if self.game_manager is not None:
-            def _end_game_callback():
-                pygame.quit()
-            self.game_manager.end_game(_end_game_callback)
+        if self.game_client is not None:
+            self.game_client.leave_game()
+            self.game_client.log_out()
+        pygame.quit()
 
     def on_ui_event(self, event):
         if event.ui_event == UiEvents.LOG_IN:
@@ -120,26 +117,10 @@ class Gui(object):
             logging.info('Joined game')
 
     def _log_in(self, user_id):
-        if self.game_manager is not None:
-            return False
-
-        # TODO: Should this be in TenhouClient?
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((settings.TENHOU_HOST, settings.TENHOU_PORT))
-        self.game_manager = TenhouClient(sock)
-
-        def _log_in_callback(success):
-            if success:
-                pygame.event.post(UiEvent(UiEvents.LOGGED_IN))
-            else:
-                pygame.event.post(UiEvent(UiEvents.LOGIN_FAILED))
-        self.game_manager.authenticate(user_id, _log_in_callback)
+        self.game_client.log_in(user_id)
 
     def _log_out(self):
-        def _log_out_callback():
-            self.game_manager = None
-            pygame.event.post(UiEvent(UiEvents.LOGGED_OUT))
-        self.game_manager.log_out(_log_out_callback)
+        self.game_client.log_out()
 
     def _cancel_login(self):
         self.game_client.cancel_login()
@@ -152,19 +133,14 @@ class Gui(object):
         self.current_screen = MainMenuScreen()
 
     def _load_replay(self, replay_file_path, autoskip=True):
-        if type(self.game_manager) is not ReplayClient:
-            if type(self.game_manager) is TenhouClient:
-                self.game_manager.close()
-            self.game_manager = ReplayClient()
         if type(self.current_screen) is not ReplayScreen:
             self.current_screen = ReplayScreen()
-        self.game_manager.load_replay(replay_file_path, autoskip)
+        self.replay_client.load_replay(replay_file_path, autoskip)
 
     def _ingameui_test(self):
         self.current_screen = TestInGameScreen()
 
     def _replay_test(self):
-        self.replay_client = ReplayClient()
         self.current_screen = TestReplayScreen()
         self.current_screen._load_next_replay()
 

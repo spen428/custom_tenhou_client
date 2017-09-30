@@ -12,6 +12,7 @@ logger = logging.getLogger('tenhou')
 
 class ReplayClient(Client):
     TENHOU_LOG_URLS = ['http://e.mjv.jp/0/log/?', 'http://ee.mjv.jp/0/log/?', 'http://ff.mjv.jp/0/log/?']
+
     def __init__(self, replay_file_path=None):
         super(ReplayClient, self).__init__()
         self.decoder = TenhouDecoder()

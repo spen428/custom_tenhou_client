@@ -385,6 +385,10 @@ class TenhouDecoder(object):
         tag = self._bs(message, 'reach')
         return int(tag.attrs['who'])
 
+    def parse_err(self, message):
+        tag = self._bs(message, 'err')
+        return int(tag.attrs['code'])
+
     def parse_riichi(self, message):
         tag = self._bs(message, 'reach')
         who = int(tag.attrs['who'])

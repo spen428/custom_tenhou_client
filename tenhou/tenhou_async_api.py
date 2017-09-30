@@ -64,26 +64,37 @@ class AsyncTenhouApi(object):
 
         self.keep_alive_thread = None
         self.keep_alive = False
-        self.connection_thread = None
-        self.connection_thread_queue = Queue()
-        self.connection_alive = False
+        self.api_thread = None
+        self.api_thread_queue = Queue()
+        self.api_alive = False
         self.game_thread = None
+        self.game_thread_queue = Queue()
+        self.game_alive = False
         self.in_game = False
+        self.is_socket_open = False
 
         self.decoder = TenhouDecoder()
         self.user_id = None
 
     def __del__(self):
         # Let the spawned threads die
-        self.connection_alive = False
+        self.terminate()
+
+    def terminate(self):
+        """Kill all API threads."""
+        self.api_alive = False
         self.keep_alive = False
         self.in_game = False
         if self.game_thread:
             self.game_thread.join()
         if self.keep_alive_thread:
             self.keep_alive_thread.join()
-        if self.connection_thread:
-            self.connection_thread.join()
+        if self.api_thread:
+            self.api_thread.join()
+        if self.is_socket_open:
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
+            self.is_socket_open = False
 
     def async_log_in(self, user_id, callback=None):
         """Send an async log in request."""
@@ -99,8 +110,8 @@ class AsyncTenhouApi(object):
                     return Error.REJOINED_GAME, messages
             return ret
 
-        if not self.connection_alive:
-            self._start_connection_thread()
+        if not self.api_alive:
+            self._start_api_thread()
 
         self._queue_function(__log_in_as_user, callback)
 
@@ -110,9 +121,12 @@ class AsyncTenhouApi(object):
         def __log_out():
             self._disconnect()
             self.user_id = None
-            self.connection_alive = False
-            if self.connection_thread:
-                self.connection_thread.join()
+            self.game_alive = False
+            self.keep_alive = False
+            if self.keep_alive_thread:
+                self.keep_alive_thread.join()
+            if self.game_thread:
+                self.game_thread.join()
 
         self._queue_function(__log_out, callback)
 
@@ -140,20 +154,20 @@ class AsyncTenhouApi(object):
         return game_id, lobby, game_type_id, game_messages
 
     def _queue_function(self, func, callback=None):
-        self.connection_thread_queue.put_nowait((func, callback))
+        self.api_thread_queue.put_nowait((func, callback))
 
-    def _start_connection_thread(self):
+    def _start_api_thread(self):
         def target():
-            while self.connection_alive:
-                func, callback = self.connection_thread_queue.get()
+            while self.api_alive:
+                func, callback = self.api_thread_queue.get()
                 ret = func()
                 if callback is not None:
                     callback(ret)
 
-        self.connection_alive = True
-        self.connection_thread = Thread(target=target)
-        self.connection_thread.setDaemon(True)
-        self.connection_thread.start()
+        self.api_alive = True
+        self.api_thread = Thread(target=target)
+        self.api_thread.setDaemon(True)
+        self.api_thread.start()
 
     def _start_keep_alive_thread(self, keep_alive_delay_secs=DEFAULT_KEEP_ALIVE_DELAY_SECS):
         def target():
@@ -176,7 +190,9 @@ class AsyncTenhouApi(object):
         self.game_thread.start()
 
     def _connect(self):
-        self.socket.connect((TENHOU_IP, TENHOU_PORT))
+        if not self.is_socket_open:
+            self.socket.connect((TENHOU_IP, TENHOU_PORT))
+            self.is_socket_open = True
 
     def __send_login_request(self, user_id):
         self._send_message('<HELO name="{0}" tid="f0" sx="M" />'.format(quote(user_id)))
@@ -194,6 +210,14 @@ class AsyncTenhouApi(object):
             messages = self.__split_messages(auth_message)
             self._start_keep_alive_thread()
             return Error.REJOINED_GAME, messages
+        elif '<err' in auth_message:
+            code = self.decoder.parse_err(auth_message)
+            logger.info('Received error code: ' + str(code))
+            # TODO: Handle different error codes differently
+            # Err 1003 may be "invalid ID"
+            # Err 1002 is "name is taken"
+            # Err 1001 is "invalid name given", e.g. illegal chars, too long, blank
+            return Error.LOGIN_FAILED
 
         auth_string = self.decoder.parse_auth_string(auth_message)
         if not auth_string:
@@ -271,8 +295,9 @@ class AsyncTenhouApi(object):
         if self.keep_alive_thread:
             self.keep_alive_thread.join()
 
-        self.socket.shutdown(socket.SHUT_RDWR)
-        self.socket.close()
+        if self.is_socket_open:
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
 
         logger.info('End of the game')
 

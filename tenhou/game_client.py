@@ -73,3 +73,6 @@ class GameClient(EventListener):
 
     def leave_game(self):
         self.tenhou_client._disconnect()
+
+    def cancel_join_game(self):
+        self.tenhou_client.cancel_join_game()

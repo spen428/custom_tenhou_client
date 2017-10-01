@@ -115,6 +115,8 @@ class Gui(object):
             self.current_screen = self.in_game_screen
             self.in_game_screen.erase_state()
             logging.info('Joined game')
+        elif event.ui_event == UiEvents.CANCEL_JOIN_GAME:
+            self.game_client.cancel_join_game()
 
     def _log_in(self, user_id):
         self.game_client.log_in(user_id)

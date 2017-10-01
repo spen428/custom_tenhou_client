@@ -60,6 +60,7 @@ class UiEvents(Enum):
     JOINED_GAME_QUEUE = 15
     JOINED_GAME = 16
     FAILED_TO_JOIN_GAME = 17
+    CANCEL_JOIN_GAME = 18
 
 
 def GameEvent(game_event: GameEvents, data: dict = None):

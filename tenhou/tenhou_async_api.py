@@ -60,7 +60,8 @@ class AsyncTenhouApi(object):
 
     def __init__(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.looking_for_game = True
+        self.looking_for_game = False
+        self.lfg_cancelled = False
 
         self.keep_alive_thread = None
         self.keep_alive = False
@@ -95,6 +96,10 @@ class AsyncTenhouApi(object):
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.is_socket_open = False
+
+    def cancel_join_game(self):
+        self.lfg_cancelled = True
+        self.looking_for_game = False
 
     def async_log_in(self, user_id, callback=None):
         """Send an async log in request."""
@@ -142,9 +147,14 @@ class AsyncTenhouApi(object):
         """
 
         def __join_game():
-            game_id, _, _, game_messages = self._join_game(lobby, game_type_id)
-            self._start_game_thread(message_handler)
-            return game_id, lobby, game_type_id, game_messages
+            ret = self._join_game(lobby, game_type_id)
+            if ret is not None:
+                game_id, _, _, game_messages = ret
+                self._start_game_thread(message_handler)
+                return game_id, lobby, game_type_id, game_messages
+            else:
+                # join game cancelled or failed
+                return None
 
         self._queue_function(__join_game, callback)
 
@@ -364,6 +374,8 @@ class AsyncTenhouApi(object):
         game_id = None
         game_type_string = '{0},{1}'.format(lobby, game_type_id)
         game_messages = []  # Messages to forward to client
+        self.looking_for_game = True
+        self.lfg_cancelled = False
         while self.looking_for_game:
             sleep(1)
             if rejoin_messages is not None:
@@ -393,9 +405,15 @@ class AsyncTenhouApi(object):
                 if '<ln' in message:
                     self._send_message(self._get_pxr_tag(self.user_id, is_tournament))
 
-        logger.info('Game started')
-        logger.info('Log: {0}'.format(log_link))
-        return game_id, lobby, game_type_id, game_messages
+        if log_link is not '':
+            logger.info('Game started')
+            logger.info('Log: {0}'.format(log_link))
+            return game_id, lobby, game_type_id, game_messages
+        elif self.lfg_cancelled:
+            logger.info('Cancelled join game')
+        else:
+            logger.info('Failed to join game')
+        return None
 
     def __split_messages(self, messages):
         messages = messages.split('\x00')

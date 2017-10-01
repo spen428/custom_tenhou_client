@@ -14,6 +14,7 @@ class LoginStatus(Enum):
     NOT_LOGGED_IN = 0
     LOGGING_IN = 1
     LOGGED_IN = 2
+    LOOKING_FOR_GAME = 3
 
 
 class MainMenuScreen(AbstractScreen, EventListener):
@@ -29,6 +30,7 @@ class MainMenuScreen(AbstractScreen, EventListener):
                               MenuButton("Test Live Game Replay", self._test_lgr)]
         self.logging_in_buttons = [MenuButton("Logging in ...", self._nop), MenuButton("Cancel", self._cancel_login)]
         self.lobby_buttons = [MenuButton("Join game", self._join_game), MenuButton("Log out", self._log_out)]
+        self.lfg_buttons = [MenuButton("Looking for a game ...", self._nop), MenuButton("Cancel", self._cancel_join_game)]
         self._login_status: LoginStatus = LoginStatus.NOT_LOGGED_IN
         # Constant render stuff
         self._footer_font = pygame.font.SysFont("Arial", 13)
@@ -46,6 +48,9 @@ class MainMenuScreen(AbstractScreen, EventListener):
 
     def _cancel_login(self):
         pygame.event.post(UiEvent(UiEvents.CANCEL_LOGIN))
+
+    def _cancel_join_game(self):
+        pygame.event.post(UiEvent(UiEvents.CANCEL_JOIN_GAME))
 
     def _exit_game(self):
         pygame.event.post(UiEvent(UiEvents.EXIT_GAME))
@@ -95,6 +100,8 @@ class MainMenuScreen(AbstractScreen, EventListener):
             return self.lobby_buttons
         elif self._login_status == LoginStatus.LOGGING_IN:
             return self.logging_in_buttons
+        elif self._login_status == LoginStatus.LOOKING_FOR_GAME:
+            return self.lfg_buttons
 
     def set_logged_in(self, b):
         if b:
@@ -127,6 +134,10 @@ class MainMenuScreen(AbstractScreen, EventListener):
             self._login_status = LoginStatus.LOGGED_IN
         elif event.ui_event in [UiEvents.LOGIN_FAILED, UiEvents.LOGGED_OUT]:
             self._login_status = LoginStatus.NOT_LOGGED_IN
+        elif event.ui_event == UiEvents.JOINED_GAME_QUEUE:
+            self._login_status = LoginStatus.LOOKING_FOR_GAME
+        elif event.ui_event == UiEvents.CANCEL_JOIN_GAME:
+            self._login_status = LoginStatus.LOGGED_IN
 
     def on_key_down(self, event):
         pass
